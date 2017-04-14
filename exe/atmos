@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require 'atmos/logging'
+require 'atmos/cli'
+Atmos::CLI.run
