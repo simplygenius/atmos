@@ -1,8 +1,10 @@
 require 'clamp'
-require 'yaml'
-require 'active_support/core_ext/string'
+# require 'active_support/core_ext/string'
 require 'sigdump/setup'
 require 'atmos'
+require 'atmos/logging'
+require 'atmos/commands/init'
+require 'atmos/commands/generate'
 
 module Atmos
 
@@ -35,68 +37,28 @@ module Atmos
        ! logfile.present?
     end
 
-    option ["-v", "--version"],
-           :flag, "print version and exit\n",
-           default: false
-
     option ["-l", "--logfile"],
            "FILE", "log to given file\n"
 
-    def execute
 
-      if version?
-        puts "Atmos Version #{Atmos::VERSION}"
-        return
+    subcommand "init", "Initialize the repository", Atmos::Commands::Init
+    subcommand "generate", "Generate recipes for the repository", Atmos::Commands::Generate
+
+    subcommand "version", "Display version" do
+      def execute
+        logger.info "Atmos Version #{Atmos::VERSION}"
+        # logger.debug "Debug Atmos!"
+        # logger.info "Info Atmos!"
+        # logger.warn "Warn Atmos!"
+        # logger.error "Error Atmos!"
       end
-
-      setup_logging
-
-      logger.debug "Debug Atmos!"
-      logger.info "Info Atmos!"
-      logger.warn "Warn Atmos!"
-      logger.error "Error Atmos!"
-
     end
 
-    private
-
-    def setup_logging
-      Logging.logger.root.level = :debug if debug?
-      pattern_options = {}
-
-      if color?
-        pattern_options[:color_scheme] = 'bright'
-      end
-
-      if debug? || logfile.present?
-        pattern_options[:pattern] = '[%d] %-5l %c{2} %m\n'
-      else
-        pattern_options[:pattern] = '%m\n'
-      end
-
-
-      if logfile.present?
-
-        appender = Logging.appenders.file(
-            logfile,
-            layout: Logging.layouts.pattern(pattern_options)
-        )
-
-        # hack to assign stdout/err to logfile if logging to file
-        io = appender.instance_variable_get(:@io)
-        $stdout = $stderr = io
-
-      else
-
-        appender = Logging.appenders.stdout(
-            'stdout',
-            layout: Logging.layouts.pattern(pattern_options)
-        )
-
-      end
-
-      Logging.logger.root.appenders = appender
-
+    # hook into clamp lifecycle to force logging setup even when we are calling
+    # a subcommand
+    def parse(arguments)
+      super
+      Atmos::Logging.setup_logging(debug?, color?, logfile)
     end
 
   end

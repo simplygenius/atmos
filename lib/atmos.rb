@@ -1,4 +1,4 @@
-require "atmos/version"
+require 'atmos/version'
 
 module Atmos
 end

@@ -32,7 +32,9 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "bundler", "~> 1.14"
   spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "minitest", "~> 5.0"
+  spec.add_development_dependency "rspec", "~> 3.7"
+  spec.add_development_dependency "test_construct", "~> 2.0.1"
+
 
   # core dependencies
   spec.add_dependency "activesupport"
@@ -40,5 +42,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "logging"
   spec.add_dependency "sigdump"
   spec.add_dependency "clamp"
+  spec.add_dependency "thor"
 
 end

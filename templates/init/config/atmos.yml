@@ -1,0 +1,13 @@
+variables:
+  - name:
+    default:
+    description:
+
+  - name:
+    default:
+    description:
+
+envs:
+  dev:
+  stage
+  prod:
