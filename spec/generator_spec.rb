@@ -14,15 +14,6 @@ describe Atmos::Generator do
     described_class.source_root(@orig_source_root)
   end
 
-  describe "source_root" do
-
-    it "defaults to templates dir in this repo" do
-      expect(described_class.source_root).to eq(File.expand_path('../../templates', __FILE__))
-      expect(described_class.source_root).to end_with('/atmos/templates')
-    end
-
-  end
-
   describe "valid_templates" do
 
     it "has contents of templates" do
@@ -30,10 +21,27 @@ describe Atmos::Generator do
         described_class.source_root(c.to_s)
         c.directory('foo')
         c.directory('bar')
+        expect(described_class.valid_templates).to eq(['bar', 'foo'])
+      end
+    end
+
+    it "only shows directories as templates" do
+      within_construct do |c|
+        described_class.source_root(c.to_s)
+        c.directory('foo')
+        c.file("foo.txt")
+        expect(described_class.valid_templates).to eq(['foo'])
+      end
+    end
+
+    it "ignores directories with special names" do
+      within_construct do |c|
+        described_class.source_root(c.to_s)
+        c.directory('foo')
         c.directory('svn')
         c.directory('CVS')
         c.directory('.not')
-        expect(described_class.valid_templates).to eq(['bar', 'foo'])
+        expect(described_class.valid_templates).to eq(['foo'])
       end
     end
 

@@ -8,35 +8,61 @@ module Atmos
   class Generator < Thor
 
     include Thor::Actions
-    no_commands { include GemLogger::LoggerSupport }
 
-    source_root File.expand_path('../../../templates', __FILE__)
+    no_commands do
 
-    def self.valid_templates
-      Dir.entries(self.source_root).delete_if {|e| e =~  /(^\.)|svn|CVS/ }.sort
-    end
+      include GemLogger::LoggerSupport
 
-    desc "generate TEMPLATE", ""
+      def self.valid_templates
+        source_paths_for_search.collect do |path|
+          entries = Dir.entries(path).select do |e|
+            p = File.join(path, e)
+            File.directory?(p) && e !~  /(^\.)|svn|CVS/
+          end
+          entries.sort
+        end.flatten
+      end
 
-    def generate(template_names)
-      seen = Set.new
-      Array(template_names).each do |template_name|
-        template_dependencies = find_dependencies(template_name)
-        template_dependencies << template_name
-        template_dependencies.each do |tname|
-          apply_template(tname) unless seen.include?(tname)
-          seen << tname
+      def valid_templates
+        self.class.valid_templates
+      end
+
+      def generate(template_names)
+        seen = Set.new
+        Array(template_names).each do |template_name|
+          template_dependencies = find_dependencies(template_name)
+          template_dependencies << template_name
+          template_dependencies.each do |tname|
+            apply_template(tname) unless seen.include?(tname)
+            seen << tname
+          end
         end
       end
+
     end
 
     protected
 
-    def find_dependencies(name, seen=[])
-      template_dir = File.join(self.class.source_root, name, '')
-      unless File.directory?(template_dir)
-        raise Thor::Error.new("Invalid template #{name}, use one of #{self.class.valid_templates.join(', ')}")
+    def template_dir(name)
+      template_dir = nil
+      source_path = nil
+      source_paths.each do |sp|
+        template_dir = File.join(sp, name, '')
+        if File.directory?(template_dir)
+          source_path = sp
+          break
+        end
       end
+
+      unless template_dir.present?
+        raise Thor::Error.new("Invalid template #{name}, use one of #{valid_templates.join(', ')}")
+      end
+
+      return template_dir, source_path
+    end
+
+    def find_dependencies(name, seen=[])
+      template_dir, source_path = template_dir(name)
 
       if seen.include?(name)
           seen << name
@@ -55,10 +81,7 @@ module Atmos
     end
 
     def apply_template(name)
-      template_dir = File.join(self.class.source_root, name, '')
-      unless File.directory?(template_dir)
-        raise Thor::Error.new("Invalid template #{name}, use one of #{self.class.valid_templates.join(', ')}")
-      end
+      template_dir, source_path = template_dir(name)
 
       template_conf = load_template_config(template_dir)
 
@@ -69,8 +92,13 @@ module Atmos
         Find.prune if f == extra_generator_steps_file # don't copy over templates.rb
 
         template_rel = f.gsub(/#{template_dir}/, '')
-        source_rel = f.gsub(/#{self.class.source_root}\//, '')
+        source_rel = f.gsub(/#{source_path}\//, '')
         dest_rel   = source_rel.gsub(/^#{name}\//, '')
+
+        # prune non-directories at top level
+        if f !~ /\// && ! File.directory?(f)
+          Find.prune
+        end
 
         # Only include optional files when their conditions eval to true
         optional = template_conf['optional'][template_rel] rescue nil
@@ -79,10 +107,7 @@ module Atmos
         if File.directory?(f)
           empty_directory(dest_rel)
         else
-          copy_file(source_rel, dest_rel)
-          src_mode = File.stat(f).mode
-          dest_mode = File.stat(File.join(destination_root, dest_rel)).mode
-          chmod(dest_rel, src_mode) if src_mode != dest_mode
+          copy_file(source_rel, dest_rel, mode: :preserve)
         end
       end
 
