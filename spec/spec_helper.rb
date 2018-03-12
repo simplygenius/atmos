@@ -105,9 +105,56 @@ RSpec.configure do |config|
   # as the one that triggered the failure.
   Kernel.srand config.seed
 =end
+  config.before(:each) do
+    Atmos::Logging.clear
+  end
+
 end
 
 require 'atmos/logging'
 Atmos::Logging.testing = true
+Atmos::Logging.setup_logging(false, false, nil)
 
 require "test_construct/rspec_integration"
+
+require 'rspec/expectations'
+
+
+RSpec::Matchers.define :be_line_width_for_cli do
+  match do |actual|
+    @actual = []
+    @expected = []
+    actual.lines.each {|l| @actual << l if l.size > 80}
+    actual.present? && @actual.size == 0
+  end
+
+  diffable
+
+  failure_message do |actual|
+    if @actual.size == 0
+      "No lines in output"
+    else
+      "Some lines are longer than standard terminal width"
+    end
+  end
+end
+
+require 'stringio'
+
+module IoTestHelpers
+  def simulate_stdin(*inputs, &block)
+    io = StringIO.new
+    inputs.flatten.each { |str| io.puts(str) }
+    io.rewind
+
+    actual_stdin, $stdin = $stdin, io
+    yield
+  ensure
+    $stdin = actual_stdin
+  end
+end
+include IoTestHelpers
+
+class SymbolizedMash < ::Hashie::Mash
+  include Hashie::Extensions::Mash::SymbolizeKeys
+end

@@ -1,6 +1,6 @@
-require "atmos/commands/init"
+require "atmos/commands/terraform"
 
-describe Atmos::Commands::Init do
+describe Atmos::Commands::Terraform do
 
   let(:cli) { described_class.new("") }
 
@@ -15,13 +15,13 @@ describe Atmos::Commands::Init do
 
   describe "execute" do
 
-    it "calls terraform" do
+    it "calls terraform passing through options and args" do
       env = Hash.new
       te = Atmos::TerraformExecutor.new(env)
       expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
       expect(Atmos::TerraformExecutor).to receive(:new).with(process_env: env).and_return(te)
-      expect(te).to receive(:run).with("init")
-      cli.run([])
+      expect(te).to receive(:run).with('--help', 'foo', '--bar')
+      cli.run(['--help', 'foo', '--bar'])
     end
 
   end

@@ -1,3 +1,4 @@
+require 'atmos'
 require 'tmpdir'
 require 'fileutils'
 require 'atmos/generator'

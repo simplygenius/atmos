@@ -37,6 +37,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "vcr", "~> 4.0.0"
   spec.add_development_dependency "webmock", "~> 3.3.0"
   spec.add_development_dependency "pry"
+  spec.add_development_dependency "pry-byebug"
 
 
   # core dependencies
@@ -46,7 +47,15 @@ Gem::Specification.new do |spec|
   spec.add_dependency "sigdump"
   spec.add_dependency "clamp"
   spec.add_dependency "thor"
+  spec.add_dependency "highline"
+  spec.add_dependency "rainbow"
   spec.add_dependency "git"
   spec.add_dependency "rubyzip"
+  spec.add_dependency "hashie"
+  spec.add_dependency "climate_control"
+  spec.add_dependency "aws-sdk-core"
+  spec.add_dependency "aws-sdk-iam"
+  spec.add_dependency "aws-sdk-s3"
+  spec.add_dependency "aws-sdk-organizations"
 
 end

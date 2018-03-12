@@ -7,8 +7,7 @@ describe Atmos::Commands::Generate do
   describe "--help" do
 
     it "produces help text under standard width" do
-      lines = cli.help.split("\n")
-      lines.each {|l| expect(l.size).to be <= 80 }
+      expect(cli.help).to be_line_width_for_cli
     end
 
   end
@@ -21,7 +20,8 @@ describe Atmos::Commands::Generate do
         within_construct do |d|
           d.directory('bar')
 
-          expect { cli.run(["--sourcepath", c.to_s, "--sourcepath", d.to_s, "--list"]) }.to output(/init, foo, bar/).to_stdout
+          cli.run(["--sourcepath", c.to_s, "--sourcepath", d.to_s, "--list"])
+          expect(Atmos::Logging.contents).to include("new, foo, bar")
         end
       end
     end
@@ -35,7 +35,8 @@ describe Atmos::Commands::Generate do
         c.directory('foo')
         c.directory('bar')
 
-        expect { cli.run(["--sourcepath", c.to_s, "--list"]) }.to output(/bar, foo/).to_stdout
+        cli.run(["--sourcepath", c.to_s, "--list"])
+        expect(Atmos::Logging.contents).to include("bar, foo")
       end
     end
 
@@ -44,8 +45,9 @@ describe Atmos::Commands::Generate do
         c.directory('foo')
         c.directory('bar')
 
-        expect { cli.run(["--sourcepath", c.to_s, "--list", "fo"]) }.to_not output(/bar/).to_stdout
-        expect { cli.run(["--sourcepath", c.to_s, "--list", "fo"]) }.to output(/foo/).to_stdout
+        cli.run(["--sourcepath", c.to_s, "--list", "fo"])
+        expect(Atmos::Logging.contents).to_not include("bar")
+        expect(Atmos::Logging.contents).to include("foo")
       end
     end
 
@@ -61,8 +63,14 @@ describe Atmos::Commands::Generate do
 
     it "generates a template" do
       within_construct do |d|
-        cli.run(["--quiet", "init"])
+        cli.run(["--quiet", "new"])
         expect(File.exist?('config/atmos.yml'))
+      end
+    end
+
+    it "generates an error for bad template" do
+      within_construct do |d|
+        expect { cli.run(["--quiet", "foo"]) }.to raise_error(ArgumentError)
       end
     end
 

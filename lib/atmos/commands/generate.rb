@@ -1,4 +1,4 @@
-require 'gem_logger'
+require 'atmos'
 require 'clamp'
 require 'atmos/generator_factory'
 require 'atmos/utils'
@@ -10,7 +10,7 @@ module Atmos::Commands
     include GemLogger::LoggerSupport
 
     def self.description
-      Atmos::Utils.clean_indent(<<-EOF
+      <<~EOF
         Installs configuration templates used by atmos to create infrastructure
         resources e.g.
         
@@ -18,7 +18,6 @@ module Atmos::Commands
         
         use --list to get a list of the template names for a given sourceroot
       EOF
-      )
     end
 
     option ["-f", "--force"], :flag, "Overwrite files that already exist"
@@ -45,8 +44,8 @@ module Atmos::Commands
                                          quiet: quiet?,
                                          skip: skip?)
       if list?
-        puts "Valid templates are:"
-        puts list_templates(g, template_list)
+        logger.info "Valid templates are:"
+        list_templates(g, template_list).each {|l| logger.info(l) }
       else
         g.generate(template_list)
       end

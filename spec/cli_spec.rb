@@ -5,6 +5,21 @@ describe Atmos::CLI do
 
   let(:cli) { described_class.new("") }
 
+  around(:each) do |ex|
+    @orig_color = Atmos::UI.color_enabled
+    Atmos::UI.color_enabled = false
+    Atmos::Logging.setup_logging(false, false, nil)
+
+    within_construct do |c|
+      @c = c
+      Atmos.config = nil
+      ex.run
+      Atmos::UI.color_enabled = @orig_color
+      Atmos.config = nil
+      Atmos::Logging.setup_logging(false, false, nil)
+    end
+  end
+
   def argv(arg)
     if arg.is_a?(Hash)
       arg.collect {|k, v| ["#{k =~ /^-/ ? k : "--#{k}"}", v]}.flatten
@@ -22,8 +37,7 @@ describe Atmos::CLI do
     end
 
     it "produces help text under standard width" do
-      lines = cli.help.split("\n")
-      lines.each {|l| expect(l.size).to be <= 80 }
+      expect(cli.help).to be_line_width_for_cli
     end
 
   end
@@ -59,7 +73,7 @@ describe Atmos::CLI do
 
   end
 
-  describe "--logfile" do
+  describe "logging" do
 
     it "defaults to stdout" do
       cli.run(['version'])
@@ -68,12 +82,17 @@ describe Atmos::CLI do
       expect(Atmos::Logging.contents).to include("infolog")
     end
 
-    it "sets log to file" do
-      file = Tempfile.new('cli_spec').path
-      cli.run(argv(logfile: file) + ['version'])
-      expect(Logging.logger.root.appenders.collect(&:name)).to eq([file])
-      cli.logger.info("infolog")
-      expect(open(file).read).to include("infolog")
+    it "defaults to writing to logfile" do
+      expect(File.exist?('atmos.log')).to be false
+      cli.run(['version'])
+      expect(File.exist?('atmos.log')).to be true
+      expect(File.read('atmos.log')).to include(Atmos::VERSION)
+    end
+
+    it "can disable writing to logfile" do
+      expect(File.exist?('atmos.log')).to be false
+      cli.run(['--no-log', 'version'])
+      expect(File.exist?('atmos.log')).to be false
     end
 
   end
@@ -81,13 +100,18 @@ describe Atmos::CLI do
   describe "--no-color" do
 
     it "defaults to color" do
+      expect($stdout).to receive(:tty?).and_return(true)
       cli.run(['version'])
-      expect(Logging.logger.root.appenders.first.layout.color_scheme).to_not be_nil
+      expect(Atmos::UI.color_enabled).to be true
+      a = ::Logging.logger.root.appenders.find {|a| a.try(:layout).try(:color_scheme) }
+      expect(a).to_not be_nil
     end
 
     it "outputs plain text" do
       cli.run(['--no-color', 'version'])
-      expect(Logging.logger.root.appenders.first.layout.color_scheme).to be_nil
+      expect(Atmos::UI.color_enabled).to be false
+      a = ::Logging.logger.root.appenders.find {|a| a.try(:layout).try(:color_scheme) }
+      expect(a).to be_nil
     end
 
   end
@@ -99,6 +123,8 @@ describe Atmos::CLI do
       output = `bundle exec #{exe} version`
       expect($?.exitstatus).to be(0)
       expect(output).to include(Atmos::VERSION)
+      expect(File.exist?('atmos.log')).to be true
+      expect(File.read('atmos.log')).to include(Atmos::VERSION)
     end
 
   end

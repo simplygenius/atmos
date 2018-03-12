@@ -1,4 +1,4 @@
-require 'gem_logger'
+require 'atmos'
 require 'thor'
 require 'find'
 
@@ -47,15 +47,16 @@ module Atmos
       template_dir = nil
       source_path = nil
       source_paths.each do |sp|
-        template_dir = File.join(sp, name, '')
-        if File.directory?(template_dir)
+        potential_template_dir = File.join(sp, name, '')
+        if File.directory?(potential_template_dir)
+          template_dir = potential_template_dir
           source_path = sp
           break
         end
       end
 
       unless template_dir.present?
-        raise Thor::Error.new("Invalid template #{name}, use one of #{valid_templates.join(', ')}")
+        raise ArgumentError.new("Invalid template #{name}, use one of: #{valid_templates.join(', ')}")
       end
 
       return template_dir, source_path
@@ -118,6 +119,26 @@ module Atmos
 
     def load_template_config(template_dir)
       YAML.load(File.read(File.join(template_dir, 'templates.yml'))) rescue {}
+    end
+
+    def add_yaml(file, path, value, additive: true)
+      config = Atmos::Config::SettingsHash.new(YAML.load_file(file))
+      config_level = config
+      path.each_with_index do |k, i|
+        if i == path.length - 1
+          config_level[k] = value
+        else
+          next_level = config_level[k]
+          if next_level
+            config_level = next_level
+            next
+          else
+            next_level = {}
+            config_level[k] = next_level
+            next
+          end
+        end
+      end
     end
 
   end

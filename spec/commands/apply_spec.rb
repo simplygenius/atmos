@@ -1,6 +1,6 @@
-require "atmos/commands/init"
+require "atmos/commands/apply"
 
-describe Atmos::Commands::Init do
+describe Atmos::Commands::Apply do
 
   let(:cli) { described_class.new("") }
 
@@ -20,7 +20,7 @@ describe Atmos::Commands::Init do
       te = Atmos::TerraformExecutor.new(env)
       expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
       expect(Atmos::TerraformExecutor).to receive(:new).with(process_env: env).and_return(te)
-      expect(te).to receive(:run).with("init")
+      expect(te).to receive(:run).with("apply")
       cli.run([])
     end
 

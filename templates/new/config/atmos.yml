@@ -1,0 +1,22 @@
+# The short name of your organization
+org: acme
+
+# The global name prefix for disambiguating resource names that have a global
+# scope (e.g. s3 bucket names)
+global_name_prefix: "#{org}-#{atmos_env}-"
+
+# The local name prefix for disambiguating resource names that have a local
+# scope (e.g. when running multiple environments in the same account)
+local_name_prefix: "" # "#{global_name_prefix}"
+
+environments:
+  ops:
+    account_id:
+    recipes:
+      - atmos-scaffold
+
+template_sources:
+  - name: atmos-recipes
+    location: https://github.com/simplygenius/atmos-recipes.git:/aws
+#  - name: atmos-pro-recipes
+#    location: https://github.com/simplygenius/atmos-pro-recipes.git

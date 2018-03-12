@@ -1,115 +1,157 @@
-require 'gem_logger'
+require 'atmos'
 require 'logging'
-require 'active_support/concern'
-
-Logging.format_as :inspect
-Logging.backtrace true
-
-Logging.color_scheme(
-    'bright',
-    lines: {
-        debug: :green,
-        info: :default,
-        warn: :yellow,
-        error: :red,
-        fatal: [:white, :on_red]
-    },
-    date: :blue,
-    logger: :cyan,
-    message: :magenta
-)
-
-Logging.logger.root.level = :info
+require 'rainbow'
+require 'delegate'
+#require 'pty'
 
 module Atmos
-
-  module LoggingConcern
-    extend ActiveSupport::Concern
-
-    def logger
-      ::Logging.logger[self.class]
-    end
-
-    module ClassMethods
-      def logger
-        ::Logging.logger[self]
-      end
-    end
-
-  end
-
   module Logging
 
-    extend ActiveSupport::Concern
+    module GemLoggerConcern
+      extend ActiveSupport::Concern
 
-    attr_accessor :testing
+      def logger
+        ::Logging.logger[self.class]
+      end
 
-    def sio
-      ::Logging.logger.root.appenders.first {|a| a.name == 'sio'}
+      module ClassMethods
+        def logger
+          ::Logging.logger[self]
+        end
+      end
     end
 
-    def contents
-      sio.sio.to_s
+    class CaptureStream < SimpleDelegator
+
+      def initialize(logger_name, appender, stream, color=nil)
+        super(stream)
+        @color = stream.tty? && color ? color : nil
+        @logger = ::Logging.logger[logger_name]
+        @logger.appenders = [appender]
+        @logger.additive = false
+      end
+
+      def strip_color(str)
+        str.gsub(/\e\[\d+m/, '')
+      end
+
+      def write(data)
+        @logger.info(strip_color(data))
+        if @color
+          count = 0
+          d = data.lines.each do |l|
+            cl = Kernel.send(:Rainbow, l).send(@color)
+            count += super(cl)
+          end
+          return count
+        else
+          return super(data)
+        end
+      end
     end
 
-    def clear
-      sio.clear
+    def self.init_logger
+      return if @initialized
+      @initialized = true
+
+      ::Logging.format_as :inspect
+      ::Logging.backtrace true
+
+      ::Logging.color_scheme(
+          'bright',
+          lines: {
+              debug: :green,
+              info: :default,
+              warn: :yellow,
+              error: :red,
+              fatal: [:white, :on_red]
+          },
+          date: :blue,
+          logger: :cyan,
+          message: :magenta
+      )
+
+      ::Logging.logger.root.level = :info
+      GemLogger.default_logger = ::Logging.logger.root
+      GemLogger.logger_concern = Atmos::Logging::GemLoggerConcern
     end
 
-    def setup_logging(debug, color, logfile)
+
+    def self.testing
+      @t
+    end
+
+    def self.testing=(t)
+      @t = t
+    end
+
+    def self.sio
+      ::Logging.logger.root.appenders.find {|a| a.name == 'sio' }
+    end
+
+    def self.contents
+      sio.try(:sio).try(:to_s)
+    end
+
+    def self.clear
+      sio.try(:clear)
+    end
+
+    def self.setup_logging(debug, color, logfile)
+      init_logger
+
       ::Logging.logger.root.level = :debug if debug
-      pattern_options = {}
-
-      if color
-        pattern_options[:color_scheme] = 'bright'
-      end
-
-      if debug || logfile.present?
-        pattern_options[:pattern] = '[%d] %-5l %c{2} %m\n'
-      else
-        pattern_options[:pattern] = '%m\n'
-      end
-
+      appenders = []
+      detail_pattern = '[%d] %-5l %c{2} %m\n'
+      plain_pattern = '%m\n'
 
       if logfile.present?
 
         appender = ::Logging.appenders.file(
             logfile,
-            layout: ::Logging.layouts.pattern(pattern_options)
+            truncate: true,
+            layout: ::Logging.layouts.pattern(pattern: detail_pattern)
         )
+        appenders << appender
 
-        # hack to assign stdout/err to logfile if logging to file
-        io = appender.instance_variable_get(:@io)
-        $stdout = $stderr = io
-
-      else
-
-        if self.testing
-
-          appender = ::Logging.appenders.string_io(
-              'sio',
-              layout: ::Logging.layouts.pattern(pattern_options)
-          )
-
-        else
-
-          appender = ::Logging.appenders.stdout(
-              'stdout',
-              layout: ::Logging.layouts.pattern(pattern_options)
-          )
-
+        if ! $stdout.is_a? CaptureStream
+          $stdout = CaptureStream.new("stdout", appender, $stdout)
+          $stderr = CaptureStream.new("stderr", appender, $stderr, :red)
+          silence_warnings {
+            Object.const_set(:STDOUT, $stdout)
+            Object.const_set(:STDERR, $stderr)
+          }
         end
 
       end
 
-      ::Logging.logger.root.appenders = appender
+      pattern_options = {
+          pattern: plain_pattern
+      }
+      if color
+        pattern_options[:color_scheme] = 'bright'
+      end
 
+      if self.testing
+
+        appender = ::Logging.appenders.string_io(
+            'sio',
+            layout: ::Logging.layouts.pattern(pattern_options)
+        )
+        appenders << appender
+
+      else
+
+        appender = ::Logging.appenders.stdout(
+            'stdout',
+            layout: ::Logging.layouts.pattern(pattern_options)
+        )
+        appenders << appender
+
+      end
+
+      ::Logging.logger.root.appenders = appenders
     end
 
-    extend self
-    end
-
+  end
 end
-
-GemLogger.default_logger = Logging.logger.root
-GemLogger.logger_concern = Atmos::LoggingConcern

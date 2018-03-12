@@ -3,14 +3,14 @@ require 'atmos/commands/terraform'
 
 module Atmos::Commands
 
-  class Init < Atmos::Commands::Terraform
+  class Plan < Atmos::Commands::Terraform
 
     def self.description
-      "Runs terraform init"
+      "Runs terraform plan"
     end
 
     def execute
-      @terraform_arguments.insert(0, "init")
+      @terraform_arguments.insert(0, "plan")
       super
     end
 

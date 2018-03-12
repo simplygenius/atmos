@@ -1,10 +1,14 @@
-require 'gem_logger'
+require 'atmos'
 
 module Atmos
   module Utils
 
     extend ActiveSupport::Concern
     include GemLogger::LoggerSupport
+
+    class SymbolizedMash < ::Hashie::Mash
+      include Hashie::Extensions::Mash::SymbolizeKeys
+    end
 
     # remove leading whitespace using first non-empty line to determine how
     # much space to remove from the rest. Skips empty lines
@@ -22,6 +26,22 @@ module Atmos
           line
         end
       end.join()
+    end
+
+    # wraps to an 80 character limit by adding newlines
+    def wrap(str)
+      result = ""
+      count = 0
+      str.each do |c|
+        result << c
+        if count >= 78
+          result << "\n"
+          count = 0
+        else
+          count += 1
+        end
+      end
+      return result
     end
 
     extend self
