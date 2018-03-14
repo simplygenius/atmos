@@ -26,6 +26,28 @@ describe Atmos::Commands::Generate do
       end
     end
 
+    it "uses sourcepaths from config" do
+      begin
+        within_construct do |c|
+          c.directory('foo')
+          within_construct do |d|
+            d.file("config/atmos.yml", YAML.dump(template_sources: [
+                {
+                  name: "local",
+                  location: c.to_s
+                }
+            ]))
+            Atmos.config = Atmos::Config.new("ops")
+
+            cli.run(["--list"])
+            expect(Atmos::Logging.contents).to match(/foo/)
+          end
+        end
+      ensure
+        Atmos.config = nil
+      end
+    end
+
   end
 
   describe "--list" do
