@@ -113,7 +113,7 @@ module Atmos
         private
 
         def session_duration
-          @session_duration ||= (Atmos.config["auth.session_duration"] rescue 3600).to_i
+          @session_duration ||= (Atmos.config["auth.session_duration"] || 3600).to_i
         end
 
         def assume_role(**opts)
