@@ -152,7 +152,7 @@ describe Atmos::TerraformExecutor do
         te.send(:write_atmos_vars)
 
         file = File.join(Atmos.config.tf_working_dir, 'atmos.auto.tfvars.json')
-        expect(File.exist?(file))
+        expect(File.exist?(file)).to be true
         vars = JSON.parse(File.read(file))
         expect(vars['environment']).to eq('ops')
         expect(vars['account_ids']).to eq("ops" => 123)
@@ -179,7 +179,7 @@ describe Atmos::TerraformExecutor do
         te.send(:write_atmos_vars)
 
         file = File.join(Atmos.config.tf_working_dir, 'atmos.auto.tfvars.json')
-        expect(File.exist?(file))
+        expect(File.exist?(file)).to be true
         vars = JSON.parse(File.read(file))
         expect(vars['environment']).to eq('ops')
         expect(vars['account_ids']).to eq("ops" => 123)
@@ -234,7 +234,7 @@ describe Atmos::TerraformExecutor do
         te.send(:setup_backend)
 
         file = File.join(Atmos.config.tf_working_dir, 'atmos-backend.tf.json')
-        expect(File.exist?(file))
+        expect(File.exist?(file)).to be true
         vars = JSON.parse(File.read(file))
         expect(vars['terraform']['backend']['mytype']).
             to eq('foo' => 'bar',
@@ -249,7 +249,7 @@ describe Atmos::TerraformExecutor do
         te.send(:setup_backend, true)
 
         file = File.join(Atmos.config.tf_working_dir, 'atmos-backend.tf.json')
-        expect(! File.exist?(file))
+        expect(File.exist?(file)).to be false
       end
     end
 
@@ -263,7 +263,7 @@ describe Atmos::TerraformExecutor do
 
         te.send(:setup_backend, true)
 
-        expect(! File.exist?(file))
+        expect(File.exist?(file)).to be false
       end
     end
 
@@ -277,7 +277,7 @@ describe Atmos::TerraformExecutor do
 
         te.send(:setup_backend)
 
-        expect(! File.exist?(file))
+        expect(File.exist?(file)).to be false
       end
     end
 

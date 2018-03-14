@@ -24,7 +24,7 @@ module Atmos
       expanded_sourcepaths = []
       sourcepaths.each do |sourcepath|
 
-        if sourcepath =~ /(\.git)|(\.zip)$/
+        if sourcepath =~ /(\.git)|(\.zip)(#.*)?$/
 
           logger.debug("Using archive sourcepath")
 

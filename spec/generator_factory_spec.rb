@@ -30,15 +30,15 @@ describe Atmos::GeneratorFactory do
       expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.git"])
       expect(expanded.size).to eq(1)
       expect(expanded.first).to match(/^\/.*/)
-      expect(Dir.exist?(expanded.first))
+      expect(Dir.exist?(expanded.first)).to be true
     end
 
     it "uses subdir from a git archive" do
-      expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.git#template_repo/subdir"])
+      expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.git#subdir"])
       expect(expanded.size).to eq(1)
       expect(expanded.first).to match(/^\/.*/)
-      expect(expanded.first).to match(/template_repo\/subdir$/)
-      expect(Dir.exist?(expanded.first))
+      expect(expanded.first).to match(/subdir$/)
+      expect(Dir.exist?(expanded.first)).to be true
     end
 
     it "skips a bad zip archive" do
@@ -55,7 +55,7 @@ describe Atmos::GeneratorFactory do
       expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.zip"])
       expect(expanded.size).to eq(1)
       expect(expanded.first).to match(/^\/.*/)
-      expect(Dir.exist?(expanded.first))
+      expect(Dir.exist?(expanded.first)).to be true
     end
 
     it "uses subdir from a zip archive" do
@@ -63,7 +63,7 @@ describe Atmos::GeneratorFactory do
       expect(expanded.size).to eq(1)
       expect(expanded.first).to match(/^\/.*/)
       expect(expanded.first).to match(/template_repo\/subdir$/)
-      expect(Dir.exist?(expanded.first))
+      expect(Dir.exist?(expanded.first)).to be true
     end
 
   end

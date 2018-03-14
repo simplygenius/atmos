@@ -26,7 +26,7 @@ describe Atmos::Logging do
       r, w = IO.pipe
       cs = described_class.new("myname", appender, w)
       logger = ::Logging.logger["myname"]
-      expect(logger)
+      expect(logger).to_not be_nil
       expect(logger.appenders).to eq([appender])
       expect(logger.additive).to eq(false)
     end
