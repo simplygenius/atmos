@@ -24,12 +24,7 @@ module Atmos
       expanded_sourcepaths = []
       sourcepaths.each do |sourcepath|
 
-        if sourcepath =~ /^\//
-
-          logger.debug("Using local sourcepath: #{sourcepath}")
-          expanded_sourcepaths << sourcepath
-
-        else
+        if sourcepath =~ /(\.git)|(\.zip)$/
 
           logger.debug("Using archive sourcepath")
 
@@ -69,6 +64,11 @@ module Atmos
             expanded_sourcepaths << local_template_path
 
           end
+
+        else
+
+          logger.debug("Using local sourcepath: #{sourcepath}")
+          expanded_sourcepaths << sourcepath
 
         end
 

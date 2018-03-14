@@ -18,32 +18,32 @@ describe Atmos::GeneratorFactory do
     end
 
     it "expands a git archive locally" do
-      expanded = described_class.expand_sourcepaths(['https://github.com/wr0ngway/gem_logger.git'])
+      expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.git"])
       expect(expanded.size).to eq(1)
       expect(expanded.first).to match(/^\/.*/)
       expect(Dir.exist?(expanded.first))
     end
 
-    it "expands a git archive locally with subdir" do
-      expanded = described_class.expand_sourcepaths(['https://github.com/wr0ngway/gem_logger.git#foo/bar'])
+    it "uses subdir from a git archive" do
+      expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.git#template_repo/subdir"])
       expect(expanded.size).to eq(1)
       expect(expanded.first).to match(/^\/.*/)
-      expect(expanded.first).to match(/foo\/bar$/)
+      expect(expanded.first).to match(/template_repo\/subdir$/)
       expect(Dir.exist?(expanded.first))
     end
 
     it "expands a zip archive locally" do
-      expanded = described_class.expand_sourcepaths(['https://github.com/wr0ngway/gem_logger/archive/master.zip'])
+      expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.zip"])
       expect(expanded.size).to eq(1)
       expect(expanded.first).to match(/^\/.*/)
       expect(Dir.exist?(expanded.first))
     end
 
-    it "expands a zip archive locally with subdir" do
-      expanded = described_class.expand_sourcepaths(['https://github.com/wr0ngway/gem_logger/archive/master.zip#foo/bar'])
+    it "uses subdir from a zip archive" do
+      expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.zip#template_repo/subdir"])
       expect(expanded.size).to eq(1)
       expect(expanded.first).to match(/^\/.*/)
-      expect(expanded.first).to match(/foo\/bar$/)
+      expect(expanded.first).to match(/template_repo\/subdir$/)
       expect(Dir.exist?(expanded.first))
     end
 

@@ -1,7 +1,11 @@
 require 'vcr'
 
+def fixture_dir
+  @fixture_dir ||= File.expand_path("../fixtures", __FILE__)
+end
+
 VCR.configure do |c|
-  c.cassette_library_dir = 'spec/vcr'
+  c.cassette_library_dir = '#{fixture_dir}/vcr'
   c.hook_into :webmock
   c.configure_rspec_metadata!
 end
