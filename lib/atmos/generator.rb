@@ -15,12 +15,17 @@ module Atmos
 
       def self.valid_templates
         source_paths_for_search.collect do |path|
-          entries = Dir.entries(path).select do |e|
-            p = File.join(path, e)
-            File.directory?(p) && e !~  /(^\.)|svn|CVS/
+          if Dir.exist?(path)
+            entries = Dir.entries(path).select do |e|
+              p = File.join(path, e)
+              File.directory?(p) && e !~  /(^\.)|svn|CVS/
+            end
+            entries.sort
+          else
+            logger.warn("Sourcepath does not exist: #{path}")
+            nil
           end
-          entries.sort
-        end.flatten
+        end.flatten.compact
       end
 
       def valid_templates
@@ -121,23 +126,14 @@ module Atmos
       YAML.load(File.read(File.join(template_dir, 'templates.yml'))) rescue {}
     end
 
-    def add_yaml(file, path, value, additive: true)
-      config = Atmos::Config::SettingsHash.new(YAML.load_file(file))
-      config_level = config
-      path.each_with_index do |k, i|
-        if i == path.length - 1
-          config_level[k] = value
-        else
-          next_level = config_level[k]
-          if next_level
-            config_level = next_level
-            next
-          else
-            next_level = {}
-            config_level[k] = next_level
-            next
-          end
-        end
+    # TODO: figure out a way to no lose comments from original yaml
+    def add_config(destination, key, value, additive: true)
+      raw_config = YAML.load_file(destination)
+      config = SettingsHash.new(raw_config)
+      config.notation_put(key, value, additive: additive)
+
+      create_file destination, nil do
+        YAML.dump(config.to_hash)
       end
     end
 

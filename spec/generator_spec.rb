@@ -4,7 +4,7 @@ describe Atmos::Generator do
 
   include TestConstruct::Helpers
 
-  let(:gen) { described_class.new([], quiet: true) }
+  let(:gen) { described_class.new([], quiet: true, force: true) }
 
   before(:each) do
     @orig_source_root = described_class.source_root
@@ -213,4 +213,25 @@ describe Atmos::Generator do
 
   end
 
+  describe "custom template actions" do
+
+    describe "add_config" do
+
+      it "adds to config file" do
+        within_construct do |c|
+          described_class.source_root(c.to_s)
+          c.file('foo/templates.rb', 'add_config "config/atmos.yml", "foo.bar.baz", "bum"')
+          within_construct do |d|
+            data = {"foo" => {"bah" => 'blah'}, "hum" => 'hi'}
+            d.file("config/atmos.yml", YAML.dump(data))
+            gen.send(:apply_template, 'foo')
+            new_data = YAML.load_file("config/atmos.yml")
+            expect(new_data).to eq({"foo"=>{"bah"=>"blah", "bar"=>{"baz"=>"bum"}}, "hum"=>"hi"})
+          end
+        end
+      end
+
+    end
+
+  end
 end
