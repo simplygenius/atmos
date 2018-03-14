@@ -105,26 +105,6 @@ module Atmos
       detail_pattern = '[%d] %-5l %c{2} %m\n'
       plain_pattern = '%m\n'
 
-      if logfile.present?
-
-        appender = ::Logging.appenders.file(
-            logfile,
-            truncate: true,
-            layout: ::Logging.layouts.pattern(pattern: detail_pattern)
-        )
-        appenders << appender
-
-        if ! $stdout.is_a? CaptureStream
-          $stdout = CaptureStream.new("stdout", appender, $stdout)
-          $stderr = CaptureStream.new("stderr", appender, $stderr, :red)
-          silence_warnings {
-            Object.const_set(:STDOUT, $stdout)
-            Object.const_set(:STDERR, $stderr)
-          }
-        end
-
-      end
-
       pattern_options = {
           pattern: plain_pattern
       }
@@ -147,6 +127,28 @@ module Atmos
             layout: ::Logging.layouts.pattern(pattern_options)
         )
         appenders << appender
+
+      end
+
+      # Do this after setting up stdout appender so we don't duplicate output
+      # to stdout with our capture
+      if logfile.present?
+
+        appender = ::Logging.appenders.file(
+            logfile,
+            truncate: true,
+            layout: ::Logging.layouts.pattern(pattern: detail_pattern)
+        )
+        appenders << appender
+
+        if ! $stdout.is_a? CaptureStream
+          $stdout = CaptureStream.new("stdout", appender, $stdout)
+          $stderr = CaptureStream.new("stderr", appender, $stderr, :red)
+          silence_warnings {
+            Object.const_set(:STDOUT, $stdout)
+            Object.const_set(:STDERR, $stderr)
+          }
+        end
 
       end
 
