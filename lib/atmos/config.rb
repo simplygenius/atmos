@@ -34,7 +34,7 @@ module Atmos
 
     def to_h
       load
-      @config
+      @config.to_hash
     end
 
     def provider

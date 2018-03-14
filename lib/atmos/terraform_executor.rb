@@ -123,11 +123,19 @@ module Atmos
 
     def write_atmos_vars
       File.open(File.join(Atmos.config.tf_working_dir, 'atmos.auto.tfvars.json'), 'w') do |f|
+        atmos_var_config = atmos_config = homogenize_for_terraform(Atmos.config.to_h)
+
+        var_prefix = Atmos.config['var_prefix']
+        if var_prefix
+          atmos_var_config = Hash[atmos_var_config.collect {|k, v| ["#{var_prefix}#{k}", v]}]
+        end
+
         var_hash = {
             environment: Atmos.config.atmos_env,
             account_ids: Atmos.config.account_hash,
-            atmos_config: homogenize_for_terraform(Atmos.config.to_h)
+            atmos_config: atmos_config
         }
+        var_hash = var_hash.merge(atmos_var_config)
         f.puts(JSON.pretty_generate(var_hash))
       end
     end

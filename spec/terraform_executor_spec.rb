@@ -141,6 +141,7 @@ describe Atmos::TerraformExecutor do
       within_construct do |c|
         c.file('config/atmos.yml', YAML.dump(
             'foo' => 'bar',
+            'baz' => {'boo' => 'bum'},
             'environments' => {
                 'ops' => {
                     'account_id' => 123
@@ -156,8 +157,37 @@ describe Atmos::TerraformExecutor do
         expect(vars['environment']).to eq('ops')
         expect(vars['account_ids']).to eq("ops" => 123)
         expect(vars['atmos_config']['foo']).to eq('bar')
+        expect(vars['atmos_config']['baz_boo']).to eq('bum')
+        expect(vars['foo']).to eq('bar')
+        expect(vars['baz_boo']).to eq('bum')
       end
+    end
 
+    it "honors var_prefix if set" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump(
+            'var_prefix' => 'myprefix_',
+            'foo' => 'bar',
+            'baz' => {'boo' => 'bum'},
+            'environments' => {
+                'ops' => {
+                    'account_id' => 123
+                }
+            }
+        ))
+        Atmos.config = Atmos::Config.new("ops")
+        te.send(:write_atmos_vars)
+
+        file = File.join(Atmos.config.tf_working_dir, 'atmos.auto.tfvars.json')
+        expect(File.exist?(file))
+        vars = JSON.parse(File.read(file))
+        expect(vars['environment']).to eq('ops')
+        expect(vars['account_ids']).to eq("ops" => 123)
+        expect(vars['atmos_config']['foo']).to eq('bar')
+        expect(vars['atmos_config']['baz_boo']).to eq('bum')
+        expect(vars['myprefix_foo']).to eq('bar')
+        expect(vars['myprefix_baz_boo']).to eq('bum')
+      end
     end
 
   end
