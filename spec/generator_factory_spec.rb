@@ -17,6 +17,15 @@ describe Atmos::GeneratorFactory do
       expect(described_class.expand_sourcepaths([__FILE__])).to eq([__FILE__])
     end
 
+    it "skips a bad git archive" do
+      within_construct do |c|
+        c.file("bad.git")
+        expanded = described_class.expand_sourcepaths(["bad.git"])
+        expect(expanded.size).to eq(0)
+        expect(Atmos::Logging.contents).to match(/Could not read from git/)
+      end
+    end
+
     it "expands a git archive locally" do
       expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.git"])
       expect(expanded.size).to eq(1)
@@ -31,6 +40,16 @@ describe Atmos::GeneratorFactory do
       expect(expanded.first).to match(/template_repo\/subdir$/)
       expect(Dir.exist?(expanded.first))
     end
+
+    it "skips a bad zip archive" do
+      within_construct do |c|
+        c.file("bad.zip")
+        expanded = described_class.expand_sourcepaths(["bad.zip"])
+        expect(expanded.size).to eq(0)
+        expect(Atmos::Logging.contents).to match(/Could not read from zip/)
+      end
+    end
+
 
     it "expands a zip archive locally" do
       expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.zip"])

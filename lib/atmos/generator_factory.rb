@@ -40,28 +40,36 @@ module Atmos
 
           if sourcepath =~ /.git$/
 
-            logger.debug("Cloning git archive to tmpdir")
+            begin
+              logger.debug("Cloning git archive to tmpdir")
 
-            g = Git.clone(sourcepath, 'atmos-checkout', depth: 1, path: tmpdir)
-            local_template_path = File.join(g.dir.path, template_subdir)
+              g = Git.clone(sourcepath, 'atmos-checkout', depth: 1, path: tmpdir)
+              local_template_path = File.join(g.dir.path, template_subdir)
 
-            expanded_sourcepaths << local_template_path
+              expanded_sourcepaths << local_template_path
+            rescue
+              logger.warn("Could not read from git archive, ignoring sourcepath: #{sourcepath}")
+            end
 
           elsif sourcepath =~ /.zip$/
 
-            logger.debug("Cloning zip archive to tmpdir")
+            begin
+              logger.debug("Cloning zip archive to tmpdir")
 
-            open(sourcepath, 'rb') do |io|
-              Zip::File.open_buffer(io) do |zip_file|
-                zip_file.each do |f|
-                  fpath = File.join(tmpdir, f.name)
-                  f.extract(fpath)
+              open(sourcepath, 'rb') do |io|
+                Zip::File.open_buffer(io) do |zip_file|
+                  zip_file.each do |f|
+                    fpath = File.join(tmpdir, f.name)
+                    f.extract(fpath)
+                  end
                 end
               end
-            end
 
-            local_template_path = File.join(tmpdir, template_subdir)
-            expanded_sourcepaths << local_template_path
+              local_template_path = File.join(tmpdir, template_subdir)
+              expanded_sourcepaths << local_template_path
+            rescue
+              logger.warn("Could not read from zip archive, ignoring sourcepath: #{sourcepath}")
+            end
 
           end
 
