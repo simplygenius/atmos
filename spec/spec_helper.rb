@@ -5,7 +5,7 @@ def fixture_dir
 end
 
 VCR.configure do |c|
-  c.cassette_library_dir = '#{fixture_dir}/vcr'
+  c.cassette_library_dir = "#{fixture_dir}/vcr"
   c.hook_into :webmock
   c.configure_rspec_metadata!
 end
