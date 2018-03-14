@@ -111,21 +111,6 @@ describe Atmos::Config do
       end
     end
 
-    it "handles list dot notation in keys" do
-      within_construct do |c|
-        c.file('config/atmos.yml', YAML.dump(foo: ["bar", "baz"]))
-        expect(config["foo.0"]).to eq("bar")
-        expect(config["foo[1]"]).to eq("baz")
-      end
-    end
-
-    it "handles deep dot notation in keys" do
-      within_construct do |c|
-        c.file('config/atmos.yml', YAML.dump(foo: {bar: [{baz: 'bum'}]}))
-        expect(config["foo.bar.0.baz"]).to eq("bum")
-      end
-    end
-
   end
 
   describe "load" do
@@ -165,10 +150,8 @@ describe Atmos::Config do
         c.file('config/atmos.yml', YAML.dump(foo: "bar",
                                              providers: {}, environments: {}))
         config.send(:load)
-        expect { config["providers"] } .
-            to raise_error(Hashie::Extensions::DeepFetch::UndefinedPathError)
-        expect { config["environments"] }.
-            to raise_error(Hashie::Extensions::DeepFetch::UndefinedPathError)
+        expect(config["providers"]).to be_nil
+        expect(config["environments"]).to be_nil
       end
     end
 

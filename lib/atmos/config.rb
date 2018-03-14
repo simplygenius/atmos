@@ -1,7 +1,7 @@
 require 'atmos'
 require 'yaml'
-require 'hashie'
 require 'fileutils'
+require 'atmos/settings_hash'
 require 'atmos/provider_factory'
 require 'find'
 
@@ -28,11 +28,7 @@ module Atmos
 
     def [](key)
       load
-
-      path = key.to_s.split(PATH_PATTERN).compact
-      path = path.collect {|p| p =~ /^\d+$/ ? p.to_i : p }
-      result = @config.deep_fetch(*path)
-
+      result = @config.notation_get(key)
       return result
     end
 
@@ -74,7 +70,6 @@ module Atmos
     private
 
     INTERP_PATTERN = /(\#\{([^\}]+)\})/
-    PATH_PATTERN = /[\.\[\]]/
 
     def load
       @config ||= begin
@@ -134,10 +129,8 @@ module Atmos
         when String
           result = obj
           result.scan(INTERP_PATTERN).each do |substr, statement|
-            path = statement.split(PATH_PATTERN).compact
-            path = path.collect {|p| p =~ /^\d+$/ ? p.to_i : p }
             # TODO: check for cycles
-            val = config.deep_fetch(*path)
+            val = config.notation_get(statement)
             result = result.sub(substr, expand(config, val.to_s))
           end
           result
@@ -145,12 +138,6 @@ module Atmos
           obj
       end
     end
-  end
-
-  class SettingsHash <  Hashie::Mash
-    include Hashie::Extensions::DeepMerge
-    include Hashie::Extensions::DeepFetch
-    disable_warnings
   end
 
 end

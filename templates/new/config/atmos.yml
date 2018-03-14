@@ -9,14 +9,16 @@ global_name_prefix: "#{org}-#{atmos_env}-"
 # scope (e.g. when running multiple environments in the same account)
 local_name_prefix: "" # "#{global_name_prefix}"
 
+# The recipes to to use for all environments, override at environment level if
+# need be
+recipes:
+
 environments:
   ops:
     account_id:
-    recipes:
-      - atmos-scaffold
 
 template_sources:
   - name: atmos-recipes
     location: https://github.com/simplygenius/atmos-recipes.git:/aws
-#  - name: atmos-pro-recipes
-#    location: https://github.com/simplygenius/atmos-pro-recipes.git
+  - name: atmos-pro-recipes
+    location: https://github.com/simplygenius/atmos-pro-recipes.git
