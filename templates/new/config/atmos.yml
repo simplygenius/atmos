@@ -1,5 +1,5 @@
 # The short name of your organization
-org: acme
+org:
 
 # The global name prefix for disambiguating resource names that have a global
 # scope (e.g. s3 bucket names)
@@ -19,6 +19,6 @@ environments:
 
 template_sources:
   - name: atmos-recipes
-    location: https://github.com/simplygenius/atmos-recipes.git:/aws
+    location: git@github.com:/simplygenius/atmos-recipes.git:aws
   - name: atmos-pro-recipes
-    location: https://github.com/simplygenius/atmos-pro-recipes.git
+    location: git@github.com:simplygenius/atmos-pro-recipes.git:aws
