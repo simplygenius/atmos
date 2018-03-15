@@ -57,13 +57,17 @@ describe Atmos::TerraformExecutor do
         c.file('config/atmos.yml', YAML.dump('recipes' => ['foo', 'bar']))
         c.file('recipes/foo.tf')
         c.file('recipes/bar.tf')
+        c.file('recipes/baz.tf')
         Atmos.config = Atmos::Config.new("ops")
         te.send(:link_recipes)
         ['foo', 'bar'].each do |f|
-          link = File.join(Atmos.config.tf_working_dir, "#{f}.tf")
+          link = File.join(Atmos.config.tf_working_dir, 'recipes', "#{f}.tf")
+          expect(File.exist?(link)).to be true
           expect(File.symlink?(link)).to be true
           expect(File.readlink(link)).to eq(File.join(Atmos.config.root_dir, "recipes/#{f}.tf"))
         end
+        expect(File.exist?(File.join(Atmos.config.tf_working_dir, 'recipes', "baz.tf"))).to be false
+
       end
 
     end
@@ -95,23 +99,33 @@ describe Atmos::TerraformExecutor do
 
   describe "clean_links" do
 
-    it "links dirs into working dir" do
+    it "removes atmos working dir links" do
       within_construct do |c|
         c.file('config/atmos.yml', YAML.dump('recipes' => ['foo']))
         c.directory('modules')
         c.directory('templates')
         Atmos.config = Atmos::Config.new("ops")
+
         te.send(:link_support_dirs)
         te.send(:link_recipes)
 
+        # simulate a terraform module link
+        module_src = 'modules/mymod'
+        module_link = File.join(te.send(:tf_recipes_dir), '.terraform', 'modules', 'deadbeef')
+        FileUtils.mkdir_p(File.dirname(module_link))
+        c.directory(module_src)
+        File.symlink("#{c.to_s}/#{module_src}", module_link)
+
         count = 0
         Find.find(Atmos.config.tf_working_dir) {|f|  count += 1 if File.symlink?(f) }
-        expect(count).to eq(3)
+        expect(count).to eq(4)
 
         te.send(:clean_links)
         count = 0
         Find.find(Atmos.config.tf_working_dir) {|f|  count += 1 if File.symlink?(f) }
-        expect(count).to eq(0)
+        expect(count).to eq(1)
+        expect(File.exist?(module_link)).to be true
+        expect(File.symlink?(module_link)).to be true
       end
 
     end
@@ -151,10 +165,10 @@ describe Atmos::TerraformExecutor do
         Atmos.config = Atmos::Config.new("ops")
         te.send(:write_atmos_vars)
 
-        file = File.join(Atmos.config.tf_working_dir, 'atmos.auto.tfvars.json')
+        file = File.join(te.send(:tf_recipes_dir), 'atmos.auto.tfvars.json')
         expect(File.exist?(file)).to be true
         vars = JSON.parse(File.read(file))
-        expect(vars['environment']).to eq('ops')
+        expect(vars['atmos_env']).to eq('ops')
         expect(vars['account_ids']).to eq("ops" => 123)
         expect(vars['atmos_config']['foo']).to eq('bar')
         expect(vars['atmos_config']['baz_boo']).to eq('bum')
@@ -178,10 +192,10 @@ describe Atmos::TerraformExecutor do
         Atmos.config = Atmos::Config.new("ops")
         te.send(:write_atmos_vars)
 
-        file = File.join(Atmos.config.tf_working_dir, 'atmos.auto.tfvars.json')
+        file = File.join(te.send(:tf_recipes_dir), 'atmos.auto.tfvars.json')
         expect(File.exist?(file)).to be true
         vars = JSON.parse(File.read(file))
-        expect(vars['environment']).to eq('ops')
+        expect(vars['atmos_env']).to eq('ops')
         expect(vars['account_ids']).to eq("ops" => 123)
         expect(vars['atmos_config']['foo']).to eq('bar')
         expect(vars['atmos_config']['baz_boo']).to eq('bum')
@@ -233,7 +247,7 @@ describe Atmos::TerraformExecutor do
         Atmos.config = Atmos::Config.new("ops")
         te.send(:setup_backend)
 
-        file = File.join(Atmos.config.tf_working_dir, 'atmos-backend.tf.json')
+        file = File.join(te.send(:tf_recipes_dir), 'atmos-backend.tf.json')
         expect(File.exist?(file)).to be true
         vars = JSON.parse(File.read(file))
         expect(vars['terraform']['backend']['mytype']).
@@ -258,7 +272,7 @@ describe Atmos::TerraformExecutor do
         c.file('config/atmos.yml')
         Atmos.config = Atmos::Config.new("ops")
 
-        file = File.join(Atmos.config.tf_working_dir, 'atmos-backend.tf.json')
+        file = File.join(te.send(:tf_recipes_dir), 'atmos-backend.tf.json')
         c.file(file)
 
         te.send(:setup_backend, true)
@@ -272,7 +286,7 @@ describe Atmos::TerraformExecutor do
         c.file('config/atmos.yml')
         Atmos.config = Atmos::Config.new("ops")
 
-        file = File.join(Atmos.config.tf_working_dir, 'atmos-backend.tf.json')
+        file = File.join(te.send(:tf_recipes_dir), 'atmos-backend.tf.json')
         c.file(file)
 
         te.send(:setup_backend)
@@ -371,7 +385,7 @@ describe Atmos::TerraformExecutor do
         c.file('config/atmos.yml')
         Atmos.config = Atmos::Config.new("ops")
 
-        c.file(File.join(Atmos.config.tf_working_dir, 'stdin.tf.json'), JSON.dump(
+        c.file(File.join(te.send(:tf_recipes_dir), 'stdin.tf.json'), JSON.dump(
                     'variable' => {
                         'needed' => {}
                     },
@@ -388,7 +402,7 @@ describe Atmos::TerraformExecutor do
         # We redirect terminal stdin to process using spawn (:in => :in), as
         # other methods weren't reliable.  As a resut, we can't simply simulate
         # stdin with an IO, so hack it this way
-        c.file(File.join(Atmos.config.tf_working_dir, "stdin.txt"), "foo\nyes\n")
+        c.file(File.join(te.send(:tf_recipes_dir), "stdin.txt"), "foo\nyes\n")
         allow(te).to receive(:tf_cmd).and_return(["bash", "-c", "cat stdin.txt | terraform apply"])
         expect {
             te.send(:execute, "apply", skip_secrets: true)

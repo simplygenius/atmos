@@ -51,7 +51,7 @@ module Atmos
           # streams.  Maybe in the future we can completely disconnect stdin
           # and have atmos do the output parsing and stdin prompting
           pid = spawn(env, *cmd,
-                      chdir: Atmos.config.tf_working_dir,
+                      chdir: tf_recipes_dir,
                       :out=>stdout_writer, :err=> stderr_writer, :in => :in)
 
 
@@ -74,7 +74,6 @@ module Atmos
     end
 
     def setup_working_dir(skip_backend: false)
-      logger.debug("Terraform working dir: #{Atmos.config.tf_working_dir}")
       clean_links
       link_support_dirs
       link_recipes
@@ -83,7 +82,7 @@ module Atmos
     end
 
     def setup_backend(skip_backend=false)
-      backend_file = File.join(Atmos.config.tf_working_dir, 'atmos-backend.tf.json')
+      backend_file = File.join(tf_recipes_dir, 'atmos-backend.tf.json')
       backend_config = (Atmos.config["backend"] rescue nil).try(:clone)
 
       if backend_config.present? && ! skip_backend
@@ -121,8 +120,17 @@ module Atmos
       return root
     end
 
+    def tf_recipes_dir
+      @tf_recipes_dir ||= begin
+        dir = File.join(Atmos.config.tf_working_dir, 'recipes')
+        logger.debug("Tf recipes dir: #{dir}")
+        mkdir_p(dir)
+        dir
+      end
+    end
+
     def write_atmos_vars
-      File.open(File.join(Atmos.config.tf_working_dir, 'atmos.auto.tfvars.json'), 'w') do |f|
+      File.open(File.join(tf_recipes_dir, 'atmos.auto.tfvars.json'), 'w') do |f|
         atmos_var_config = atmos_config = homogenize_for_terraform(Atmos.config.to_h)
 
         var_prefix = Atmos.config['var_prefix']
@@ -131,7 +139,7 @@ module Atmos
         end
 
         var_hash = {
-            environment: Atmos.config.atmos_env,
+            atmos_env: Atmos.config.atmos_env,
             account_ids: Atmos.config.account_hash,
             atmos_config: atmos_config
         }
@@ -150,6 +158,7 @@ module Atmos
 
     def clean_links
       Find.find(Atmos.config.tf_working_dir) do |f|
+        Find.prune if f =~ /\/.terraform\//
         File.delete(f) if File.symlink?(f)
       end
     end
@@ -161,11 +170,9 @@ module Atmos
     end
 
     def link_recipes
-      # recipe_dir = File.join(Atmos.config.tf_working_dir, 'recipes')
-      # mkdir_p(recipe_dir)
       recipes = Atmos.config[:recipes]
       recipes.each do |recipe|
-        ln_sf(File.join(Atmos.config.root_dir, 'recipes', "#{recipe}.tf"), Atmos.config.tf_working_dir)
+        ln_sf(File.join(Atmos.config.root_dir, 'recipes', "#{recipe}.tf"), tf_recipes_dir)
       end
     end
 
