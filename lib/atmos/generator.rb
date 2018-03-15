@@ -101,7 +101,8 @@ module Atmos
         source_rel = f.gsub(/#{source_path}\//, '')
         dest_rel   = source_rel.gsub(/^#{name}\//, '')
 
-        # prune non-directories at top level
+        # prune non-directories at top level (the top level directory is the
+        # template dir itself)
         if f !~ /\// && ! File.directory?(f)
           Find.prune
         end

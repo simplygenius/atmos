@@ -35,14 +35,14 @@ module Atmos::Commands
     def execute
       signal_usage_error "template name is required" if template_list.blank? && ! list?
 
-      # Always search for templates against the bundled templates directory
-      sourcepath_list.insert(0, File.expand_path('../../../../templates', __FILE__))
-
       # don't want to fail for new repo
       if  Atmos.config && Atmos.config.is_atmos_repo?
         config_sourcepaths = Atmos.config['template_sources'].try(:collect, &:location) || []
         sourcepath_list.concat(config_sourcepaths)
       end
+
+      # Always search for templates against the bundled templates directory
+      sourcepath_list << File.expand_path('../../../../templates', __FILE__)
 
       g = Atmos::GeneratorFactory.create(sourcepath_list,
                                          force: force?,

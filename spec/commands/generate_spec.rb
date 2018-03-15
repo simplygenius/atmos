@@ -86,7 +86,7 @@ describe Atmos::Commands::Generate do
     it "generates a template" do
       within_construct do |d|
         cli.run(["--quiet", "new"])
-        expect(File.exist?('config/atmos.yml'))
+        expect(File.exist?('config/atmos.yml')).to be true
       end
     end
 
@@ -94,6 +94,54 @@ describe Atmos::Commands::Generate do
       within_construct do |d|
         expect { cli.run(["--quiet", "foo"]) }.to raise_error(ArgumentError)
       end
+    end
+
+    it "gives cli sourcepath precedence over config and builtin" do
+      within_construct do |c|
+        c.directory('new')
+        c.file('new/foo.txt')
+
+        within_construct do |d|
+          d.directory('new')
+          d.file('new/bar.txt')
+
+          within_construct do |e|
+            e.file("config/atmos.yml", YAML.dump(template_sources: [
+                {
+                  name: "local",
+                  location: d.to_s
+                }
+            ]))
+            Atmos.config = Atmos::Config.new("ops")
+            cli.run(["--quiet", "--sourcepath", c.to_s, "new"])
+            expect(File.exist?('foo.txt')).to be true
+            expect(File.exist?('bar.txt')).to be false
+            expect(File.exist?('.gitignore')).to be false
+          end
+        end
+      end
+    end
+
+    it "gives config sourcepath precedence over builtin" do
+      within_construct do |c|
+        c.directory('new')
+        c.file('new/foo.txt')
+
+        within_construct do |d|
+          d.file("config/atmos.yml", YAML.dump(template_sources: [
+              {
+                name: "local",
+                location: c.to_s
+              }
+          ]))
+          Atmos.config = Atmos::Config.new("ops")
+
+          cli.run(["--quiet", "new"])
+          expect(File.exist?('foo.txt')).to be true
+          expect(File.exist?('.gitignore')).to be false
+        end
+      end
+
     end
 
   end
