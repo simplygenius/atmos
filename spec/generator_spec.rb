@@ -250,6 +250,76 @@ describe Atmos::Generator do
 
   describe "custom template actions" do
 
+    describe "raw_configs" do
+
+      it "loads config file once" do
+        within_construct do |c|
+          described_class.source_root(c.to_s)
+          c.file('foo.yml', YAML.dump('foo' => 'bar'))
+
+          expect(YAML).to receive(:load_file).once.with('foo.yml').and_call_original
+
+          config = gen.send(:raw_config, 'foo.yml')
+          expect(config).to be_a_kind_of(Atmos::SettingsHash)
+          expect(config['foo']).to eq('bar')
+
+          config = gen.send(:raw_config, 'foo.yml')
+          expect(config).to be_a_kind_of(Atmos::SettingsHash)
+          expect(config['foo']).to eq('bar')
+        end
+      end
+
+    end
+
+    describe "get_config" do
+
+      it "gets config from yml" do
+        within_construct do |c|
+          described_class.source_root(c.to_s)
+          c.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}))
+
+          expect(gen.send(:get_config, 'foo.yml', 'foo.bar')).to eq('baz')
+        end
+      end
+
+    end
+
+    describe "config_present?" do
+
+      it "checks for presence" do
+        within_construct do |c|
+          described_class.source_root(c.to_s)
+          c.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}, 'list' => ['one']))
+
+          expect(gen.send(:config_present?, 'foo.yml', 'foo.bar')).to be true
+          expect(gen.send(:config_present?, 'foo.yml', 'list')).to be true
+          expect(gen.send(:config_present?, 'foo.yml', 'blah')).to be false
+        end
+      end
+
+      it "checks for simple value" do
+        within_construct do |c|
+          described_class.source_root(c.to_s)
+          c.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}))
+
+          expect(gen.send(:config_present?, 'foo.yml', 'foo.bar', 'baz')).to be true
+          expect(gen.send(:config_present?, 'foo.yml', 'foo.bar', 'not')).to be false
+        end
+      end
+
+      it "checks for list contents" do
+        within_construct do |c|
+          described_class.source_root(c.to_s)
+          c.file('foo.yml', YAML.dump('foo' => {'bar' => ['hum', 'baz']}))
+
+          expect(gen.send(:config_present?, 'foo.yml', 'foo.bar', 'baz')).to be true
+          expect(gen.send(:config_present?, 'foo.yml', 'foo.bar', 'not')).to be false
+          expect(gen.send(:config_present?, 'foo.yml', 'not', 'not')).to be false
+        end
+      end
+
+    end
+
     describe "add_config" do
 
       it "adds to config file" do

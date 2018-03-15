@@ -139,15 +139,39 @@ module Atmos
       YAML.load(File.read(File.join(template_dir, 'templates.yml'))) || {} rescue {}
     end
 
+    def raw_config(yml_file)
+      @raw_configs ||= {}
+      @raw_configs[yml_file] ||= (SettingsHash.new(YAML.load_file(yml_file)) rescue {})
+    end
+
     # TODO: figure out a way to no lose comments from original yaml
-    def add_config(destination, key, value, additive: true)
-      raw_config = YAML.load_file(destination)
-      config = SettingsHash.new(raw_config)
+    def add_config(yml_file, key, value, additive: true)
+      config = raw_config(yml_file)
       config.notation_put(key, value, additive: additive)
 
-      create_file destination, nil do
+      create_file yml_file, nil do
         YAML.dump(config.to_hash)
       end
+    end
+
+    def get_config(yml_file, key)
+      config = raw_config(yml_file)
+      config.notation_get(key)
+    end
+
+    def config_present?(yml_file, key, value=nil)
+      val = get_config(yml_file, key)
+
+      result = val.present?
+      if value && result
+        if val.is_a?(Array)
+          result = val.include?(value)
+        else
+          result = (val == value)
+        end
+      end
+
+      return result
     end
 
   end
