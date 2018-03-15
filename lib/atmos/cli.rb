@@ -9,6 +9,7 @@ require 'atmos/commands/bootstrap'
 require 'atmos/commands/init'
 require 'atmos/commands/plan'
 require 'atmos/commands/apply'
+require 'atmos/commands/destroy'
 require 'atmos/commands/terraform'
 require 'atmos/commands/account'
 require 'atmos/commands/user'
@@ -66,6 +67,8 @@ module Atmos
                Atmos::Commands::Plan
     subcommand "apply", "Run terraform apply",
                Atmos::Commands::Apply
+    subcommand "destroy", "Run terraform destroy",
+               Atmos::Commands::Destroy
     subcommand "terraform", "Run all other terraform commands",
                Atmos::Commands::Terraform
     subcommand "account", "Account management commands",
