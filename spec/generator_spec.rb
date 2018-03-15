@@ -19,16 +19,17 @@ describe Atmos::Generator do
     it "has contents of templates" do
       within_construct do |c|
         described_class.source_root(c.to_s)
-        c.directory('foo')
-        c.directory('bar')
-        expect(described_class.valid_templates).to eq(['bar', 'foo'])
+        c.file('foo/templates.yml')
+        c.file('bar/baz/templates.yml')
+        c.directory('hum')
+        expect(described_class.valid_templates).to eq(['bar/baz', 'foo'])
       end
     end
 
     it "only shows directories as templates" do
       within_construct do |c|
         described_class.source_root(c.to_s)
-        c.directory('foo')
+        c.file('foo/templates.yml')
         c.file("foo.txt")
         expect(described_class.valid_templates).to eq(['foo'])
       end
@@ -37,11 +38,12 @@ describe Atmos::Generator do
     it "ignores directories with special names" do
       within_construct do |c|
         described_class.source_root(c.to_s)
-        c.directory('foo')
-        c.directory('svn')
-        c.directory('CVS')
-        c.directory('.not')
-        expect(described_class.valid_templates).to eq(['foo'])
+        c.file('foo/templates.yml')
+        c.file('foo.bar/templates.yml')
+        c.file('svn/templates.yml')
+        c.file('CVS/templates.yml')
+        c.file('.not/templates.yml')
+        expect(described_class.valid_templates).to eq(['foo', 'foo.bar'])
       end
     end
 
@@ -53,8 +55,18 @@ describe Atmos::Generator do
       within_construct do |c|
         described_class.source_root(c.to_s)
         c.file('foo/templates.yml', YAML.dump('dependent_templates' => 'bar'))
-        c.directory('bar')
+        c.file('bar/templates.yml')
         expect(gen.send(:find_dependencies, 'foo')).to eq(['bar'])
+      end
+    end
+
+    it "handles nested dep" do
+      within_construct do |c|
+        described_class.source_root(c.to_s)
+        c.file('foo/bar/templates.yml', YAML.dump('dependent_templates' => 'bar/baz'))
+        c.file('bar/baz/templates.yml', YAML.dump('dependent_templates' => 'bum/boo'))
+        c.file('bum/boo/templates.yml')
+        expect(gen.send(:find_dependencies, 'foo/bar')).to eq(['bar/baz', 'bum/boo'])
       end
     end
 
@@ -62,8 +74,8 @@ describe Atmos::Generator do
       within_construct do |c|
         described_class.source_root(c.to_s)
         c.file('foo/templates.yml', YAML.dump('dependent_templates' => ['bar',  'baz']))
-        c.directory('bar')
-        c.directory('baz')
+        c.file('bar/templates.yml')
+        c.file('baz/templates.yml')
         expect(gen.send(:find_dependencies, 'foo')).to eq(['bar', 'baz'])
       end
     end
@@ -73,7 +85,7 @@ describe Atmos::Generator do
         described_class.source_root(c.to_s)
         c.file('foo/templates.yml', YAML.dump('dependent_templates' => ['bar']))
         c.file('bar/templates.yml', YAML.dump('dependent_templates' => ['baz']))
-        c.directory('baz')
+        c.file('baz/templates.yml')
         expect(gen.send(:find_dependencies, 'foo')).to eq(['bar', 'baz'])
       end
     end
@@ -83,7 +95,7 @@ describe Atmos::Generator do
         described_class.source_root(c.to_s)
         c.file('foo/templates.yml', YAML.dump('dependent_templates' => ['bar', 'baz']))
         c.file('bar/templates.yml', YAML.dump('dependent_templates' => ['baz']))
-        c.directory('baz')
+        c.file('baz/templates.yml')
         expect(gen.send(:find_dependencies, 'foo')).to eq(['bar', 'baz'])
       end
     end
@@ -105,11 +117,25 @@ describe Atmos::Generator do
     it "handles simple template" do
       within_construct do |c|
         described_class.source_root(c.to_s)
+        c.file('foo/templates.yml')
         c.file('foo/foo.txt', "hello")
         within_construct do |d|
           gen.send(:apply_template, 'foo')
           expect(File.exist?('foo.txt')).to be true
           expect(open("#{d}/foo.txt").read).to eq(open("#{c}/foo/foo.txt").read)
+        end
+      end
+    end
+
+    it "handles nested template" do
+      within_construct do |c|
+        described_class.source_root(c.to_s)
+        c.file('foo/bar/templates.yml')
+        c.file('foo/bar/foo.txt', "hello")
+        within_construct do |d|
+          gen.send(:apply_template, 'foo/bar')
+          expect(File.exist?('foo.txt')).to be true
+          expect(open("#{d}/foo.txt").read).to eq(open("#{c}/foo/bar/foo.txt").read)
         end
       end
     end
@@ -130,6 +156,7 @@ describe Atmos::Generator do
     it "preserves directory structure" do
       within_construct do |c|
         described_class.source_root(c.to_s)
+        c.file('foo/templates.yml')
         c.file('foo/sub/bar.txt', "there")
         within_construct do |d|
           gen.send(:apply_template, 'foo')
@@ -156,6 +183,7 @@ describe Atmos::Generator do
     it "processes procedural template" do
       within_construct do |c|
         described_class.source_root(c.to_s)
+        c.file('foo/templates.yml')
         c.file('foo/templates.rb', 'append_to_file "foo.txt", "there"')
         c.file('foo/foo.txt', "hello")
         within_construct do |d|
@@ -173,6 +201,7 @@ describe Atmos::Generator do
     it "generates single" do
       within_construct do |c|
         described_class.source_root(c.to_s)
+        c.file('foo/templates.yml')
         c.file('foo/foo.txt')
         within_construct do |d|
           gen.generate('foo')
@@ -184,12 +213,17 @@ describe Atmos::Generator do
     it "generates multiple" do
       within_construct do |c|
         described_class.source_root(c.to_s)
+        c.file('foo/templates.yml')
         c.file('foo/foo.txt')
+        c.file('bar/templates.yml')
         c.file('bar/bar.txt')
+        c.file('baz/boo/templates.yml')
+        c.file('baz/boo/boo.txt')
         within_construct do |d|
-          gen.generate(['foo', 'bar'])
+          gen.generate(['foo', 'bar', 'baz/boo'])
           expect(File.exist?('foo.txt'))
           expect(File.exist?('bar.txt'))
+          expect(File.exist?('boo.txt'))
         end
       end
     end
@@ -201,6 +235,7 @@ describe Atmos::Generator do
         c.file('foo/foo.txt')
         c.file('bar/templates.yml', YAML.dump('dependent_templates' => ['baz']))
         c.file('bar/bar.txt')
+        c.file('baz/templates.yml')
         c.file('baz/baz.txt')
         within_construct do |d|
           gen.generate('foo')
@@ -220,6 +255,7 @@ describe Atmos::Generator do
       it "adds to config file" do
         within_construct do |c|
           described_class.source_root(c.to_s)
+          c.file('foo/templates.yml')
           c.file('foo/templates.rb', 'add_config "config/atmos.yml", "foo.bar.baz", "bum"')
           within_construct do |d|
             data = {"foo" => {"bah" => 'blah'}, "hum" => 'hi'}

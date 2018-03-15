@@ -8,7 +8,7 @@ describe "Initial Setup" do
     if ENV['CI'].present?
       []
     else
-      ["--sourcepath", File.expand_path('../../../../atmos-recipes/aws', __FILE__)]
+      ["--sourcepath", File.expand_path('../../../../atmos-recipes', __FILE__)]
     end
   }
 
@@ -28,7 +28,7 @@ describe "Initial Setup" do
       within_construct do |c|
         output = atmos "new"
         expect(File.exist?('config/atmos.yml')).to be true
-        output = atmos "generate", *recipes_sourcepath, "scaffold",
+        output = atmos "generate", *recipes_sourcepath, "aws/scaffold",
                        stdin_data: "acme\n123456789012\n"
         expect(File.exist?('config/atmos/aws.yml')).to be true
       end

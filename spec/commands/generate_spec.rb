@@ -14,22 +14,19 @@ describe Atmos::Commands::Generate do
 
   describe "--sourcepath" do
 
-    it "adds given sourcepaths to default" do
+    it "adds given sourcepaths to default in correct order" do
       within_construct do |c|
-        c.directory('foo')
-        within_construct do |d|
-          d.directory('bar')
-
-          cli.run(["--sourcepath", c.to_s, "--sourcepath", d.to_s, "--list"])
-          expect(Atmos::Logging.contents).to include("new, foo, bar")
-        end
+        c.file('sp1/foo/templates.yml')
+        c.file('sp2/bar/templates.yml')
+        cli.run(["--sourcepath", "#{c.to_s}/sp1", "--sourcepath", "#{c.to_s}/sp2", "--list"])
+        expect(Atmos::Logging.contents).to include("foo, bar, new")
       end
     end
 
     it "uses sourcepaths from config" do
       begin
         within_construct do |c|
-          c.directory('foo')
+          c.file('foo/templates.yml')
           within_construct do |d|
             d.file("config/atmos.yml", YAML.dump(template_sources: [
                 {
@@ -54,18 +51,19 @@ describe Atmos::Commands::Generate do
 
     it "lists the templates" do
       within_construct do |c|
-        c.directory('foo')
-        c.directory('bar')
+        c.file('foo/templates.yml')
+        c.file('bar/templates.yml')
+        c.file('baz/boo/templates.yml')
 
         cli.run(["--sourcepath", c.to_s, "--list"])
-        expect(Atmos::Logging.contents).to include("bar, foo")
+        expect(Atmos::Logging.contents).to include("bar, baz/boo, foo")
       end
     end
 
-    it "lists the templates with a filter" do
+    it "filters the template list" do
       within_construct do |c|
-        c.directory('foo')
-        c.directory('bar')
+        c.file('foo/templates.yml')
+        c.file('bar/templates.yml')
 
         cli.run(["--sourcepath", c.to_s, "--list", "fo"])
         expect(Atmos::Logging.contents).to_not include("bar")
@@ -98,40 +96,37 @@ describe Atmos::Commands::Generate do
 
     it "gives cli sourcepath precedence over config and builtin" do
       within_construct do |c|
-        c.directory('new')
-        c.file('new/foo.txt')
+        c.file('sp1/new/templates.yml')
+        c.file('sp1/new/foo.txt')
+        c.file('sp2/new/templates.yml')
+        c.file('sp2/new/bar.txt')
 
         within_construct do |d|
-          d.directory('new')
-          d.file('new/bar.txt')
-
-          within_construct do |e|
-            e.file("config/atmos.yml", YAML.dump(template_sources: [
-                {
-                  name: "local",
-                  location: d.to_s
-                }
-            ]))
-            Atmos.config = Atmos::Config.new("ops")
-            cli.run(["--quiet", "--sourcepath", c.to_s, "new"])
-            expect(File.exist?('foo.txt')).to be true
-            expect(File.exist?('bar.txt')).to be false
-            expect(File.exist?('.gitignore')).to be false
-          end
+          d.file("config/atmos.yml", YAML.dump(template_sources: [
+              {
+                name: "local",
+                location: "#{c.to_s}/sp2"
+              }
+          ]))
+          Atmos.config = Atmos::Config.new("ops")
+          cli.run(["--quiet", "--sourcepath", "#{c.to_s}/sp1", "new"])
+          expect(File.exist?('foo.txt')).to be true
+          expect(File.exist?('bar.txt')).to be false
+          expect(File.exist?('.gitignore')).to be false
         end
       end
     end
 
     it "gives config sourcepath precedence over builtin" do
       within_construct do |c|
-        c.directory('new')
-        c.file('new/foo.txt')
+        c.file('sp1/new/templates.yml')
+        c.file('sp1/new/foo.txt')
 
         within_construct do |d|
           d.file("config/atmos.yml", YAML.dump(template_sources: [
               {
                 name: "local",
-                location: c.to_s
+                location: "#{c.to_s}/sp1"
               }
           ]))
           Atmos.config = Atmos::Config.new("ops")
@@ -141,7 +136,17 @@ describe Atmos::Commands::Generate do
           expect(File.exist?('.gitignore')).to be false
         end
       end
+    end
 
+    it "uses first valid template from multiple sourcepaths" do
+      within_construct do |c|
+        c.file('sp1/foo/foo.txt')
+        c.file('sp2/foo/templates.yml')
+        c.file('sp2/foo/bar.txt')
+        cli.run(["--sourcepath", "#{c.to_s}/sp1", "--sourcepath", "#{c.to_s}/sp2", "--quiet", "foo"])
+        expect(File.exist?('foo.txt')).to be false
+        expect(File.exist?('bar.txt')).to be true
+      end
     end
 
   end

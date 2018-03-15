@@ -13,19 +13,30 @@ module Atmos
 
       include GemLogger::LoggerSupport
 
+      TEMPLATES_SPEC_FILE = 'templates.yml'
+      TEMPLATES_ACTIONS_FILE = 'templates.rb'
+
       def self.valid_templates
+        all_entries = []
         source_paths_for_search.collect do |path|
+          entries = []
           if Dir.exist?(path)
-            entries = Dir.entries(path).select do |e|
-              p = File.join(path, e)
-              File.directory?(p) && e !~  /(^\.)|svn|CVS/
+            Find.find(path) do |f|
+              Find.prune if File.basename(f) =~  /(^\.)|svn|CVS/
+
+              template_spec = File.join(f, TEMPLATES_SPEC_FILE)
+              if File.exist?(template_spec)
+                entries << f.sub(/^#{path}\//, '')
+                Find.prune
+              end
             end
-            entries.sort
+            all_entries << entries.sort
           else
             logger.warn("Sourcepath does not exist: #{path}")
-            nil
           end
-        end.flatten.compact
+        end
+
+        return all_entries.flatten
       end
 
       def valid_templates
@@ -53,7 +64,8 @@ module Atmos
       source_path = nil
       source_paths.each do |sp|
         potential_template_dir = File.join(sp, name, '')
-        if File.directory?(potential_template_dir)
+        template_spec = File.join(sp, name, TEMPLATES_SPEC_FILE)
+        if File.exist?(template_spec) && File.directory?(potential_template_dir)
           template_dir = potential_template_dir
           source_path = sp
           break
@@ -91,10 +103,10 @@ module Atmos
 
       template_conf = load_template_config(template_dir)
 
-      extra_generator_steps_file = File.join(template_dir, 'templates.rb')
+      extra_generator_steps_file = File.join(template_dir, TEMPLATES_ACTIONS_FILE)
 
       Find.find(template_dir) do |f|
-        Find.prune if f == File.join(template_dir, 'templates.yml')  # don't copy over templates.yml
+        Find.prune if f == File.join(template_dir, TEMPLATES_SPEC_FILE)  # don't copy over templates.yml
         Find.prune if f == extra_generator_steps_file # don't copy over templates.rb
 
         template_rel = f.gsub(/#{template_dir}/, '')
@@ -124,7 +136,7 @@ module Atmos
     end
 
     def load_template_config(template_dir)
-      YAML.load(File.read(File.join(template_dir, 'templates.yml'))) rescue {}
+      YAML.load(File.read(File.join(template_dir, 'templates.yml'))) || {} rescue {}
     end
 
     # TODO: figure out a way to no lose comments from original yaml
