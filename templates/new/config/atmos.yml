@@ -1,24 +1,32 @@
 # The short name of your organization
+#
 org:
 
 # The global name prefix for disambiguating resource names that have a global
 # scope (e.g. s3 bucket names)
+#
 global_name_prefix: "#{org}-#{atmos_env}-"
 
 # The local name prefix for disambiguating resource names that have a local
 # scope (e.g. when running multiple environments in the same account)
+#
 local_name_prefix: "" # "#{global_name_prefix}"
 
-# The recipes to to use for all environments, override at environment level if
+# The recipes to use for all environments, override at environment level if
 # need be
+#
 recipes:
 
+# Environment specific overrides
+#
 environments:
   ops:
     account_id:
 
+# Sources for atmos templates
+#
 template_sources:
   - name: atmos-recipes
     location: git@github.com:/simplygenius/atmos-recipes.git
-  - name: atmos-pro-recipes
-    location: git@github.com:simplygenius/atmos-pro-recipes.git
+#  - name: atmos-pro-recipes
+#    location: git@github.com:simplygenius/atmos-pro-recipes.git
