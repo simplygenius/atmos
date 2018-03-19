@@ -18,7 +18,7 @@ module Atmos
       begin
         result = deep_fetch(*path)
       rescue Hashie::Extensions::DeepFetch::UndefinedPathError => e
-        logger.log_exception(e, "No value present for key='#{key}'", level: :debug)
+        logger.debug("Settings missing value for key='#{key}'")
       end
 
       return result

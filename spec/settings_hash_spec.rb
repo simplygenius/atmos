@@ -24,7 +24,7 @@ describe Atmos::SettingsHash do
       Atmos::Logging.setup_logging(true, false, nil)
       config = described_class.new
       expect(config.notation_get("foo.bar")).to be_nil
-      expect(Atmos::Logging.contents).to match(/No value present for key='foo.bar'/)
+      expect(Atmos::Logging.contents).to match(/Settings missing value for key='foo.bar'/)
     end
 
   end
