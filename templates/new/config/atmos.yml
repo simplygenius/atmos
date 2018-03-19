@@ -2,6 +2,10 @@
 #
 org:
 
+# The email address for receiving ops related alert emails
+#
+ops_email:
+
 # The global name prefix for disambiguating resource names that have a global
 # scope (e.g. s3 bucket names)
 #
