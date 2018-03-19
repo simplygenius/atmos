@@ -13,7 +13,18 @@ describe Atmos::Config do
       expect(config.root_dir).to eq(Dir.pwd)
       expect(config.config_file).to eq("#{Dir.pwd}/config/atmos.yml")
       expect(config.configs_dir).to eq("#{Dir.pwd}/config/atmos")
-      expect(config.tmp_dir).to eq("#{Dir.pwd}/tmp")
+      expect(config.tmp_root).to eq("#{Dir.pwd}/tmp")
+    end
+
+  end
+
+  describe "tmp_dir" do
+
+    it "creates the dir" do
+      within_construct do |c|
+        expect(config.tmp_dir).to eq("#{config.tmp_root}/#{config.atmos_env}")
+        expect(Dir.exist?(config.tmp_dir)).to be true
+      end
     end
 
   end
@@ -22,7 +33,7 @@ describe Atmos::Config do
 
     it "creates the dir" do
       within_construct do |c|
-        expect(config.auth_cache_dir).to eq("#{config.tmp_dir}/#{config.atmos_env}/auth")
+        expect(config.auth_cache_dir).to eq("#{config.tmp_root}/#{config.atmos_env}/auth")
         expect(Dir.exist?(config.auth_cache_dir)).to be true
       end
     end
@@ -33,7 +44,7 @@ describe Atmos::Config do
 
     it "creates the dir" do
       within_construct do |c|
-        expect(config.tf_working_dir).to eq("#{config.tmp_dir}/#{config.atmos_env}/tf")
+        expect(config.tf_working_dir).to eq("#{config.tmp_root}/#{config.atmos_env}/tf")
         expect(Dir.exist?(config.tf_working_dir)).to be true
       end
     end

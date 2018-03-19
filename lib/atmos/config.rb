@@ -12,14 +12,14 @@ module Atmos
 
     attr_accessor :atmos_env, :root_dir,
                   :config_file, :configs_dir,
-                  :tmp_dir
+                  :tmp_root
 
     def initialize(atmos_env)
       @atmos_env = atmos_env
       @root_dir = File.expand_path(Dir.pwd)
       @config_file = File.join(root_dir, "config", "atmos.yml")
       @configs_dir = File.join(root_dir, "config", "atmos")
-      @tmp_dir = File.join(root_dir, "tmp")
+      @tmp_root = File.join(root_dir, "tmp")
     end
 
     def is_atmos_repo?
@@ -49,9 +49,18 @@ module Atmos
       end
     end
 
+    def tmp_dir
+      @auth_cache_dir ||= begin
+        dir = File.join(tmp_root, atmos_env)
+        logger.debug("Tmp dir: #{dir}")
+        mkdir_p(dir)
+        dir
+      end
+    end
+
     def auth_cache_dir
       @auth_cache_dir ||= begin
-        dir = File.join(tmp_dir, atmos_env, 'auth')
+        dir = File.join(tmp_dir, 'auth')
         logger.debug("Auth cache dir: #{dir}")
         mkdir_p(dir)
         dir
@@ -60,7 +69,7 @@ module Atmos
 
     def tf_working_dir
       @tf_working_dir ||= begin
-        dir = File.join(tmp_dir, atmos_env, 'tf')
+        dir = File.join(tmp_dir, 'tf')
         logger.debug("Terraform working dir: #{dir}")
         mkdir_p(dir)
         dir
