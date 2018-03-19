@@ -180,6 +180,24 @@ describe Atmos::Generator do
       end
     end
 
+    it "optional qualifier sees helper methods" do
+      within_construct do |c|
+        described_class.source_root(c.to_s)
+        c.file('foo/templates.yml', YAML.dump('optional' => {
+            'sub/foo.txt' => 'get_config("foo.yml", "not")',
+            'sub/bar.txt' => 'get_config("foo.yml", "foo")'
+        }))
+        c.file('foo/foo.yml', YAML.dump("foo" => "bar"))
+        c.file('foo/sub/foo.txt', "hello")
+        c.file('foo/sub/bar.txt', "there")
+        within_construct do |d|
+          gen.send(:apply_template, 'foo')
+          expect(File.exist?('sub/foo.txt')).to be false
+          expect(File.exist?('sub/bar.txt')).to be true
+        end
+      end
+    end
+
     it "processes procedural template" do
       within_construct do |c|
         described_class.source_root(c.to_s)
@@ -333,6 +351,35 @@ describe Atmos::Generator do
             gen.send(:apply_template, 'foo')
             new_data = YAML.load_file("config/atmos.yml")
             expect(new_data).to eq({"foo"=>{"bah"=>"blah", "bar"=>{"baz"=>"bum"}}, "hum"=>"hi"})
+          end
+        end
+      end
+
+    end
+
+    describe "new_keys?" do
+
+      it "checks if config has more keys" do
+        within_construct do |c|
+          described_class.source_root(c.to_s)
+          c.file('foo/templates.yml')
+          c.file('foo/templates.rb', 'new_keys? "#{template_dir}/foo.yml", "foo.yml"')
+          data = {"foo" => 'bar', "hum" => 'hi'}
+          c.file("foo.yml", YAML.dump(data))
+
+          within_construct do |d|
+            d.file("foo.yml", YAML.dump(data))
+            expect(gen.send(:new_keys?, "#{d}/foo.yml", 'foo.yml')).to be false
+          end
+
+          within_construct do |d|
+            d.file("foo.yml", YAML.dump({"foo" => 'bar'}))
+            expect(gen.send(:new_keys?, "#{d}/foo.yml", 'foo.yml')).to be false
+          end
+
+          within_construct do |d|
+            d.file("foo.yml", YAML.dump(data.merge("baz" => "bum")))
+            expect(gen.send(:new_keys?, "#{d}/foo.yml", 'foo.yml')).to be true
           end
         end
       end

@@ -141,7 +141,7 @@ module Atmos
 
     def raw_config(yml_file)
       @raw_configs ||= {}
-      @raw_configs[yml_file] ||= (SettingsHash.new(YAML.load_file(yml_file)) rescue {})
+      @raw_configs[yml_file] ||= SettingsHash.new((YAML.load_file(yml_file) rescue {}))
     end
 
     # TODO: figure out a way to no lose comments from original yaml
@@ -172,6 +172,14 @@ module Atmos
       end
 
       return result
+    end
+
+    # TODO make a context object for these actions, and populate it with things
+    # like template_dir from within apply
+    def new_keys?(src_yml_file, dest_yml_file)
+      src = raw_config(src_yml_file).keys.sort
+      dest = raw_config(dest_yml_file).keys.sort
+      (src - dest).size > 0
     end
 
   end
