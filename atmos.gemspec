@@ -53,9 +53,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rubyzip"
   spec.add_dependency "hashie"
   spec.add_dependency "climate_control"
-  spec.add_dependency "aws-sdk-core"
-  spec.add_dependency "aws-sdk-iam"
-  spec.add_dependency "aws-sdk-s3"
-  spec.add_dependency "aws-sdk-organizations"
+  spec.add_dependency "aws-sdk"
+  spec.add_dependency "os"
 
 end
