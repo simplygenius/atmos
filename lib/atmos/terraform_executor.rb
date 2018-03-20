@@ -15,10 +15,21 @@ module Atmos
       @process_env = process_env
     end
 
-    def run(*terraform_args, skip_backend: false, skip_secrets: false)
+    def run(*terraform_args, skip_backend: false, skip_secrets: false, get_modules: false, output_io: nil)
       setup_working_dir(skip_backend: skip_backend)
 
-      return execute(*terraform_args, skip_secrets: skip_secrets)
+      if get_modules
+        logger.debug("Getting modules")
+        get_modules_io = StringIO.new
+        begin
+          execute("get", output_io: get_modules_io)
+        rescue Atmos::TerraformExecutor::ProcessFailed => e
+          logger.info(get_modules_io.to_s)
+          raise
+        end
+      end
+
+      return execute(*terraform_args, skip_secrets: skip_secrets, output_io: output_io)
     end
 
     private
@@ -27,7 +38,7 @@ module Atmos
       ['terraform'] + args
     end
 
-    def execute(*terraform_args, skip_secrets: false)
+    def execute(*terraform_args, skip_secrets: false, output_io: nil)
       cmd = tf_cmd(*terraform_args)
       logger.debug("Running terraform: #{cmd.join(' ')}")
 

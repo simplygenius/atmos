@@ -330,6 +330,19 @@ describe Atmos::TerraformExecutor do
       end
     end
 
+    it "runs get before the command when desired" do
+      within_construct do |c|
+        c.file('config/atmos.yml')
+        Atmos.config = Atmos::Config.new("ops")
+
+        expect(te).to receive(:setup_working_dir)
+        expect(te).to receive(:execute).with("get", output_io: instance_of(StringIO)).ordered
+        expect(te).to receive(:execute).with(hash_including(output_io: nil)).ordered
+
+        te.send(:run, get_modules: true)
+      end
+    end
+
   end
 
   describe "execute" do

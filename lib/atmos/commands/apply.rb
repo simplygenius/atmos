@@ -10,7 +10,9 @@ module Atmos::Commands
     end
 
     def execute
-      @terraform_arguments.insert(0, "apply")
+      args = ["apply"]
+      args << "--get-modules" unless Atmos.config["disable_auto_modules"].to_s == "true"
+      @terraform_arguments.insert(0, *args)
       super
     end
 
