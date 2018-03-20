@@ -20,7 +20,7 @@ describe Atmos::Commands::Terraform do
       te = Atmos::TerraformExecutor.new(env)
       expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
       expect(Atmos::TerraformExecutor).to receive(:new).with(process_env: env).and_return(te)
-      expect(te).to receive(:run).with('--help', 'foo', '--bar')
+      expect(te).to receive(:run).with('--help', 'foo', '--bar', get_modules: false)
       cli.run(['--help', 'foo', '--bar'])
     end
 
