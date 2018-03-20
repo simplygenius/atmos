@@ -1,0 +1,21 @@
+# Optional configuration for controlling the behavior of the atmos runtime
+
+# Sets a prefix on the root keys when passed into terraform as a var value
+var_prefix:
+
+# Disable module fetch from convenience plan/apply commandss
+disable_auto_modules: false
+
+# Configure the mechanism that allows terraform to callback into atmos
+ipc:
+  # Disables all IPC callbacks into atmos from terraform
+  disable: false
+  # Configures the notify IP callback
+  notify:
+    # Disable notify callbacks
+    disable: false
+    # Force notify callbacks to never be modal
+    disable_modal: false
+    # Set a custom command for notifications, embedded {{title|message|modal}}
+    # will be replaced with the value passed from terraform
+    command:
