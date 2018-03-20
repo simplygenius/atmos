@@ -2,6 +2,7 @@ require 'atmos'
 require 'open3'
 require 'fileutils'
 require 'find'
+require 'atmos/ipc'
 
 module Atmos
 
@@ -24,7 +25,7 @@ module Atmos
         begin
           execute("get", output_io: get_modules_io)
         rescue Atmos::TerraformExecutor::ProcessFailed => e
-          logger.info(get_modules_io.to_s)
+          logger.info(get_modules_io.string)
           raise
         end
       end
@@ -47,27 +48,49 @@ module Atmos
         env = env.merge(secrets_env)
       end
 
+      # lets tempfiles create by subprocesses be easily found by users
+      env['TMPDIR'] = Atmos.config.tmp_dir
+
+      # Lets terraform communicate back to atmos, e.g. for UI notifications
+      ipc = Atmos::Ipc.new(Atmos.config.tmp_dir)
+
       IO.pipe do |stdout, stdout_writer|
         IO.pipe do |stderr, stderr_writer|
 
           stdout_writer.sync = stderr_writer.sync = true
           # TODO: more filtering on terraform output?
-          stdout_thr = pipe_stream(stdout, $stdout)
-          stderr_thr = pipe_stream(stderr, $stderr)
+          stdout_thr = pipe_stream(stdout, output_io.nil? ? $stdout : output_io)
+          stderr_thr = pipe_stream(stderr, output_io.nil? ? $stderr : output_io)
 
-          # Was unable to get piping to work with stdin for some reason.  It
-          # worked in simple case, but started to fail when terraform config
-          # got more extensive.  Thus, using spawn to redirect stdin from the
-          # terminal direct to terraform, with IO.pipe to copy the outher
-          # streams.  Maybe in the future we can completely disconnect stdin
-          # and have atmos do the output parsing and stdin prompting
-          pid = spawn(env, *cmd,
-                      chdir: tf_recipes_dir,
-                      :out=>stdout_writer, :err=> stderr_writer, :in => :in)
+          ipc.listen do |sock_path|
 
+            if Atmos.config['ipc.disable']
+              # Using cat as the command makes execution of ip from the
+              # terraform side a no-op in both cases of how we call it.  This
+              # way, terraform execution continues to work when IPC is disabled
+              # command = "echo '${local.ns_ipc}' | $ATMOS_IPC_CLIENT"
+              # program = ["sh", "-c", "$ATMOS_IPC_CLIENT"]
+              # It may be better with 'echo {}' so response is just an empty hash
+              env['ATMOS_IPC_CLIENT'] = "cat"
+            else
+              env['ATMOS_IPC_SOCK'] = sock_path
+              env['ATMOS_IPC_CLIENT'] = ipc.generate_client_script
+            end
 
-          logger.debug("Terraform started with pid #{pid}")
-          Process.wait(pid)
+            # Was unable to get piping to work with stdin for some reason.  It
+            # worked in simple case, but started to fail when terraform config
+            # got more extensive.  Thus, using spawn to redirect stdin from the
+            # terminal direct to terraform, with IO.pipe to copy the outher
+            # streams.  Maybe in the future we can completely disconnect stdin
+            # and have atmos do the output parsing and stdin prompting
+            pid = spawn(env, *cmd,
+                        chdir: tf_recipes_dir,
+                        :out=>stdout_writer, :err=> stderr_writer, :in => :in)
+
+            logger.debug("Terraform started with pid #{pid}")
+            Process.wait(pid)
+          end
+
           stdout_writer.close
           stderr_writer.close
           stdout_thr.join

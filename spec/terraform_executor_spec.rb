@@ -393,6 +393,18 @@ describe Atmos::TerraformExecutor do
       end
     end
 
+    it "runs terraform with output_io" do
+      within_construct do |c|
+        c.file('config/atmos.yml')
+        Atmos.config = Atmos::Config.new("ops")
+
+        io = StringIO.new
+        expect { te.send(:execute, "init", "-badarg", skip_secrets: true, output_io: io) rescue Atmos::TerraformExecutor::ProcessFailed }.
+            to_not output(/flag provided but not defined/).to_stderr
+        expect(io.string).to match(/flag provided but not defined/)
+      end
+    end
+
     it "runs terraform with stdin" do
       within_construct do |c|
         c.file('config/atmos.yml')
@@ -421,6 +433,68 @@ describe Atmos::TerraformExecutor do
             te.send(:execute, "apply", skip_secrets: true)
         }.to output(/showme = got var foo/).to_stdout
       end
+    end
+
+    it "sets TMPDIR in env" do
+      within_construct do |c|
+        c.file('config/atmos.yml')
+        Atmos.config = Atmos::Config.new("ops")
+
+        expect(te).to receive(:spawn).
+            with(hash_including('TMPDIR' => Atmos.config.tmp_dir), any_args)
+        expect(Process).to receive(:wait)
+
+        te.send(:execute, "init", skip_secrets: true)
+      end
+    end
+
+    it "passes ipc env to terraform" do
+      within_construct do |c|
+        c.file('config/atmos.yml')
+        Atmos.config = Atmos::Config.new("ops")
+
+        expect(te).to receive(:spawn).
+            with(hash_including('ATMOS_IPC_SOCK', 'ATMOS_IPC_CLIENT'), any_args)
+        expect(Process).to receive(:wait)
+
+        te.send(:execute, "init", skip_secrets: true)
+      end
+    end
+
+    it "allows disabling ipc" do
+      within_construct do |c|
+        c.file('config/atmos.yml')
+        Atmos.config = Atmos::Config.new("ops")
+        Atmos.config.send(:load)
+        Atmos.config.instance_variable_get(:@config).notation_put('ipc.disable', true)
+
+        expect(te).to receive(:spawn).
+            with(hash_including('ATMOS_IPC_CLIENT' => 'cat'), any_args)
+        expect(Process).to receive(:wait)
+
+        te.send(:execute, "init", skip_secrets: true)
+      end
+    end
+
+    it "no-ops ipc with disabled ipc script" do
+      disabled_script = 'cat'
+      data = {'action' => 'ping', 'data' => 'foo'}
+      input = JSON.generate(data)
+
+      output, status = Open3.capture2(
+          {'ATMOS_IPC_CLIENT' => disabled_script},
+          "sh", "-c", %Q(echo '#{input}' | $ATMOS_IPC_CLIENT)
+      )
+      expect(status.success?).to be true
+      expect(JSON.parse(output)).to eq(data)
+
+      output, status = Open3.capture2(
+          {'ATMOS_IPC_CLIENT' => disabled_script},
+          "sh", "-c", "$ATMOS_IPC_CLIENT",
+          stdin_data: input
+      )
+      expect(status.success?).to be true
+      expect(JSON.parse(output)).to eq(data)
     end
 
   end
