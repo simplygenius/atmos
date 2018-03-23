@@ -144,14 +144,10 @@ module Atmos
       @raw_configs[yml_file] ||= SettingsHash.new((YAML.load_file(yml_file) rescue {}))
     end
 
-    # TODO: figure out a way to no lose comments from original yaml
     def add_config(yml_file, key, value, additive: true)
-      config = raw_config(yml_file)
-      config.notation_put(key, value, additive: additive)
-
-      create_file yml_file, nil do
-        YAML.dump(config.to_hash)
-      end
+      new_yml = SettingsHash.add_config(yml_file, key, value, additive: additive)
+      create_file yml_file, new_yml
+      @raw_configs.delete(yml_file) if @raw_configs
     end
 
     def get_config(yml_file, key)

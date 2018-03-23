@@ -108,4 +108,63 @@ describe Atmos::SettingsHash do
 
   end
 
+  describe "add_config" do
+
+    it "adds to config file" do
+        within_construct do |c|
+          data = {"foo" => {"bah" => 'blah'}, "hum" => 'hi'}
+          c.file("foo.yml", YAML.dump(data))
+          new_yml = described_class.add_config("foo.yml", "foo.bar.baz", "bum")
+          new_data = YAML.load(new_yml)
+          expect(new_data).to eq({"foo"=>{"bah"=>"blah", "bar"=>{"baz"=>"bum"}}, "hum"=>"hi"})
+        end
+      end
+
+    it "preserves comments when adding to config file" do
+      within_construct do |c|
+        data = <<~EOF
+          # multi comment
+          # line comment
+          foo:
+            # comment 1
+            bah: blah
+            # comment 2
+            dum: bleh
+          hum: hi
+          empty:
+          # comment 3
+          dim:
+          - sum
+          # comment 4
+          - bar
+        EOF
+        c.file("foo.yml", data)
+        File.write("foo.yml", described_class.add_config("foo.yml", "foo.bar.baz", "bum"))
+        File.write("foo.yml", described_class.add_config("foo.yml", "dim", "some"))
+        File.write("foo.yml", described_class.add_config("foo.yml", "empty", "not"))
+
+        new_data = File.read("foo.yml")
+        expect(new_data.lines.grep(/comment/).length).to eq(6)
+        new_data = YAML.load(new_data)
+        expect(new_data['foo']['bar']['baz']).to eq('bum')
+        expect(new_data['dim']).to eq(['sum', 'bar', 'some'])
+        expect(new_data['empty']).to eq('not')
+      end
+    end
+
+    it "check stock yml works" do
+      within_construct do |c|
+        c.file("foo.yml",
+               File.read(File.expand_path("../../templates/new/config/atmos.yml", __FILE__)))
+        File.write("foo.yml", described_class.add_config("foo.yml", "recipes", ["atmos-scaffold"]))
+        File.write("foo.yml", described_class.add_config("foo.yml", "foo", "bar"))
+        new_data = File.read("foo.yml")
+        new_data = YAML.load(new_data)
+        expect(new_data['recipes']).to eq(['atmos-scaffold'])
+        expect(new_data['foo']).to eq('bar')
+      end
+    end
+
+  end
+
 end

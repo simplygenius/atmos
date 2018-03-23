@@ -340,17 +340,31 @@ describe Atmos::Generator do
 
     describe "add_config" do
 
-      it "adds to config file" do
+      it "adds to config file multiple times preseving comments" do
         within_construct do |c|
           described_class.source_root(c.to_s)
           c.file('foo/templates.yml')
-          c.file('foo/templates.rb', 'add_config "config/atmos.yml", "foo.bar.baz", "bum"')
+          c.file('foo/templates.rb', <<~EOF
+            add_config "config/atmos.yml", "foo.bar.baz", "bum"
+            add_config "config/atmos.yml", "dude", "ette"
+          EOF
+          )
           within_construct do |d|
-            data = {"foo" => {"bah" => 'blah'}, "hum" => 'hi'}
-            d.file("config/atmos.yml", YAML.dump(data))
+            data = <<~EOF
+              # comment 1
+              foo:
+                # comment 2
+                bah: blah
+              hum: hi
+            EOF
+            d.file("config/atmos.yml", data)
             gen.send(:apply_template, 'foo')
-            new_data = YAML.load_file("config/atmos.yml")
-            expect(new_data).to eq({"foo"=>{"bah"=>"blah", "bar"=>{"baz"=>"bum"}}, "hum"=>"hi"})
+
+            new_data = File.read("config/atmos.yml")
+            expect(new_data.lines.grep(/comment/).length).to eq(2)
+
+            new_data = YAML.load(new_data)
+            expect(new_data).to eq({"foo"=>{"bah"=>"blah", "bar"=>{"baz"=>"bum"}}, "hum"=>"hi", "dude"=>"ette"})
           end
         end
       end
