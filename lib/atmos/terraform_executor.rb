@@ -3,6 +3,7 @@ require 'open3'
 require 'fileutils'
 require 'find'
 require 'atmos/ipc'
+require 'climate_control'
 
 module Atmos
 
@@ -185,9 +186,13 @@ module Atmos
     def secrets_env
       # NOTE use an auto-deleting temp file if passing secrets through env ends
       # up being problematic
-      secrets = Atmos.config.provider.secret_manager.to_h
-      env_secrets = Hash[secrets.collect { |k, v| ["TF_VAR_#{k}", v] }]
-      return env_secrets
+      # TODO fix the need for CC - TE calls for secrets which needs auth in
+      # ENV, so kinda clunk to have to do both CC and pass the env in
+      ClimateControl.modify(@process_env) do
+        secrets = Atmos.config.provider.secret_manager.to_h
+        env_secrets = Hash[secrets.collect { |k, v| ["TF_VAR_#{k}", v] }]
+        return env_secrets
+      end
     end
 
     def clean_links
