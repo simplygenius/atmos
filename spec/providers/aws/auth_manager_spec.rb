@@ -27,7 +27,8 @@ describe Atmos::Providers::Aws::AuthManager do
           'providers' => {
               'aws' => {
                   'auth' => {
-                      'assume_role_name' => 'myrole'
+                      'assume_role_name' => 'myrole',
+                      'bootstrap_assume_role_name' => 'bootrole'
                   }
               }
           }
@@ -78,7 +79,7 @@ describe Atmos::Providers::Aws::AuthManager do
           'providers' => {
               'aws' => {
                   'auth' => {
-                      'assume_role_name' => 'role',
+                      'assume_role_arn' => 'role',
                       'session_duration' => 60
                   }
               }
@@ -100,7 +101,7 @@ describe Atmos::Providers::Aws::AuthManager do
                               role_session_name: "Atmos",
                               role_arn: "myrole")).
           and_call_original
-      result = manager.send(:assume_role)
+      result = manager.send(:assume_role, "myrole")
       expect(result).to match(hash_including(
                                :access_key_id, :secret_access_key,
                                :session_token, :expiration))
@@ -112,21 +113,27 @@ describe Atmos::Providers::Aws::AuthManager do
       expect(client).to receive(:assume_role).
           with(hash_including(serial_number: 'myserial')).
           and_call_original
-      result = manager.send(:assume_role, serial_number: 'myserial')
+      result = manager.send(:assume_role, "myrole", serial_number: 'myserial')
       expect(result).to be_a_kind_of(Hash)
     end
 
     it "passes through credentials" do
+      creds_hash = {access_key_id: 'mykey', secret_access_key: 'mysecret', session_token: 'mytoken'}
+
       client = ::Aws::STS::Client.new
-      expect(::Aws::STS::Client).to receive(:new).
-          with(hash_including(credentials: {access_key_id: 'mykey'})).
+      expect(::Aws::STS::Client).to receive(:new) { |arg|
+            expect(arg).to match(hash_including(credentials: instance_of(::Aws::Credentials)))
+            expect(arg[:credentials].access_key_id).to eq('mykey')
+            expect(arg[:credentials].secret_access_key).to eq('mysecret')
+            expect(arg[:credentials].session_token).to eq('mytoken')
+          }.
           and_return(client)
       expect(client).to receive(:assume_role).
           with(hash_including(serial_number: 'myserial')).
           and_call_original
-      result = manager.send(:assume_role,
+      result = manager.send(:assume_role, "myrole",
                             serial_number: 'myserial',
-                            credentials: {access_key_id: 'mykey'})
+                            credentials: creds_hash)
       expect(result).to be_a_kind_of(Hash)
     end
 
@@ -263,7 +270,7 @@ describe Atmos::Providers::Aws::AuthManager do
       expiration = manager.send(:read_auth_cache)['expiration']
 
       expect(manager).to receive(:assume_role).
-          with(no_args).
+          with(a_kind_of(String)).
           and_call_original
       expect { |b| manager.authenticate({'AWS_PROFILE' => 'profile'}, &b) }.to yield_with_args
       expect(Atmos::Logging.contents).to_not match(/Session approaching expiration, renewing/)
@@ -288,7 +295,8 @@ describe Atmos::Providers::Aws::AuthManager do
       expiration = manager.send(:read_auth_cache)['expiration']
 
       expect(manager).to receive(:assume_role).
-          with(hash_including(credentials: hash_including(access_key_id: 'accessKeyFromCache'))).
+          with(a_kind_of(String),
+               hash_including(credentials: hash_including(access_key_id: 'accessKeyFromCache'))).
           and_call_original
       expect { |b| manager.authenticate({'AWS_PROFILE' => 'profile'}, &b) }.to yield_with_args
       expect(Atmos::Logging.contents).to match(/Session approaching expiration, renewing/)
@@ -349,10 +357,10 @@ describe Atmos::Providers::Aws::AuthManager do
       client.stub_responses(:assume_role, 'AccessDenied', stub)
 
       expect(manager).to receive(:assume_role).
-                with(no_args).
+                with(a_kind_of(String)).
                 and_call_original
       expect(manager).to receive(:assume_role).
-                with(hash_including(token_code: "123456")).
+                with(a_kind_of(String), hash_including(token_code: "123456")).
                 and_call_original
       expect(manager).to receive(:write_auth_cache)
 
@@ -362,6 +370,39 @@ describe Atmos::Providers::Aws::AuthManager do
                    and yield_with_args
       }
       expect(Atmos::Logging.contents).to match(/Normal auth failed, checking for mfa/)
+    end
+
+    describe "role_name" do
+
+      it "gets default role from config" do
+        expect(manager).to receive(:assume_role).
+            with(/^arn:.*\/myrole$/).
+            and_call_original
+        manager.authenticate({}) {}
+      end
+
+      it "gets role from opts" do
+        expect(manager).to receive(:assume_role).
+            with(/^arn:.*\/optrole$/).
+            and_call_original
+        manager.authenticate({}, role: 'optrole') {}
+      end
+
+      it "uses correct role when bootstrapping ops" do
+        expect(manager).to receive(:assume_role).
+            with(/^arn:.*\/myrole$/).
+            and_call_original
+        manager.authenticate({}, bootstrap: true) {}
+      end
+
+      it "uses correct role when bootstrapping not-ops" do
+        allow(Atmos.config).to receive(:atmos_env).and_return("dev")
+        expect(manager).to receive(:assume_role).
+            with(/^arn:.*\/bootrole$/).
+            and_call_original
+        manager.authenticate({}, bootstrap: true) {}
+      end
+
     end
 
   end

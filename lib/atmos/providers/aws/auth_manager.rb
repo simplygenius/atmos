@@ -18,7 +18,7 @@ module Atmos
           @provider = provider
         end
 
-        def authenticate(system_env, &block)
+        def authenticate(system_env, **opts, &block)
 
           profile = system_env['AWS_PROFILE']
           key = system_env['AWS_ACCESS_KEY_ID']
@@ -27,18 +27,42 @@ module Atmos
             logger.warn("An aws profile or key/secret should be supplied via the environment")
           end
 
+          # Handle bootstrapping a new env account.  Newly created organization
+          # accounts only have the default role that can only be assumed by an
+          # iam user, so use that as the target for assume_role, and the root
+          # check below will ensure iam user
+          assume_role_name = nil
+          if opts[:bootstrap] && Atmos.config.atmos_env != 'ops'
+            # TODO: do this hack better
+            assume_role_name = Atmos.config["auth.bootstrap_assume_role_name"]
+          else
+            assume_role_name = opts[:role] || Atmos.config["auth.assume_role_name"]
+          end
+          account_id = Atmos.config.account_hash[Atmos.config.atmos_env].to_s
+          role_arn = "arn:aws:iam::#{account_id}:role/#{assume_role_name}"
+
+          user_name = nil
           begin
             sts = ::Aws::STS::Client.new
             resp = sts.get_caller_identity
             arn_pieces = resp.arn.split(":")
+            user_name = arn_pieces.last.split("/").last
 
             # root credentials can't assume role, but they should have full
             # access for the current account, so proceed (e.g. for bootstrap).
             if arn_pieces.last == "root"
-              # TODO: not sure about root assuming role to another account, so have a sanity check here
-              account_id = Atmos.config.account_hash[Atmos.config.atmos_env].to_s
+
+              # We check the account of the caller to prevent root user of ops
+              # account from bootstrapping an env account, but still allow a
+              # root user of the env account itself to be able to bootstrap
+              # (i.e. to allow not organizational accounts to bootstrap using
+              # their root user)
               if arn_pieces[-2] != account_id
-                logger.error "Account doesn't match credentials"
+                logger.error <<~EOF
+                  Account doesn't match credentials.  Bootstrapping a new
+                  account should be done as an iam user from the ops account or
+                  using credentials for a root user of the env account.
+                EOF
                 exit(1)
               end
 
@@ -61,7 +85,7 @@ module Atmos
           session_renew_interval = session_duration / 4
           if !auth_needed && Time.parse(credentials['expiration']) - session_renew_interval < Time.now
             logger.info "Session approaching expiration, renewing..."
-            credentials = assume_role(credentials: credentials)
+            credentials = assume_role(role_arn, credentials: credentials)
             auth_needed = false
           end
 
@@ -69,7 +93,7 @@ module Atmos
             begin
               logger.info "No active session cache, authenticating..."
 
-              credentials = assume_role
+              credentials = assume_role(role_arn)
               write_auth_cache(credentials)
 
             rescue ::Aws::STS::Errors::AccessDenied => e
@@ -80,7 +104,7 @@ module Atmos
               logger.info "Normal auth failed, checking for mfa"
 
               iam = ::Aws::IAM::Client.new
-              response = iam.list_mfa_devices
+              response = iam.list_mfa_devices(user_name: user_name)
               mfa_serial = response.mfa_devices.first.try(:serial_number)
               token = nil
               if mfa_serial.present?
@@ -96,7 +120,7 @@ module Atmos
                 exit(1)
               end
 
-              credentials = assume_role(serial_number: mfa_serial, token_code: token)
+              credentials = assume_role(role_arn, serial_number: mfa_serial, token_code: token)
               write_auth_cache(credentials)
 
             end
@@ -116,10 +140,14 @@ module Atmos
           @session_duration ||= (Atmos.config["auth.session_duration"] || 3600).to_i
         end
 
-        def assume_role(**opts)
+        def assume_role(role_arn, **opts)
           # use Aws::AssumeRoleCredentials ?
           if opts[:credentials]
-             client_opts = {credentials: opts.delete(:credentials)}
+            c = opts.delete(:credentials)
+            creds = ::Aws::Credentials.new(
+                c[:access_key_id], c[:secret_access_key], c[:session_token]
+            )
+            client_opts = {credentials: creds}
           else
             client_opts = {}
           end
@@ -127,8 +155,9 @@ module Atmos
           params = {
               duration_seconds: session_duration,
               role_session_name: "Atmos",
-              role_arn: Atmos.config["auth.assume_role_name"]
+              role_arn: role_arn
           }.merge(opts)
+          logger.debug("Assuming role: #{params}")
           resp = sts.assume_role(params)
           return Atmos::Utils::SymbolizedMash.new(resp.credentials.to_h)
         end
