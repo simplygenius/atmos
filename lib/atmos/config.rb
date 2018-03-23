@@ -50,7 +50,7 @@ module Atmos
     end
 
     def tmp_dir
-      @auth_cache_dir ||= begin
+      @tmp_dir ||= begin
         dir = File.join(tmp_root, atmos_env)
         logger.debug("Tmp dir: #{dir}")
         mkdir_p(dir)
@@ -82,6 +82,8 @@ module Atmos
 
     def load
       @config ||= begin
+
+        logger.debug("Atmos env: #{atmos_env}")
 
         if ! File.exist?(config_file)
           raise RuntimeError.new("Could not find an atmos config file at: #{config_file}")
