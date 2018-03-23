@@ -29,13 +29,15 @@ describe Atmos::Commands::Bootstrap do
     it "runs against a fresh repo" do
       env = Hash.new
       te = double(Atmos::TerraformExecutor)
-      expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
+      expect(Atmos.config.provider.auth_manager).to receive(:authenticate).
+          with(ENV, bootstrap: true).and_yield(env)
       expect(Atmos::TerraformExecutor).to receive(:new).and_return(te)
       expect(te).to receive(:run).with("init", "-input=false", "-lock=false",
                         skip_backend: true, skip_secrets: true)
       expect(te).to receive(:run).with("apply", "-input=false", "-target", "null_resource.bootstrap-ops",
                         skip_backend: true, skip_secrets: true)
-      expect(te).to receive(:run).with("init", "-input=false", "-force-copy")
+      expect(te).to receive(:run).with("init", "-input=false", "-force-copy",
+                        skip_secrets: true)
       cli.run([])
     end
 
@@ -43,13 +45,15 @@ describe Atmos::Commands::Bootstrap do
       Atmos.config = Atmos::Config.new("dev")
       env = Hash.new
       te = double(Atmos::TerraformExecutor)
-      expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
+      expect(Atmos.config.provider.auth_manager).to receive(:authenticate).
+          with(ENV, bootstrap: true).and_yield(env)
       expect(Atmos::TerraformExecutor).to receive(:new).and_return(te)
       expect(te).to receive(:run).with("init", "-input=false", "-lock=false",
                         skip_backend: true, skip_secrets: true)
       expect(te).to receive(:run).with("apply", "-input=false", "-target", "null_resource.bootstrap-env",
                         skip_backend: true, skip_secrets: true)
-      expect(te).to receive(:run).with("init", "-input=false", "-force-copy")
+      expect(te).to receive(:run).with("init", "-input=false", "-force-copy",
+                        skip_secrets: true)
       cli.run([])
     end
 

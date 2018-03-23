@@ -28,7 +28,7 @@ module Atmos::Commands
         signal_usage_error(rebootstrap_msg)
       end
 
-      Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
+      Atmos.config.provider.auth_manager.authenticate(ENV, bootstrap: true) do |auth_env|
         begin
           exe = Atmos::TerraformExecutor.new(process_env: auth_env)
 
@@ -56,7 +56,7 @@ module Atmos::Commands
 
           # Need to init to setup the backend state after we create the resources
           # to store state in bootstrap
-          exe.run("init", "-input=false", "-force-copy")
+          exe.run("init", "-input=false", "-force-copy", skip_secrets: true)
 
         rescue Atmos::TerraformExecutor::ProcessFailed => e
           logger.error(e.message)
