@@ -1,6 +1,7 @@
 require 'atmos'
 require 'clamp'
 require 'climate_control'
+require 'atmos/settings_hash'
 
 module Atmos::Commands
 
@@ -40,7 +41,7 @@ module Atmos::Commands
             if source_env.present?
               source = config['environments'][source_env]
               if source.blank?
-                signal_usage_error "Source env '#{env}' does not exist"
+                signal_usage_error "Source env '#{source_env}' does not exist"
               end
               source = source.clone
             end
@@ -49,10 +50,13 @@ module Atmos::Commands
             logger.info "Account created: #{account.pretty_inspect}"
 
             source['account_id'] = account[:account_id].to_s
-            config['environments'][env] = source
 
+            new_yml = Atmos::SettingsHash.add_config(
+                Atmos.config.config_file,
+                "environments.#{env}", source
+            )
             logger.info("Writing out new atmos.yml containing new account")
-            File.write(Atmos.config.config_file, YAML.dump(config))
+            File.write(Atmos.config.config_file, new_yml)
           end
         end
       end
