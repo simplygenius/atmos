@@ -355,6 +355,7 @@ describe Atmos::TerraformExecutor do
         expect(te).to receive(:secrets_env).and_return({'foo' => 'bar'})
         expect(te).to receive(:spawn).with(hash_including('foo' => 'bar'), any_args)
         expect(Process).to receive(:wait)
+        expect($?).to receive(:exitstatus).and_return 0
 
         te.send(:execute, "init", skip_secrets: false)
       end
@@ -368,6 +369,7 @@ describe Atmos::TerraformExecutor do
         expect(te).to_not receive(:secrets_env)
         expect(te).to receive(:spawn)
         expect(Process).to receive(:wait)
+        expect($?).to receive(:exitstatus).and_return 0
 
         te.send(:execute, "init", skip_secrets: true)
       end
@@ -443,6 +445,7 @@ describe Atmos::TerraformExecutor do
         expect(te).to receive(:spawn).
             with(hash_including('TMPDIR' => Atmos.config.tmp_dir), any_args)
         expect(Process).to receive(:wait)
+        expect($?).to receive(:exitstatus).and_return 0
 
         te.send(:execute, "init", skip_secrets: true)
       end
@@ -456,6 +459,7 @@ describe Atmos::TerraformExecutor do
         expect(te).to receive(:spawn).
             with(hash_including('ATMOS_IPC_SOCK', 'ATMOS_IPC_CLIENT'), any_args)
         expect(Process).to receive(:wait)
+        expect($?).to receive(:exitstatus).and_return 0
 
         te.send(:execute, "init", skip_secrets: true)
       end
@@ -471,6 +475,7 @@ describe Atmos::TerraformExecutor do
         expect(te).to receive(:spawn).
             with(hash_including('ATMOS_IPC_CLIENT' => 'cat'), any_args)
         expect(Process).to receive(:wait)
+        expect($?).to receive(:exitstatus).and_return 0
 
         te.send(:execute, "init", skip_secrets: true)
       end
