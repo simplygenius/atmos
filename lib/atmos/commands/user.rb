@@ -1,6 +1,7 @@
 require 'atmos'
 require 'clamp'
 require 'climate_control'
+require 'yaml'
 
 module Atmos::Commands
 
@@ -43,7 +44,8 @@ module Atmos::Commands
             user = Atmos.config.provider.user_manager.create_user(username, group_list,
                                                            login: login?, keys: key?,
                                                            public_key: public_key)
-            logger.info "User created: #{user.pretty_inspect}"
+            display = YAML.dump(user).sub(/\A---\n/, "")
+            logger.info "User created:\n#{display}"
           end
         end
 
