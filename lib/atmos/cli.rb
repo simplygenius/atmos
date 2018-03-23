@@ -14,6 +14,7 @@ require 'atmos/commands/terraform'
 require 'atmos/commands/account'
 require 'atmos/commands/user'
 require 'atmos/commands/secret'
+require 'atmos/commands/auth_exec'
 
 module Atmos
 
@@ -77,6 +78,8 @@ module Atmos
                Atmos::Commands::User
     subcommand "secret", "Secret management commands",
                Atmos::Commands::Secret
+    subcommand "auth_exec", "Authenticated exec",
+               Atmos::Commands::AuthExec
 
     subcommand "version", "Display version" do
       def execute
