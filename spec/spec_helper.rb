@@ -159,6 +159,7 @@ module IoTestHelpers
 end
 include IoTestHelpers
 
+require 'hashie'
 class SymbolizedMash < ::Hashie::Mash
   include Hashie::Extensions::Mash::SymbolizeKeys
 end
