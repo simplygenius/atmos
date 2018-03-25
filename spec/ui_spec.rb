@@ -30,6 +30,14 @@ describe Atmos::UI do
 
   end
 
+  describe "display" do
+
+    it "pretties a map for display" do
+      expect(ui.display("foo" => "bar", "baz" => "bum")).to eq("foo: bar\nbaz: bum\n")
+    end
+
+  end
+
   describe "warn" do
 
     it "sends text to stdout" do

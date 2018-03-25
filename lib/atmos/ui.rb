@@ -1,6 +1,7 @@
 require 'atmos'
 require 'highline'
 require 'rainbow'
+require 'yaml'
 
 module Atmos
   module UI
@@ -42,6 +43,11 @@ module Atmos
 
     def say(statement)
       return Markup.new().say(statement)
+    end
+
+    # Pretty display of hashes
+    def display(data)
+      display = YAML.dump(data).sub(/\A---\n/, "")
     end
 
     def ask(question, answer_type=nil, &details)
