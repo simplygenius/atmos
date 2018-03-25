@@ -38,6 +38,17 @@ describe Atmos::UI do
 
   end
 
+  describe "notify" do
+
+    it "calls through to ipc notify" do
+      notifier = Atmos::IpcActions::Notify.new
+      expect(Atmos::IpcActions::Notify).to receive(:new).and_return(notifier)
+      expect(notifier).to receive(:execute).with(message: "foo")
+      ui.notify(message: "foo")
+    end
+
+  end
+
   describe "warn" do
 
     it "sends text to stdout" do

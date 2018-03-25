@@ -2,6 +2,7 @@ require 'atmos'
 require 'highline'
 require 'rainbow'
 require 'yaml'
+require 'atmos/ipc_actions/notify'
 
 module Atmos
   module UI
@@ -48,6 +49,11 @@ module Atmos
     # Pretty display of hashes
     def display(data)
       display = YAML.dump(data).sub(/\A---\n/, "")
+    end
+
+    # TODO: refactor IPC class into here and call from there
+    def notify(**opts)
+      Atmos::IpcActions::Notify.new.execute(**opts)
     end
 
     def ask(question, answer_type=nil, &details)
