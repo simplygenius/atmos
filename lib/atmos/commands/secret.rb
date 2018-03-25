@@ -1,11 +1,9 @@
-require 'atmos'
-require 'clamp'
+require 'atmos/commands/base_command'
 require 'climate_control'
 
 module Atmos::Commands
 
-  class Secret < Clamp::Command
-    include GemLogger::LoggerSupport
+  class Secret < BaseCommand
 
     def self.description
       "Manages application secrets"

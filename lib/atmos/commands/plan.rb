@@ -1,4 +1,3 @@
-require 'atmos'
 require 'atmos/commands/terraform'
 
 module Atmos::Commands

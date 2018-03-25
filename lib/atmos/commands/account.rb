@@ -1,12 +1,10 @@
-require 'atmos'
-require 'clamp'
-require 'climate_control'
+require 'atmos/commands/base_command'
 require 'atmos/settings_hash'
+require 'climate_control'
 
 module Atmos::Commands
 
-  class Account < Clamp::Command
-    include GemLogger::LoggerSupport
+  class Account < BaseCommand
 
     def self.description
       "Manages accounts/envs in the cloud provider"

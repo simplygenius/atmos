@@ -1,11 +1,9 @@
-require 'atmos'
-require 'clamp'
+require 'atmos/commands/base_command'
 require 'atmos/terraform_executor'
 
 module Atmos::Commands
 
-  class Terraform < Clamp::Command
-    include GemLogger::LoggerSupport
+  class Terraform < BaseCommand
 
     def self.description
       "Runs terraform"

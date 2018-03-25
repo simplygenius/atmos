@@ -1,13 +1,11 @@
-require 'atmos'
-require 'clamp'
+require 'atmos/commands/base_command'
 require 'atmos/generator_factory'
 require 'atmos/utils'
 
 module Atmos::Commands
 
   # From https://github.com/rubber/rubber/blob/master/lib/rubber/commands/vulcanize.rb
-  class Generate < Clamp::Command
-    include GemLogger::LoggerSupport
+  class Generate < BaseCommand
 
     def self.description
       <<~EOF

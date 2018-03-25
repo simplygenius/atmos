@@ -1,12 +1,10 @@
-require 'atmos'
-require 'clamp'
+require 'atmos/commands/base_command'
 require 'climate_control'
 require 'yaml'
 
 module Atmos::Commands
 
-  class User < Clamp::Command
-    include GemLogger::LoggerSupport
+  class User < BaseCommand
 
     def self.description
       "Manages users in the cloud provider"
@@ -44,8 +42,7 @@ module Atmos::Commands
             user = Atmos.config.provider.user_manager.create_user(username, group_list,
                                                            login: login?, keys: key?,
                                                            public_key: public_key)
-            display = YAML.dump(user).sub(/\A---\n/, "")
-            logger.info "User created:\n#{display}"
+            logger.info "User created:\n#{display user}"
           end
         end
 
@@ -72,7 +69,7 @@ module Atmos::Commands
          Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
            ClimateControl.modify(auth_env) do
              user = Atmos.config.provider.user_manager.modify_groups(username, group_list, add: add?)
-             logger.info "User modified: #{user.pretty_inspect}"
+             logger.info "User modified: #{display user}"
            end
          end
 

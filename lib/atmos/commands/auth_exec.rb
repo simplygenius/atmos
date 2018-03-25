@@ -1,11 +1,9 @@
-require 'atmos'
-require 'clamp'
+require 'atmos/commands/base_command'
 require 'climate_control'
 
 module Atmos::Commands
 
-  class AuthExec < Clamp::Command
-    include GemLogger::LoggerSupport
+  class AuthExec < BaseCommand
 
     def self.description
       "Exec subprocess with an authenticated environment"

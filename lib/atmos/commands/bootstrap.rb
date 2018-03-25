@@ -1,10 +1,8 @@
-require 'atmos'
-require 'clamp'
+require 'atmos/commands/base_command'
 
 module Atmos::Commands
 
-  class Bootstrap < Clamp::Command
-    include GemLogger::LoggerSupport
+  class Bootstrap < BaseCommand
 
     def self.description
       "Sets up the initial aws account for use by atmos"
