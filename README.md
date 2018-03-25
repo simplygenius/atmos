@@ -79,7 +79,7 @@ AWS_PROFILE=<root_profile_name> atmos user -l -k -g all-users -g ops-admin your@
 aws configure --profile <user_profile_name>
 ```
 
-Login to the aws console as that user, change your password and setup MFA.  Make sure you log out and back in again with MFA before you try setting up the [role switcher](#Per-User Role switcher in Console)
+Login to the aws console as that user, change your password and setup MFA.  Make sure you log out and back in again with MFA before you try setting up the [role switcher](README.md#Per-User Role switcher in Console)
 
 Now that a non-root user is created, you should be able to do everything as that user, so you can remove the root access keys if desired.  Keeping them around can be useful though, as there are some AWS operations one can only be done as the root user.  Leaving them in your shared credential store, but deactivating them in the AWS console till needed is a reasonable compromise.  
 
@@ -117,7 +117,7 @@ Then use atmos to push and deploy that image to the ECR repo:
 atmos -e dev container deploy -c services <service_name>
 ```
 
-The atmos aws scaffold also sets up a user named deployer, with restricted permissions sufficient to do the deploy.  Add the [key/secret](https://github.com/simplygenius/atmos-recipes/aws/scaffold/recipes/atmos-scaffold.tf#L348)) to the environment for your CI to get your CI to auto deploy on successful build.
+The atmos aws scaffold also sets up a user named deployer, with restricted permissions sufficient to do the deploy.  Add the [key/secret](https://github.com/simplygenius/atmos-recipes/blob/master/aws/scaffold/recipes/atmos-scaffold.tf#L348)) to the environment for your CI to get your CI to auto deploy on successful build.
 
 ```
 AWS_ACCESS_KEY_ID=<deployer_key> AWS_SECRET_ACCESS_KEY=<deployer_secret> atmos -e <env_based on branch> container deploy -c services <service_name>
