@@ -79,14 +79,30 @@ module Atmos
             exit(1)
           end
 
+          auth_needed = true
           credentials = read_auth_cache
-          auth_needed = !(credentials.present? && Time.parse(credentials['expiration']) > Time.now)
 
-          session_renew_interval = session_duration / 4
-          if !auth_needed && Time.parse(credentials['expiration']) - session_renew_interval < Time.now
-            logger.info "Session approaching expiration, renewing..."
-            credentials = assume_role(role_arn, credentials: credentials)
-            auth_needed = false
+          if credentials.present?
+            logger.debug("Session cache present, checking expiration...")
+            expiration = Time.parse(credentials['expiration'])
+            session_renew_interval = (session_duration / 4).to_i
+
+            if Time.now > expiration
+              logger.debug "Session cache is expired, performing normal auth"
+              auth_needed = true
+            elsif Time.now > (expiration - session_renew_interval)
+              begin
+                logger.info "Session approaching expiration, renewing..."
+                credentials = assume_role(role_arn, credentials: credentials)
+                auth_needed = false
+              rescue => e
+                logger.info "Failed to renew credentials using session cache, reason: #{e.message}"
+                auth_needed = true
+              end
+            else
+              logger.debug "Session cache is current, skipping auth"
+              auth_needed = false
+            end
           end
 
           if auth_needed

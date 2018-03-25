@@ -244,11 +244,13 @@ describe Atmos::Providers::Aws::AuthManager do
       )
       client.stub_responses(:assume_role, stub)
 
-
+      expect(File.exist?(manager.send(:auth_cache_file))).to be false
       manager.authenticate({'AWS_PROFILE' => 'profile'}) {}
-      expect(File.exist?(manager.send(:auth_cache_file)))
+      expect(File.exist?(manager.send(:auth_cache_file))).to be true
+      Atmos::Logging.clear
 
       expect(manager).to_not receive(:assume_role)
+      expect(Atmos::Logging.contents).to_not match(/No active session cache, authenticating/)
       expect { |b| manager.authenticate({'AWS_PROFILE' => 'profile'}, &b) }.to yield_with_args
     end
 
@@ -265,9 +267,12 @@ describe Atmos::Providers::Aws::AuthManager do
       client.stub_responses(:assume_role, stub)
 
 
+      expect(File.exist?(manager.send(:auth_cache_file))).to be false
       manager.authenticate({'AWS_PROFILE' => 'profile'}) {}
-      expect(File.exist?(manager.send(:auth_cache_file)))
-      expiration = manager.send(:read_auth_cache)['expiration']
+      expect(File.exist?(manager.send(:auth_cache_file))).to be true
+      Atmos::Logging.clear
+
+      manager.send(:read_auth_cache)['expiration']
 
       expect(manager).to receive(:assume_role).
           with(a_kind_of(String)).
@@ -290,9 +295,11 @@ describe Atmos::Providers::Aws::AuthManager do
       client.stub_responses(:assume_role, stub)
 
 
+      expect(File.exist?(manager.send(:auth_cache_file))).to be false
       manager.authenticate({'AWS_PROFILE' => 'profile'}) {}
-      expect(File.exist?(manager.send(:auth_cache_file)))
-      expiration = manager.send(:read_auth_cache)['expiration']
+      expect(File.exist?(manager.send(:auth_cache_file))).to be true
+      Atmos::Logging.clear
+      manager.send(:read_auth_cache)['expiration']
 
       expect(manager).to receive(:assume_role).
           with(a_kind_of(String),
@@ -300,6 +307,7 @@ describe Atmos::Providers::Aws::AuthManager do
           and_call_original
       expect { |b| manager.authenticate({'AWS_PROFILE' => 'profile'}, &b) }.to yield_with_args
       expect(Atmos::Logging.contents).to match(/Session approaching expiration, renewing/)
+      expect(Atmos::Logging.contents).to_not match(/No active session cache, authenticating/)
     end
 
     it "fails if mfa not setup when retrying with mfa for failed auth" do
