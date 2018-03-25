@@ -95,7 +95,7 @@ module Atmos
       action = nil
       logger.debug("Loading ipc action: #{name}")
       begin
-        require_relative "ipc_actions/#{name}"
+        require "atmos/ipc_actions/#{name}"
         action = "Atmos::IpcActions::#{name.camelize}".constantize
         logger.debug("Loaded ipc action #{name}")
       rescue LoadError, NameError => e

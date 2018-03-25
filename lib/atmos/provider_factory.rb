@@ -7,7 +7,7 @@ module Atmos
     def self.get(name)
       @provider ||= begin
         logger.debug("Loading provider: #{name}")
-        require_relative "providers/#{name}/provider"
+        require "atmos/providers/#{name}/provider"
         provider = "Atmos::Providers::#{name.camelize}::Provider".constantize
         logger.debug("Loaded provider #{provider}")
         provider.new(name)
