@@ -1,8 +1,7 @@
-require 'atmos'
 require 'logging'
+require 'gem_logger'
 require 'rainbow'
 require 'delegate'
-#require 'pty'
 
 module Atmos
   module Logging
@@ -72,8 +71,10 @@ module Atmos
       )
 
       ::Logging.logger.root.level = :info
-      GemLogger.default_logger = ::Logging.logger.root
-      GemLogger.logger_concern = Atmos::Logging::GemLoggerConcern
+      GemLogger.configure do |config|
+        config.default_logger = ::Logging.logger.root
+        config.logger_concern = Atmos::Logging::GemLoggerConcern
+      end
     end
 
 
