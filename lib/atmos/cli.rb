@@ -1,20 +1,13 @@
 require 'atmos'
+require 'atmos/ui'
 require 'clamp'
 require 'sigdump/setup'
-require 'atmos/logging'
-require 'atmos/ui'
-require 'atmos/commands/new'
-require 'atmos/commands/generate'
-require 'atmos/commands/bootstrap'
-require 'atmos/commands/init'
-require 'atmos/commands/plan'
-require 'atmos/commands/apply'
-require 'atmos/commands/destroy'
-require 'atmos/commands/terraform'
-require 'atmos/commands/account'
-require 'atmos/commands/user'
-require 'atmos/commands/secret'
-require 'atmos/commands/auth_exec'
+
+lib_dir = File.expand_path("..", __dir__,)
+commands_dir = File.join(lib_dir, 'atmos', 'commands')
+Dir.glob(File.join(commands_dir, '*.rb')) do |f|
+  require f.sub(/#{lib_dir}\//, "").sub(/\.rb$/, "")
+end
 
 module Atmos
 
@@ -80,6 +73,8 @@ module Atmos
                Atmos::Commands::Secret
     subcommand "auth_exec", "Authenticated exec",
                Atmos::Commands::AuthExec
+    subcommand "container", "Container tools",
+               Atmos::Commands::Container
 
     subcommand "version", "Display version" do
       def execute

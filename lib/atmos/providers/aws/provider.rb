@@ -3,6 +3,7 @@ require 'atmos/providers/aws/auth_manager'
 require 'atmos/providers/aws/account_manager'
 require 'atmos/providers/aws/user_manager'
 require 'atmos/providers/aws/s3_secret_manager'
+require 'atmos/providers/aws/container_manager'
 
 module Atmos
   module Providers
@@ -36,6 +37,12 @@ module Atmos
         def secret_manager
           @secret_manager ||= begin
             Atmos::Providers::Aws::S3SecretManager.new(self)
+          end
+        end
+
+        def container_manager
+          @container_manager ||= begin
+            Atmos::Providers::Aws::ContainerManager.new(self)
           end
         end
       end
