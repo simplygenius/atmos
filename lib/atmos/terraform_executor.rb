@@ -1,8 +1,9 @@
 require 'atmos'
+require 'atmos/ipc'
+require 'atmos/ui'
 require 'open3'
 require 'fileutils'
 require 'find'
-require 'atmos/ipc'
 require 'climate_control'
 
 module Atmos
@@ -10,6 +11,7 @@ module Atmos
   class TerraformExecutor
     include GemLogger::LoggerSupport
     include FileUtils
+    include Atmos::UI
 
     class ProcessFailed < RuntimeError; end
 
@@ -60,7 +62,12 @@ module Atmos
 
           stdout_writer.sync = stderr_writer.sync = true
           # TODO: more filtering on terraform output?
-          stdout_thr = pipe_stream(stdout, output_io.nil? ? $stdout : output_io)
+          stdout_thr = pipe_stream(stdout, output_io.nil? ? $stdout : output_io) do |data|
+            if data =~ /^[\e\[\dm\s]*Enter a value:[\e\[\dm\s]*$/
+              notify(message: "Terraform is waiting for user input")
+            end
+            data
+          end
           stderr_thr = pipe_stream(stderr, output_io.nil? ? $stderr : output_io)
 
           ipc.listen do |sock_path|

@@ -390,8 +390,8 @@ describe Atmos::TerraformExecutor do
         c.file('config/atmos.yml')
         Atmos.config = Atmos::Config.new("ops")
 
-        expect { te.send(:execute, "init", "-badarg", skip_secrets: true) rescue Atmos::TerraformExecutor::ProcessFailed }.
-            to output(/flag provided but not defined/).to_stderr
+        expect { te.send(:execute, "init", "1", "2", skip_secrets: true) rescue Atmos::TerraformExecutor::ProcessFailed }.
+            to output(/The init command expects at most one argument/).to_stderr
       end
     end
 
@@ -401,9 +401,9 @@ describe Atmos::TerraformExecutor do
         Atmos.config = Atmos::Config.new("ops")
 
         io = StringIO.new
-        expect { te.send(:execute, "init", "-badarg", skip_secrets: true, output_io: io) rescue Atmos::TerraformExecutor::ProcessFailed }.
-            to_not output(/flag provided but not defined/).to_stderr
-        expect(io.string).to match(/flag provided but not defined/)
+        expect { te.send(:execute, "init", "1", "2", skip_secrets: true, output_io: io) rescue Atmos::TerraformExecutor::ProcessFailed }.
+            to_not output(/The init command expects at most one argument/).to_stderr
+        expect(io.string).to match(/The init command expects at most one argument/)
       end
     end
 
@@ -431,6 +431,7 @@ describe Atmos::TerraformExecutor do
         # stdin with an IO, so hack it this way
         c.file(File.join(te.send(:tf_recipes_dir), "stdin.txt"), "foo\nyes\n")
         allow(te).to receive(:tf_cmd).and_return(["bash", "-c", "cat stdin.txt | terraform apply"])
+        expect(te).to receive(:notify).with(message: /waiting for user input/)
         expect {
             te.send(:execute, "apply", skip_secrets: true)
         }.to output(/showme = got var foo/).to_stdout
