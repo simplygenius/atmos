@@ -15,8 +15,9 @@ module Atmos
         end
 
         def push(ecs_name, local_image,
-                 ecr_repo: ecs_name, revision: Time.now.strftime('%Y%m%d%H%M%S'))
+                 ecr_repo: ecs_name, revision: nil)
 
+          revision = Time.now.strftime('%Y%m%d%H%M%S') unless revision.present?
           result = {}
 
           ecr = ::Aws::ECR::Client.new

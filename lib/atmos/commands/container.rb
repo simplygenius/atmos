@@ -25,6 +25,9 @@ module Atmos::Commands
       option ["-t", "--task"],
              :flag, "Deploy as a task, not a service\n"
 
+      option ["-v", "--revision"],
+             "REVISION", "Use as the remote image revision\n"
+
       parameter "NAME",
                 "The name of the service (or task) to deploy"
 
@@ -37,7 +40,7 @@ module Atmos::Commands
           ClimateControl.modify(auth_env) do
             mgr = Atmos.config.provider.container_manager
 
-            result = mgr.push(name, image)
+            result = mgr.push(name, image, revision: revision)
             if task?
               result = result.merge(mgr.deploy_task(name, result[:remote_image]))
             else

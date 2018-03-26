@@ -44,7 +44,7 @@ describe Atmos::Commands::Container do
       expect(Atmos.config.provider.auth_manager).
           to receive(:authenticate).with(ENV, role: nil).and_yield(env)
       expect(Atmos.config.provider.container_manager).
-          to receive(:push).with("bar", "bar").and_return(remote_image: "baz")
+          to receive(:push).with("bar", "bar", revision: nil).and_return(remote_image: "baz")
       expect(Atmos.config.provider.container_manager).
           to receive(:deploy_service).with("foo", "bar", "baz").and_return({})
       cli.run(["deploy", "-c", "foo", "bar"])
@@ -55,7 +55,7 @@ describe Atmos::Commands::Container do
       expect(Atmos.config.provider.auth_manager).
           to receive(:authenticate).with(ENV, role: "myrole").and_yield(env)
       expect(Atmos.config.provider.container_manager).
-          to receive(:push).with("bar", "bar").and_return(remote_image: "baz")
+          to receive(:push).with("bar", "bar", revision: nil).and_return(remote_image: "baz")
       expect(Atmos.config.provider.container_manager).
           to receive(:deploy_service).with("foo", "bar", "baz").and_return({})
       cli.run(["deploy", "-r", "myrole", "-c", "foo", "bar"])
@@ -66,10 +66,21 @@ describe Atmos::Commands::Container do
       expect(Atmos.config.provider.auth_manager).
           to receive(:authenticate).with(ENV, role: nil).and_yield(env)
       expect(Atmos.config.provider.container_manager).
-          to receive(:push).with("bar", "myimage").and_return(remote_image: "baz")
+          to receive(:push).with("bar", "myimage", revision: nil).and_return(remote_image: "baz")
       expect(Atmos.config.provider.container_manager).
           to receive(:deploy_service).with("foo", "bar", "baz").and_return({})
       cli.run(["deploy", "-i", "myimage", "-c", "foo", "bar"])
+    end
+
+    it "uses revision when deploying a service" do
+      env = Hash.new
+      expect(Atmos.config.provider.auth_manager).
+          to receive(:authenticate).with(ENV, role: nil).and_yield(env)
+      expect(Atmos.config.provider.container_manager).
+          to receive(:push).with("bar", "bar", revision: 'v123').and_return(remote_image: "baz")
+      expect(Atmos.config.provider.container_manager).
+          to receive(:deploy_service).with("foo", "bar", "baz").and_return({})
+      cli.run(["deploy", "-v", "v123", "-c", "foo", "bar"])
     end
 
     it "deploys a task" do
@@ -77,7 +88,7 @@ describe Atmos::Commands::Container do
       expect(Atmos.config.provider.auth_manager).
           to receive(:authenticate).with(ENV, role: nil).and_yield(env)
       expect(Atmos.config.provider.container_manager).
-          to receive(:push).with("bar", "bar").and_return(remote_image: "baz")
+          to receive(:push).with("bar", "bar", revision: nil).and_return(remote_image: "baz")
       expect(Atmos.config.provider.container_manager).
           to receive(:deploy_task).with("bar", "baz").and_return({})
       cli.run(["deploy", "-t", "-c", "foo", "bar"])
