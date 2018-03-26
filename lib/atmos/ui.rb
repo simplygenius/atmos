@@ -2,7 +2,8 @@ require 'atmos'
 require 'highline'
 require 'rainbow'
 require 'yaml'
-require 'atmos/ipc_actions/notify'
+require 'open3'
+require 'os'
 
 module Atmos
   module UI
@@ -46,18 +47,84 @@ module Atmos
       return Markup.new().say(statement)
     end
 
+    def ask(question, answer_type=nil, &details)
+      return Markup.new().ask(question, answer_type, &details)
+    end
+
     # Pretty display of hashes
     def display(data)
       display = YAML.dump(data).sub(/\A---\n/, "")
     end
 
-    # TODO: refactor IPC class into here and call from there
-    def notify(**opts)
-      Atmos::IpcActions::Notify.new.execute(**opts)
+    def notify(message:nil, title: nil, modal: false, **opts)
+
+      result = {
+          'stdout' => '',
+          'success' => ''
+      }
+
+      message = message.to_s
+      title = title.present? ? title.to_s : "Atmos Notification"
+      modal = ["true", "1"].include?(modal.to_s)
+      modal = false if Atmos.config["ui.notify.disable_modal"]
+
+      return result if Atmos.config["ui.notify.disable"].to_s == "true"
+
+      command = Atmos.config["ui.notify.command"]
+
+      if command.present?
+
+        raise ArgumentError.new("notify command must be a list") if ! command.is_a?(Array)
+
+        command = command.collect do |c|
+          c = c.gsub("{{title}}", title)
+          c = c.gsub("{{message}}", message)
+          c = c.gsub("{{modal}}", modal.to_s)
+        end
+        result.merge! run_ui_process(*command)
+
+      elsif OS.mac?
+        display_method = modal ? "displayDialog" : "displayNotification"
+
+        dialogScript = <<~EOF
+          var app = Application.currentApplication();
+          app.includeStandardAdditions = true;
+          app.#{display_method}(
+            #{JSON.generate(message)}, {
+              withTitle: #{JSON.generate(title)},
+              buttons: ['OK'],
+              defaultButton: 1
+          })
+        EOF
+
+        result.merge! run_ui_process("osascript", "-l", "JavaScript", "-e", dialogScript)
+
+      elsif OS.linux?
+        # TODO: add a modal option
+        result.merge! run_ui_process("notify-send", title, message)
+
+      # TODO windows notifications?
+      # elseif OS.windows?
+
+      else
+        logger.debug("Notifications are unsupported on this OS")
+        logger.info("\n#{title}: #{message}\n")
+      end
+
+      return result
     end
 
-    def ask(question, answer_type=nil, &details)
-      return Markup.new().ask(question, answer_type, &details)
+    private
+
+    def run_ui_process(*args)
+      stdout, status = Open3.capture2e(*args)
+      result = {'stdout' => stdout, 'success' => status.success?.to_s}
+      if ! status.success?
+        result['error'] = "Notification process failed"
+        logger.debug("Failed to run notification utility: #{stdout}")
+      end
+      return result
     end
+
   end
 end

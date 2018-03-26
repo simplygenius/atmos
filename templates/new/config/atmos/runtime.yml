@@ -14,7 +14,14 @@ ipc:
   notify:
     # Disable notify callbacks
     disable: false
-    # Force notify callbacks to never be modal
+
+# Configure the UI components
+ui:
+  # Configures UI notifications
+  notify:
+    # Disable notifications
+    disable: false
+    # Force notifications to never be modal
     disable_modal: false
     # Set a custom command for notifications, embedded {{title|message|modal}}
     # will be replaced with the value passed from terraform
