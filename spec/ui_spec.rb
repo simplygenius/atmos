@@ -195,4 +195,26 @@ describe Atmos::UI do
 
   end
 
+  describe "agree" do
+
+    it "asks for y/n input on stdout" do
+      result = nil
+      expect { simulate_stdin("y") { result = ui.agree("foo ") } }.to output("foo ").to_stdout
+      expect(result).to eq(true)
+    end
+
+    it "asks for y/n input with default on stdout" do
+      result = nil
+      expect { simulate_stdin("y") { result = ui.agree("foo ") {|q| q.default = 'y' } } }.to output("foo |y| ").to_stdout
+      expect(result).to eq(true)
+    end
+
+    it "asks for y/n input with validation on stdout" do
+      result = nil
+      expect { simulate_stdin("x", "n") { result = ui.agree("foo ") } }.to output(/foo Please enter.*/).to_stdout
+      expect(result).to eq(false)
+    end
+
+  end
+
 end

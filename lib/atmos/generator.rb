@@ -1,4 +1,5 @@
 require 'atmos'
+require 'atmos/ui'
 require 'thor'
 require 'find'
 
@@ -9,9 +10,15 @@ module Atmos
 
     include Thor::Actions
 
+    def initialize(*args, **opts)
+      super
+      @dependencies = opts[:dependencies]
+    end
+
     no_commands do
 
       include GemLogger::LoggerSupport
+      include Atmos::UI
 
       TEMPLATES_SPEC_FILE = 'templates.yml'
       TEMPLATES_ACTIONS_FILE = 'templates.rb'
@@ -81,6 +88,8 @@ module Atmos
 
     def find_dependencies(name, seen=[])
       template_dir, source_path = template_dir(name)
+
+      return [] unless @dependencies
 
       if seen.include?(name)
           seen << name

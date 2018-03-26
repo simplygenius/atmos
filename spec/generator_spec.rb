@@ -51,6 +51,20 @@ describe Atmos::Generator do
 
   describe "find_dependencies" do
 
+    before(:each) do
+      gen.instance_variable_set(:@dependencies, true)
+    end
+
+    it "can skip dependencies" do
+      within_construct do |c|
+        described_class.source_root(c.to_s)
+        c.file('foo/templates.yml', YAML.dump('dependent_templates' => 'bar'))
+        c.file('bar/templates.yml')
+        gen.instance_variable_set(:@dependencies, false)
+        expect(gen.send(:find_dependencies, 'foo')).to eq([])
+      end
+    end
+
     it "handles simple dep" do
       within_construct do |c|
         described_class.source_root(c.to_s)
@@ -267,6 +281,18 @@ describe Atmos::Generator do
   end
 
   describe "custom template actions" do
+
+    describe "uses UI actions" do
+
+      it "passes through to Atmos::UI" do
+        expect{gen.send(:say, 'foo')}.to output("foo\n").to_stdout
+        expect{gen.send(:error).say('foo')}.to output("foo\n").to_stdout
+        result = nil
+        expect { simulate_stdin("y") { result = gen.send(:agree, "foo ") } }.to output("foo ").to_stdout
+        expect(result).to eq(true)
+      end
+
+    end
 
     describe "raw_configs" do
 

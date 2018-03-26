@@ -1,4 +1,5 @@
 require 'open3'
+require 'atmos/settings_hash'
 
 describe "Initial Setup" do
 
@@ -28,9 +29,12 @@ describe "Initial Setup" do
       within_construct do |c|
         output = atmos "new"
         expect(File.exist?('config/atmos.yml')).to be true
-        output = atmos "generate", *recipes_sourcepath, "aws/scaffold",
+        output = atmos "generate", "--force", *recipes_sourcepath, "aws/scaffold",
                        stdin_data: "acme\n123456789012\n"
         expect(File.exist?('config/atmos/aws.yml')).to be true
+        conf = Atmos::SettingsHash.new(YAML.load_file('config/atmos.yml'))
+        expect(conf['org']).to eq("acme")
+        expect(conf.notation_get('environments.ops.account_id')).to eq("123456789012")
       end
     end
 

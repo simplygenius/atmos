@@ -73,6 +73,24 @@ describe Atmos::Commands::Generate do
 
   end
 
+  describe "--no-dependencies" do
+
+    it "does dependencies by default" do
+      expect(Atmos::GeneratorFactory).to receive(:create).
+          with(any_args, hash_including(dependencies: true)).
+          and_return(double(generate: nil))
+      cli.run(["foo"])
+    end
+
+    it "can disable dependencies" do
+      expect(Atmos::GeneratorFactory).to receive(:create).
+          with(any_args, hash_including(dependencies: false)).
+          and_return(double(generate: nil))
+      cli.run(["--no-dependencies", "foo"])
+    end
+
+  end
+
   describe "execute" do
 
     it "requires a template param" do

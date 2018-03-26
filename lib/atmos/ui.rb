@@ -19,6 +19,7 @@ module Atmos
     end
 
     class Markup
+
       def initialize(color = nil)
         @color = color
         @atmos_ui = HighLine.new
@@ -33,6 +34,12 @@ module Atmos
         s = @color ? Rainbow(question).send(@color) : question
         @atmos_ui.ask(question, answer_type, &details)
       end
+
+      def agree(question, character=nil, &details)
+        s = @color ? Rainbow(question).send(@color) : question
+        @atmos_ui.agree(question, character, &details)
+      end
+
     end
 
     def warn
@@ -49,6 +56,10 @@ module Atmos
 
     def ask(question, answer_type=nil, &details)
       return Markup.new().ask(question, answer_type, &details)
+    end
+
+    def agree(question, character=nil, &details)
+      return Markup.new().agree(question, character, &details)
     end
 
     # Pretty display of hashes

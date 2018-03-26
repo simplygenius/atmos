@@ -18,10 +18,16 @@ module Atmos::Commands
       EOF
     end
 
-    option ["-f", "--force"], :flag, "Overwrite files that already exist"
-    option ["-n", "--dryrun"], :flag, "Run but do not make any changes"
-    option ["-q", "--quiet"], :flag, "Supress status output"
-    option ["-s", "--skip"], :flag, "Skip files that already exist"
+    option ["-f", "--force"],
+           :flag, "Overwrite files that already exist"
+    option ["-n", "--dryrun"],
+           :flag, "Run but do not make any changes"
+    option ["-q", "--quiet"],
+           :flag, "Supress status output"
+    option ["-s", "--skip"],
+           :flag, "Skip files that already exist"
+    option ["-d", "--[no-]dependencies"],
+           :flag, "Walk dependencies, or not", default: true
     option ["-l", "--list"],
            :flag, "list available templates\n"
     option ["-p", "--sourcepath"],
@@ -46,7 +52,8 @@ module Atmos::Commands
                                          force: force?,
                                          pretend: dryrun?,
                                          quiet: quiet?,
-                                         skip: skip?)
+                                         skip: skip?,
+                                         dependencies: dependencies?)
       if list?
         logger.info "Valid templates are:"
         list_templates(g, template_list).each {|l| logger.info(l) }
