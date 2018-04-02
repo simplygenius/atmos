@@ -12,9 +12,17 @@ module Atmos::Commands
 
     subcommand "create", "Create a new user" do
 
+      option ["-f", "--force"],
+             :flag, "forces deletion/updates for pre-existing resources\n",
+             default: false
+
       option ["-l", "--login"],
              :flag, "generate a login password\n",
-             default: true
+             default: false
+
+      option ["-m", "--mfa"],
+             :flag, "setup a mfa device\n",
+             default: false
 
       option ["-k", "--key"],
              :flag, "create access keys\n",
@@ -26,8 +34,7 @@ module Atmos::Commands
       option ["-g", "--group"],
              "GROUP",
              "associate the given groups to new user\n",
-             multivalued: true,
-             default: ["all-users"]
+             multivalued: true
 
       parameter "USERNAME",
                 "The username of the user to add\nShould be an email address" do |u|
@@ -39,43 +46,29 @@ module Atmos::Commands
 
         Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
           ClimateControl.modify(auth_env) do
-            user = Atmos.config.provider.user_manager.create_user(username, group_list,
-                                                           login: login?, keys: key?,
-                                                           public_key: public_key)
-            logger.info "User created:\n#{display user}"
+            manager = Atmos.config.provider.user_manager
+            user = manager.create_user(username)
+            user.merge!(manager.set_groups(username, group_list, force: force?)) if group_list.present?
+            user.merge!(manager.enable_login(username, force: force?)) if login?
+            user.merge!(manager.enable_mfa(username, force: force?)) if mfa?
+            user.merge!(manager.enable_access_keys(username, force: force?)) if key?
+            user.merge!(manager.set_public_key(username, public_key, force: force?)) if public_key.present?
+
+            logger.info "\nUser created:\n#{display user}\n"
+
+            if  mfa? && user[:mfa_secret]
+              save_mfa = agree("Save the MFA secret for runtime integration with auth? ") {|q|
+                q.default = 'y'
+              }
+              Atmos::Otp.instance.save if save_mfa
+            end
+
           end
         end
 
       end
 
     end
-
-    subcommand "groups", "Assign groups to existing user" do
-
-      option ["-a", "--add"],
-             :flag,
-             "adds instead of replacing groups\n"
-      option ["-g", "--group"],
-             "GROUP",
-             "associate the given groups to new user\n",
-             multivalued: true,
-             required: true
-
-       parameter "USERNAME",
-                 "The username of the user to modify\n"
-
-       def execute
-
-         Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
-           ClimateControl.modify(auth_env) do
-             user = Atmos.config.provider.user_manager.modify_groups(username, group_list, add: add?)
-             logger.info "User modified: #{display user}"
-           end
-         end
-
-       end
-
-     end
 
   end
 

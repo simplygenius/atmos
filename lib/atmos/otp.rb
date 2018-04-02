@@ -26,7 +26,7 @@ module Atmos
 
     def remove(name)
       old = @scoped_secret_store.delete(name)
-      @otp.delete(name)
+      @otp.try(:delete, name)
       logger.info "Removed OTP secret #{name}=#{old}" if old
     end
 
