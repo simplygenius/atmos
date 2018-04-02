@@ -4,6 +4,7 @@ require 'aws-sdk-iam'
 require 'json'
 require 'atmos/utils'
 require 'atmos/ui'
+require 'atmos/otp'
 
 module Atmos
   module Providers
@@ -71,7 +72,7 @@ module Atmos
               # uses mfa for login.  Thus skip all the other stuff, to
               # encourage/force use of non-root accounts for normal use
               logger.warn("Using aws root credentials - should only be neccessary for bootstrap")
-              return block.call(system_env)
+              return block.call(Hash[system_env])
             end
 
           rescue ::Aws::STS::Errors::ServiceError => e
@@ -125,12 +126,18 @@ module Atmos
               token = nil
               if mfa_serial.present?
 
-                token = ask("Enter token to retry with mfa: ")
+                token = Atmos::Otp.instance.generate(user_name)
+                if token.nil?
+                  token = ask("Enter token to retry with mfa: ")
+                else
+                  logger.info "Used integrated atmos mfa to generate token"
+                end
 
                 if token.blank?
                   logger.error "A MFA token must be supplied"
                   exit(1)
                 end
+
               else
                 logger.error "MFA is not setup for your account, retry after doing so"
                 exit(1)
@@ -147,7 +154,7 @@ module Atmos
           process_env['AWS_SECRET_ACCESS_KEY'] = credentials['secret_access_key']
           process_env['AWS_SESSION_TOKEN'] = credentials['session_token']
           logger.debug("Calling authentication target with env: #{process_env.inspect}")
-          block.call(Hash.new(system_env).merge(process_env))
+          block.call(Hash[system_env].merge(process_env))
         end
 
         private

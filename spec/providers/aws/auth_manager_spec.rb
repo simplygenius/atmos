@@ -380,6 +380,36 @@ describe Atmos::Providers::Aws::AuthManager do
       expect(Atmos::Logging.contents).to match(/Normal auth failed, checking for mfa/)
     end
 
+    it "uses integrate mfa token if available" do
+      Aws.config[:iam] = {
+        stub_responses: {
+            list_mfa_devices: {
+                mfa_devices: [
+                    {serial_number: 'xyz', user_name: 'foo', enable_date: Time.now}
+                ]
+            }
+        }
+      }
+
+      client = ::Aws::STS::Client.new
+      allow(::Aws::STS::Client).to receive(:new).and_return(client)
+      stub = client.stub_data(:assume_role)
+      client.stub_responses(:assume_role, 'AccessDenied', stub)
+
+      expect(manager).to receive(:assume_role).
+                with(a_kind_of(String)).
+                and_call_original
+      expect(manager).to receive(:assume_role).
+                with(a_kind_of(String), hash_including(token_code: "123456")).
+                and_call_original
+      expect(manager).to receive(:write_auth_cache)
+      expect(Atmos::Otp.instance).to receive(:generate).and_return("123456")
+
+      expect { |b| manager.authenticate({'AWS_PROFILE' => 'profile'}, &b) }.
+          to yield_with_args
+      expect(Atmos::Logging.contents).to match(/Used integrated atmos mfa/)
+    end
+
     describe "role_name" do
 
       it "gets default role from config" do
