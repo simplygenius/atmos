@@ -16,6 +16,12 @@ global_name_prefix: "#{org}-#{atmos_env}-"
 #
 local_name_prefix:
 
+# The recipes to use when bootstrapping each environment.  These are kept
+# separate to make it easy to tear down an environment without breaking
+# terraform mid-destroy
+#
+bootstrap_recipes:
+
 # The recipes to use for all environments, override at environment level if
 # need be
 #

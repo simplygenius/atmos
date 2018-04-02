@@ -15,8 +15,11 @@ module Atmos
 
     class ProcessFailed < RuntimeError; end
 
-    def initialize(process_env: ENV)
+    def initialize(process_env: ENV, working_group: nil)
       @process_env = process_env
+      @working_group = working_group
+      @working_dir = Atmos.config.tf_working_dir(@working_group)
+      @recipes = @working_group == 'bootstrap' ? Atmos.config[:bootstrap_recipes] : Atmos.config[:recipes]
     end
 
     def run(*terraform_args, skip_backend: false, skip_secrets: false, get_modules: false, output_io: nil)
@@ -48,7 +51,11 @@ module Atmos
 
       env = Hash[@process_env]
       if ! skip_secrets
-        env = env.merge(secrets_env)
+        begin
+          env = env.merge(secrets_env)
+        rescue => e
+          logger.debug("Secrets not available: #{e}")
+        end
       end
 
       # lets tempfiles create by subprocesses be easily found by users
@@ -124,10 +131,16 @@ module Atmos
 
     def setup_backend(skip_backend=false)
       backend_file = File.join(tf_recipes_dir, 'atmos-backend.tf.json')
-      backend_config = (Atmos.config["backend"] rescue nil).try(:clone)
+      backend_config = (Atmos.config["backend"] || {}).clone
 
       if backend_config.present? && ! skip_backend
         logger.debug("Writing out terraform state backend config")
+
+        # Use a different state file per group
+        if @working_group
+          backend_config['key'] = "#{@working_group}-#{backend_config['key']}"
+        end
+
         backend_type = backend_config.delete("type")
 
         backend = {
@@ -163,7 +176,7 @@ module Atmos
 
     def tf_recipes_dir
       @tf_recipes_dir ||= begin
-        dir = File.join(Atmos.config.tf_working_dir, 'recipes')
+        dir = File.join(@working_dir, 'recipes')
         logger.debug("Tf recipes dir: #{dir}")
         mkdir_p(dir)
         dir
@@ -202,7 +215,7 @@ module Atmos
     end
 
     def clean_links
-      Find.find(Atmos.config.tf_working_dir) do |f|
+      Find.find(@working_dir) do |f|
         Find.prune if f =~ /\/.terraform\//
         File.delete(f) if File.symlink?(f)
       end
@@ -210,13 +223,12 @@ module Atmos
 
     def link_support_dirs
       ['modules', 'templates'].each do |subdir|
-        ln_sf(File.join(Atmos.config.root_dir, subdir), Atmos.config.tf_working_dir)
+        ln_sf(File.join(Atmos.config.root_dir, subdir), @working_dir)
       end
     end
 
     def link_recipes
-      recipes = Atmos.config[:recipes]
-      recipes.each do |recipe|
+      @recipes.each do |recipe|
         ln_sf(File.join(Atmos.config.root_dir, 'recipes', "#{recipe}.tf"), tf_recipes_dir)
       end
     end

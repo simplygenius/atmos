@@ -1,13 +1,21 @@
 require 'atmos/terraform_executor'
 
 describe Atmos::TerraformExecutor do
-  let(:te) { described_class.new(Hash.new) }
+  let(:te) { described_class.new(process_env: Hash.new) }
 
   after :all do
     Atmos.config = nil
   end
 
   describe "pipe_stream" do
+
+    around :each do |ex|
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump({}))
+        Atmos.config = Atmos::Config.new("ops")
+        ex.run
+      end
+    end
 
     it "pipes data between streams" do
       r, w = IO.pipe
@@ -72,6 +80,29 @@ describe Atmos::TerraformExecutor do
 
     end
 
+    it "links working group recipes into working group dir" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump(
+            'bootstrap_recipes' => ['foo', 'bar'], 'recipes' => ['hum']))
+        c.file('recipes/foo.tf')
+        c.file('recipes/bar.tf')
+        c.file('recipes/baz.tf')
+        c.file('recipes/hum.tf')
+        Atmos.config = Atmos::Config.new("ops")
+        te = described_class.new(process_env: Hash.new, working_group: "bootstrap")
+        expect(te.send(:tf_recipes_dir)).to match(/\/bootstrap\/recipes$/)
+        te.send(:link_recipes)
+        ['foo', 'bar'].each do |f|
+          link = File.join(te.send(:tf_recipes_dir), "#{f}.tf")
+          expect(File.exist?(link)).to be true
+          expect(File.symlink?(link)).to be true
+          expect(File.readlink(link)).to eq(File.join(Atmos.config.root_dir, "recipes/#{f}.tf"))
+        end
+        expect(File.exist?(File.join(te.send(:tf_recipes_dir), "baz.tf"))).to be false
+        expect(File.exist?(File.join(te.send(:tf_recipes_dir), "hum.tf"))).to be false
+      end
+    end
+
   end
 
   describe "link_support_dirs" do
@@ -85,9 +116,28 @@ describe Atmos::TerraformExecutor do
 
         Atmos.config = Atmos::Config.new("ops")
         te.send(:link_support_dirs)
-        te.send(:link_support_dirs)
         ['modules', 'templates'].each do |f|
           link = File.join(Atmos.config.tf_working_dir, "#{f}")
+          expect(File.symlink?(link)).to be true
+          expect(File.readlink(link)).to eq(File.join(Atmos.config.root_dir, "#{f}"))
+        end
+      end
+
+    end
+
+    it "links dirs into working group dir" do
+      within_construct do |c|
+        c.file('config/atmos.yml')
+        c.directory('modules')
+        c.directory('templates')
+        c.file('recipes/foo.tf')
+
+        Atmos.config = Atmos::Config.new("ops")
+        te = described_class.new(process_env: Hash.new, working_group: "bootstrap")
+        expect(te.send(:tf_recipes_dir)).to match(/\/bootstrap\/recipes$/)
+        te.send(:link_support_dirs)
+        ['modules', 'templates'].each do |f|
+          link = File.join(Atmos.config.tf_working_dir("bootstrap"), "#{f}")
           expect(File.symlink?(link)).to be true
           expect(File.readlink(link)).to eq(File.join(Atmos.config.root_dir, "#{f}"))
         end
@@ -126,6 +176,30 @@ describe Atmos::TerraformExecutor do
         expect(count).to eq(1)
         expect(File.exist?(module_link)).to be true
         expect(File.symlink?(module_link)).to be true
+      end
+
+    end
+
+    it "removes atmos working group dir links" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump('bootstrap_recipes' => ['foo']))
+        c.directory('modules')
+        c.directory('templates')
+        Atmos.config = Atmos::Config.new("ops")
+        te = described_class.new(process_env: Hash.new, working_group: "bootstrap")
+        expect(te.send(:tf_recipes_dir)).to match(/\/bootstrap\/recipes$/)
+
+        te.send(:link_support_dirs)
+        te.send(:link_recipes)
+
+        count = 0
+        Find.find(Atmos.config.tf_working_dir("bootstrap")) {|f|  count += 1 if File.symlink?(f) }
+        expect(count).to eq(3)
+
+        te.send(:clean_links)
+        count = 0
+        Find.find(Atmos.config.tf_working_dir) {|f|  count += 1 if File.symlink?(f) }
+        expect(count).to eq(0)
       end
 
     end
@@ -253,6 +327,31 @@ describe Atmos::TerraformExecutor do
         expect(vars['terraform']['backend']['mytype']).
             to eq('foo' => 'bar',
                   'baz' => 'boo')
+      end
+    end
+
+    it "changes backend key to reflect working group" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump(
+            'foo' => 'bar',
+            'providers' => {
+                'aws' => {
+                  'backend' => {
+                      'type' => "mytype",
+                      'key' => 'foo'
+                  }
+                }
+            }
+        ))
+        Atmos.config = Atmos::Config.new("ops")
+        te = described_class.new(process_env: Hash.new, working_group: "bootstrap")
+        te.send(:setup_backend)
+
+        file = File.join(te.send(:tf_recipes_dir), 'atmos-backend.tf.json')
+        expect(File.exist?(file)).to be true
+        vars = JSON.parse(File.read(file))
+        expect(vars['terraform']['backend']['mytype']).
+            to eq('key' => 'bootstrap-foo')
       end
     end
 
