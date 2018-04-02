@@ -16,3 +16,7 @@ task :console do
 end
 
 task :default => :test
+
+task :docker => [:clobber, :build] do
+  sh "docker build -t simplygenius/atmos ."
+end
