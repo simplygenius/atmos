@@ -17,9 +17,13 @@ Atmos provides a layer of organization on top of terraform for creating cloud sy
 ## Features
 
 * Manages AWS authentication, including MFA
+* Integrated MFA token generation for convenience.  This is technically not as secure since a laptop compromise exposes the key (vs a separate device for MFA).  Plans to add yubikey support to get both convenience and security.
+* Integrated secret management, with per-secret access permissions to minimize exposure footprint if something gets compromised
 * Manages multiple independent environments (e.g. dev, staging, production), allowing them to be as similar or divergent as desired.
+* Automates separation of environments across AWS accounts
 * Secure by default
 * Common recipe patterns to simplify maximal use of higher level AWS components. 
+* Sets up dns for your domain along with a wildcard certificate for hassle free ssl on your services
 * Free and open source core with a business friendly license (Apache)
 
 
@@ -75,15 +79,17 @@ AWS_PROFILE=<root_profile_name> atmos -e ops apply
 Setup a non-root user - using your email as the IAM username is convenient for email notifications in the future (e.g. per-user security validations like auto-expiry of access keys)
 
 ```
-AWS_PROFILE=<root_profile_name> atmos user -l -k -g all-users -g ops-admin your@email.address
+AWS_PROFILE=<root_profile_name> atmos user create -l -k -g all-users -g ops-admin your@email.address
 aws configure --profile <user_profile_name>
 ```
 
-Login to the aws console as that user, change your password and setup MFA.  Make sure you log out and back in again with MFA before you try setting up the [role switcher](#per-user-role-switcher-in-console)
+If you supply the "-m" flag, it will automatically create and activate a virtual MFA device with the user, and prompt you to save the secret to the atmos mfa keystore for integrated usage.  You can skip saving the secret and instead just copy/paste it into your MFA device of choice.
 
-Now that a non-root user is created, you should be able to do everything as that user, so you can remove the root access keys if desired.  Keeping them around can be useful though, as there are some AWS operations one can only be done as the root user.  Leaving them in your shared credential store, but deactivating them in the AWS console till needed is a reasonable compromise.  
+Login to the aws console as that user, change your password and setup MFA there if you prefer doing it that way.  Make sure you log out and back in again with MFA before you try setting up the [role switcher](#per-user-role-switcher-in-console)
 
-While you can do everything in a single account, i've found a better practice is to use a new account for each env (dev, staging, prod, etc), and leave the ops account providing authentication duties and acting as a jumping off point to the others.  This allows for better isolation between environments, thereby allow lots of safe iteration in dev environments without risking production.
+Now that a non-root user is created, you should be able to do everything as that user, so you can remove the root access keys if desired.  Keeping them around can be useful though, as there are some AWS operations that can only be done as the root user.  Leaving them in your shared credential store, but deactivating them in the AWS console till needed is a reasonable compromise.  
+
+While you can do everything in a single account, i've found a better practice is to use a new account for each env (dev, staging, prod, etc), and leave the ops account providing authentication duties and acting as a jumping off point to the others.  This allows for easier role/permission management down the line as well as better isolation between environments, thereby enabling safe iteration in dev environments without risking production.
 
 Create a new `dev` account, and bootstrap it to work with atmos
 
@@ -94,7 +100,7 @@ AWS_PROFILE=<user_profile_name> atmos -e dev bootstrap
 
 Note that you can `export AWS_PROFILE=<user_profile_name>` in your environment, or keep using it per operation as preferred.
 
-Use the 'aws/service' template to setup an ECS Fargate based service, then apply it in the dev environment to make it active
+Use the 'aws/service' template to setup an ECS Fargate based service, then apply it in the dev environment to make it active.  This template will also pull in some dependent templates to setup a vpc, dns for the provided domain and a wildcard cert to enable ssl for your service
 
 ```
 atmos generate aws/service
@@ -117,11 +123,28 @@ Then use atmos to push and deploy that image to the ECR repo:
 atmos -e dev container deploy -c services <service_name>
 ```
 
-The atmos aws scaffold also sets up a user named deployer, with restricted permissions sufficient to do the deploy.  Add the [key/secret](https://github.com/simplygenius/atmos-recipes/blob/master/aws/scaffold/recipes/atmos-scaffold.tf#L348)) to the environment for your CI to get your CI to auto deploy on successful build.
+The atmos aws scaffold also sets up a user named deployer, with restricted permissions sufficient to do the deploy.  Add the [key/secret](https://github.com/simplygenius/atmos-recipes/blob/master/aws/scaffold/recipes/atmos-permissions.tf#L159)) to the environment for your CI to get your CI to auto deploy on successful build.
 
 ```
 AWS_ACCESS_KEY_ID=<deployer_key> AWS_SECRET_ACCESS_KEY=<deployer_secret> atmos -e <env_based on branch> container deploy -c services <service_name>
 ```
+
+To clean it all up:
+
+```
+# Applies flag to allow deleting empty buckets to existing resources
+TF_VAR_force_destroy_buckets=true atmos -e dev apply
+
+# Destroys all non-bootstrap resources create by atmos
+atmos -e dev destroy
+
+# Destroys the bootstrap resources (state, secret, lock storage and
+# cross-account access role)
+TF_VAR_force_destroy_buckets=true atmos -e dev --group bootstrap apply
+atmos -e dev destroy --group bootstrap
+```
+
+These are separate commands so that day-day usage where you want to tear down everything (e.g. CI spinning up then destroying while testing) doesn't compromise your ability to use atmos/terraform.
 
 ## Per-User Role switcher in Console
 
