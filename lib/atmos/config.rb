@@ -43,7 +43,8 @@ module Atmos
 
     def account_hash
       load
-      @full_config[:environments].inject(Hash.new) do |accum, entry|
+      environments = @full_config[:environments] || {}
+      environments.inject(Hash.new) do |accum, entry|
         accum[entry.first] = entry.last[:account_id]
         accum
       end
@@ -67,9 +68,11 @@ module Atmos
       end
     end
 
-    def tf_working_dir
-      @tf_working_dir ||= begin
-        dir = File.join(tmp_dir, 'tf')
+    def tf_working_dir(group=nil)
+      group = group.present? ? group : 'tf'
+      @tf_working_dir ||= {}
+      @tf_working_dir[group] ||= begin
+        dir = File.join(tmp_dir, group)
         logger.debug("Terraform working dir: #{dir}")
         mkdir_p(dir)
         dir
@@ -86,11 +89,12 @@ module Atmos
         logger.debug("Atmos env: #{atmos_env}")
 
         if ! File.exist?(config_file)
-          raise RuntimeError.new("Could not find an atmos config file at: #{config_file}")
+          logger.warn "Could not find an atmos config file at: #{config_file}"
+          # raise RuntimeError.new("Could not find an atmos config file at: #{config_file}")
         end
 
         logger.debug("Loading atmos config file #{config_file}")
-        @full_config = SettingsHash.new(YAML.load_file(config_file))
+        @full_config = SettingsHash.new((YAML.load_file(config_file) rescue Hash.new))
 
         if Dir.exist?(configs_dir)
          logger.debug("Loading atmos config files from #{configs_dir}")

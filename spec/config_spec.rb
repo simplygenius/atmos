@@ -49,6 +49,14 @@ describe Atmos::Config do
       end
     end
 
+    it "creates the dir with a group" do
+      within_construct do |c|
+        expect(config.tf_working_dir('bootstrap')).
+            to eq("#{config.tmp_root}/#{config.atmos_env}/bootstrap")
+        expect(Dir.exist?(config.tf_working_dir('bootstrap'))).to be true
+      end
+    end
+
   end
 
   describe "is_atmos_repo?" do
@@ -126,9 +134,10 @@ describe Atmos::Config do
 
   describe "load" do
 
-    it "fails if main config file not present" do
+    it "warns if main config file not present" do
       within_construct do |c|
-        expect { config.send(:load) }.to raise_error(RuntimeError, /config file/)
+        config.send(:load)
+        expect(Atmos::Logging.contents).to match(/Could not find an atmos config file/)
       end
     end
 
