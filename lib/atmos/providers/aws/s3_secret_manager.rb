@@ -12,26 +12,27 @@ module Atmos
           @provider = provider
           logger.debug("Secrets config is: #{Atmos.config[:secret]}")
           @bucket_name = Atmos.config[:secret][:bucket]
-          @bucket_prefix = Atmos.config[:secret][:prefix]
           @encrypt = Atmos.config[:secret][:encrypt]
         end
 
         def set(key, value)
           opts = {}
           opts[:server_side_encryption] = "AES256" if @encrypt
-          bucket.object(scoped_key(key)).put(body: value, **opts)
+          bucket.object(key).put(body: value, **opts)
         end
 
         def get(key)
-          bucket.object(scoped_key(key)).get.body.read
+          bucket.object(key).get.body.read
         end
 
         def delete(key)
-          bucket.object(scoped_key(key)).delete
+          bucket.object(key).delete
         end
 
         def to_h
-          Hash[bucket.objects(prefix: @bucket_prefix).collect {|o| [o.key, o.get.body.read] }]
+          Hash[bucket.objects.collect {|o|
+            [o.key, o.get.body.read]
+          }]
         end
 
         private
@@ -41,9 +42,6 @@ module Atmos
           @bucket ||= ::Aws::S3::Bucket.new(@bucket_name)
         end
 
-        def scoped_key(key)
-          "#{@bucket_prefix}#{key}"
-        end
       end
 
     end

@@ -31,29 +31,6 @@ describe Atmos::Providers::Aws::S3SecretManager do
     end
   end
 
-  describe "scoped_key" do
-
-    it "no scope if no prefix" do
-      expect(manager.send(:scoped_key, "foo")).to eq("foo")
-    end
-
-    it "uses prefix when set" do
-      @c.file('config/atmos.yml', YAML.dump(
-          'providers' => {
-              'aws' => {
-                  'secret' => {
-                      'bucket' => 'mybucket',
-                      'prefix' => 'myprefix/'
-                  }
-              }
-          }
-      ))
-      Atmos.config = Atmos::Config.new("ops")
-      expect(manager.send(:scoped_key, "foo")).to eq("myprefix/foo")
-    end
-
-  end
-
   describe "bucket" do
 
     it "uses bucket from config" do
