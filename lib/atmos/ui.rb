@@ -4,6 +4,7 @@ require 'rainbow'
 require 'yaml'
 require 'open3'
 require 'os'
+require 'hashie'
 
 module Atmos
   module UI
@@ -64,6 +65,7 @@ module Atmos
 
     # Pretty display of hashes
     def display(data)
+      data = Hashie.stringify_keys(data)
       display = YAML.dump(data).sub(/\A---\n/, "").gsub(/^/, "  ")
     end
 

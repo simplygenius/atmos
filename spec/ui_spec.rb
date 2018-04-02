@@ -33,7 +33,11 @@ describe Atmos::UI do
   describe "display" do
 
     it "pretties a map for display" do
-      expect(ui.display("foo" => "bar", "baz" => "bum")).to eq("foo: bar\nbaz: bum\n")
+      expect(ui.display("foo" => "bar", "baz" => "bum")).to eq("  foo: bar\n  baz: bum\n")
+    end
+
+    it "stringifies keys for display" do
+      expect(ui.display(foo: "bar", baz: {bum: "boo"})).to eq("  foo: bar\n  baz:\n    bum: boo\n")
     end
 
   end
