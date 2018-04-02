@@ -474,7 +474,7 @@ describe Atmos::TerraformExecutor do
         Atmos.config.instance_variable_get(:@config).notation_put('ipc.disable', true)
 
         expect(te).to receive(:spawn).
-            with(hash_including('ATMOS_IPC_CLIENT' => 'cat'), any_args)
+            with(hash_including('ATMOS_IPC_CLIENT' => ':'), any_args)
         expect(Process).to receive(:wait)
         expect($?).to receive(:exitstatus).and_return 0
 
@@ -483,16 +483,23 @@ describe Atmos::TerraformExecutor do
     end
 
     it "no-ops ipc with disabled ipc script" do
-      disabled_script = 'cat'
+      disabled_script = ':'
       data = {'action' => 'ping', 'data' => 'foo'}
       input = JSON.generate(data)
 
       output, status = Open3.capture2(
           {'ATMOS_IPC_CLIENT' => disabled_script},
-          "sh", "-c", %Q(echo '#{input}' | $ATMOS_IPC_CLIENT)
+          "sh", "-c", %Q(printf '#{input}' | $ATMOS_IPC_CLIENT)
       )
       expect(status.success?).to be true
-      expect(JSON.parse(output)).to eq(data)
+      expect(output).to eq("")
+
+      output, status = Open3.capture2(
+          {'ATMOS_IPC_CLIENT' => disabled_script},
+          "sh", "-c", %Q($ATMOS_IPC_CLIENT '#{input}')
+      )
+      expect(status.success?).to be true
+      expect(output).to eq("")
 
       output, status = Open3.capture2(
           {'ATMOS_IPC_CLIENT' => disabled_script},
@@ -500,7 +507,7 @@ describe Atmos::TerraformExecutor do
           stdin_data: input
       )
       expect(status.success?).to be true
-      expect(JSON.parse(output)).to eq(data)
+      expect(output).to eq("")
     end
 
   end

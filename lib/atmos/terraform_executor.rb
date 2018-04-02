@@ -73,13 +73,12 @@ module Atmos
           ipc.listen do |sock_path|
 
             if Atmos.config['ipc.disable']
-              # Using cat as the command makes execution of ip from the
+              # Using : as the command makes execution of ipc from the
               # terraform side a no-op in both cases of how we call it.  This
               # way, terraform execution continues to work when IPC is disabled
-              # command = "echo '${local.ns_ipc}' | $ATMOS_IPC_CLIENT"
+              # command = "$ATMOS_IPC_CLIENT <json_string>"
               # program = ["sh", "-c", "$ATMOS_IPC_CLIENT"]
-              # It may be better with 'echo {}' so response is just an empty hash
-              env['ATMOS_IPC_CLIENT'] = "cat"
+              env['ATMOS_IPC_CLIENT'] = ":"
             else
               env['ATMOS_IPC_SOCK'] = sock_path
               env['ATMOS_IPC_CLIENT'] = ipc.generate_client_script
