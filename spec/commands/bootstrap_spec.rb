@@ -31,34 +31,28 @@ describe Atmos::Commands::Bootstrap do
       te = double(Atmos::TerraformExecutor)
       expect(Atmos.config.provider.auth_manager).to receive(:authenticate).
           with(ENV, bootstrap: true).and_yield(env)
-      expect(Atmos::TerraformExecutor).to receive(:new).and_return(te)
-      expect(te).to receive(:run).with("init", "-input=false", "-lock=false",
-                        skip_backend: true, skip_secrets: true)
-      expect(te).to receive(:run).with("apply", "-input=false", "-target", "null_resource.bootstrap-ops",
-                        skip_backend: true, skip_secrets: true)
-      expect(te).to receive(:run).with("init", "-input=false", "-force-copy",
-                        skip_secrets: true)
-      cli.run([])
-    end
+      expect(Atmos::TerraformExecutor).to receive(:new).
+          with(process_env: env, working_group: 'bootstrap').and_return(te)
 
-    it "uses env bootstrap target" do
-      Atmos.config = Atmos::Config.new("dev")
-      env = Hash.new
-      te = double(Atmos::TerraformExecutor)
-      expect(Atmos.config.provider.auth_manager).to receive(:authenticate).
-          with(ENV, bootstrap: true).and_yield(env)
-      expect(Atmos::TerraformExecutor).to receive(:new).and_return(te)
       expect(te).to receive(:run).with("init", "-input=false", "-lock=false",
                         skip_backend: true, skip_secrets: true)
-      expect(te).to receive(:run).with("apply", "-input=false", "-target", "null_resource.bootstrap-env",
+      expect(te).to receive(:run).with("apply", "-input=false",
                         skip_backend: true, skip_secrets: true)
       expect(te).to receive(:run).with("init", "-input=false", "-force-copy",
                         skip_secrets: true)
+
+      te_norm = double(Atmos::TerraformExecutor)
+      expect(Atmos::TerraformExecutor).to receive(:new).
+          with(process_env: env).and_return(te_norm)
+
+      expect(te_norm).to receive(:run).with("init", "-input=false",
+                        skip_secrets: true)
+
       cli.run([])
     end
 
     it "aborts if already initialized" do
-      @c.directory(File.join(Atmos.config.tf_working_dir, '.terraform'))
+      @c.directory(File.join(Atmos.config.tf_working_dir('bootstrap'), '.terraform'))
       expect { cli.run([]) }.to raise_error(Clamp::UsageError, /first/)
     end
 

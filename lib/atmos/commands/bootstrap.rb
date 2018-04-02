@@ -13,7 +13,7 @@ module Atmos::Commands
 
     def execute
 
-      tf_init_dir = File.join(Atmos.config.tf_working_dir, '.terraform')
+      tf_init_dir = File.join(Atmos.config.tf_working_dir('bootstrap'), '.terraform')
       tf_initialized = File.exist?(tf_init_dir)
       backend_initialized = File.exist?(File.join(tf_init_dir, 'terraform.tfstate'))
 
@@ -28,7 +28,7 @@ module Atmos::Commands
 
       Atmos.config.provider.auth_manager.authenticate(ENV, bootstrap: true) do |auth_env|
         begin
-          exe = Atmos::TerraformExecutor.new(process_env: auth_env)
+          exe = Atmos::TerraformExecutor.new(process_env: auth_env, working_group: 'bootstrap')
 
           skip_backend = true
           skip_secrets = true
@@ -47,14 +47,18 @@ module Atmos::Commands
           exe.run("init", "-input=false", "-lock=false",
                   skip_backend: true, skip_secrets: true)
 
-          # Bootstrap to create the resources needed to store state and basic user
-          bootstrap_target = "null_resource.bootstrap-#{Atmos.config.atmos_env == 'ops' ? 'ops' : 'env'}"
-          exe.run("apply", "-input=false", "-target", bootstrap_target,
+          # Bootstrap to create the resources needed to store state
+          exe.run("apply", "-input=false",
                   skip_backend: true, skip_secrets: true)
 
           # Need to init to setup the backend state after we create the resources
           # to store state in bootstrap
           exe.run("init", "-input=false", "-force-copy", skip_secrets: true)
+
+          # Might as well init the non-bootstrap case as well once the state
+          # storage has been setup in bootstrap
+          exe = Atmos::TerraformExecutor.new(process_env: auth_env)
+          exe.run("init", "-input=false", skip_secrets: true)
 
         rescue Atmos::TerraformExecutor::ProcessFailed => e
           logger.error(e.message)
