@@ -69,6 +69,8 @@ module Atmos
                Atmos::Commands::Account
     subcommand "user", "User management commands",
                Atmos::Commands::User
+    subcommand "otp", "Otp tools",
+               Atmos::Commands::Otp
     subcommand "secret", "Secret management commands",
                Atmos::Commands::Secret
     subcommand "auth_exec", "Authenticated exec",

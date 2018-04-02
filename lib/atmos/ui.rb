@@ -64,7 +64,7 @@ module Atmos
 
     # Pretty display of hashes
     def display(data)
-      display = YAML.dump(data).sub(/\A---\n/, "")
+      display = YAML.dump(data).sub(/\A---\n/, "").gsub(/^/, "  ")
     end
 
     def notify(message:nil, title: nil, modal: false, **opts)
