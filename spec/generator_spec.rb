@@ -362,6 +362,22 @@ describe Atmos::Generator do
         end
       end
 
+      it "checks for all of list to be present" do
+        within_construct do |c|
+          described_class.source_root(c.to_s)
+          c.file('foo.yml', YAML.dump('foo' => ['hum', 'baz']))
+
+          expect(gen.send(:config_present?, 'foo.yml', 'foo', 'hum')).to be true
+          expect(gen.send(:config_present?, 'foo.yml', 'foo', 'baz')).to be true
+          expect(gen.send(:config_present?, 'foo.yml', 'foo', 'blah')).to be false
+          expect(gen.send(:config_present?, 'foo.yml', 'foo', ['baz'])).to be true
+          expect(gen.send(:config_present?, 'foo.yml', 'foo', ['hum', 'baz'])).to be true
+          expect(gen.send(:config_present?, 'foo.yml', 'foo', ['baz', 'hum'])).to be true
+          expect(gen.send(:config_present?, 'foo.yml', 'foo', ['baz', 'hum', 'blah'])).to be false
+          expect(gen.send(:config_present?, 'foo.yml', 'foo', ['blah'])).to be false
+        end
+      end
+
     end
 
     describe "add_config" do

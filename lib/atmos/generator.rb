@@ -170,7 +170,7 @@ module Atmos
       result = val.present?
       if value && result
         if val.is_a?(Array)
-          result = val.include?(value)
+          result = Array(value).all? {|v| val.include?(v) }
         else
           result = (val == value)
         end
