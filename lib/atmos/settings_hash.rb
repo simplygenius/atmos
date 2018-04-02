@@ -32,7 +32,7 @@ module Atmos
 
         if i == path.size - 1
           if additive && current_level[p].is_a?(Array)
-            current_level[p].concat(Array(value))
+            current_level[p] = current_level[p] | Array(value)
           else
             current_level[p] = value
           end

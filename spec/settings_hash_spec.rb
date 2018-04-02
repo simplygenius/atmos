@@ -50,6 +50,15 @@ describe Atmos::SettingsHash do
       expect(config["foo"]).to eq(["bar", "baz"])
     end
 
+    it "does union when putting list val additively with list arg" do
+      config = described_class.new
+      config.notation_put("foo", ["bar"])
+      config.notation_put("foo", ["baz"], additive: true)
+      expect(config["foo"]).to eq(["bar", "baz"])
+      config.notation_put("foo", ["baz", "boo"], additive: true)
+      expect(config["foo"]).to eq(["bar", "baz", "boo"])
+    end
+
     it "is additive by default" do
       config = described_class.new
       config.notation_put("foo", ["bar"])
