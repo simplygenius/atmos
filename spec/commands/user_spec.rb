@@ -38,7 +38,8 @@ describe Atmos::Commands::User do
       env = Hash.new
       manager = Atmos.config.provider.user_manager
       expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
-      expect(manager).to receive(:create_user).with("foo@bar.com")
+      expect(manager).to receive(:create_user).
+          with("foo@bar.com").and_return(user_name: "foo@bar.com")
       expect(manager).to_not receive(:set_groups)
       expect(manager).to_not receive(:enable_login)
       expect(manager).to_not receive(:enable_mfa)
