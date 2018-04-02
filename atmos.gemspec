@@ -55,5 +55,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "climate_control"
   spec.add_dependency "aws-sdk"
   spec.add_dependency "os"
+  spec.add_dependency "rotp"
+  spec.add_dependency "clipboard"
 
 end
