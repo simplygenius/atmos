@@ -15,6 +15,11 @@ ipc:
     # Disable notify callbacks
     disable: false
 
+# Configure the integrated otp mechanism
+otp:
+  # The file where otp secrets are stored
+  secret_file: ~/.atmos.yml
+
 # Configure the UI components
 ui:
   # Configures UI notifications
