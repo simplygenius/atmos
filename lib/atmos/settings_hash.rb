@@ -61,7 +61,7 @@ module Atmos
           comment_lines << line
         else
           if comment_lines.present?
-            comment_places[line] = comment_lines
+            comment_places[line.chomp] = comment_lines
             comment_lines = []
           end
         end
@@ -76,7 +76,8 @@ module Atmos
       new_yml = ""
       new_config_no_comments.each_line do |line|
         line.gsub!(/\s+$/, "\n")
-        comments = comment_places[line]
+        cline = comment_places.keys.find {|k| line =~ /^#{k}/ }
+        comments = comment_places[cline]
         comments.each {|comment| new_yml << comment } if comments
         new_yml << line
       end

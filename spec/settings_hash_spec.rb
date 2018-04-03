@@ -163,13 +163,21 @@ describe Atmos::SettingsHash do
 
     it "check stock yml works" do
       within_construct do |c|
-        c.file("foo.yml",
-               File.read(File.expand_path("../../templates/new/config/atmos.yml", __FILE__)))
-        File.write("foo.yml", described_class.add_config("foo.yml", "recipes", ["atmos-scaffold"]))
+        yml = File.read(File.expand_path("../../templates/new/config/atmos.yml", __FILE__))
+        c.file("foo.yml", yml)
+        count = yml.lines.grep(/^#/).size
+
+        File.write("foo.yml", described_class.add_config("foo.yml",
+                                                         "recipes.default", ["atmos-scaffold"]))
         File.write("foo.yml", described_class.add_config("foo.yml", "foo", "bar"))
+        File.write("foo.yml", described_class.add_config("foo.yml", "org", "myorg"))
+
         new_data = File.read("foo.yml")
+        new_count = new_data.lines.grep(/^#/).size
+        expect(new_count).to eq(count)
+
         new_data = YAML.load(new_data)
-        expect(new_data['recipes']).to eq(['atmos-scaffold'])
+        expect(new_data['recipes']['default']).to eq(['atmos-scaffold'])
         expect(new_data['foo']).to eq('bar')
       end
     end
