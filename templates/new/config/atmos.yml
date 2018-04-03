@@ -16,16 +16,16 @@ global_name_prefix: "#{org}-#{atmos_env}-"
 #
 local_name_prefix:
 
-# The recipes to use when bootstrapping each environment.  These are kept
-# separate to make it easy to tear down an environment without breaking
-# terraform mid-destroy
-#
-bootstrap_recipes:
-
 # The recipes to use for all environments, override at environment level if
-# need be
+# need be.  The recipes to use when bootstrapping each environment will be
+# under the bootstrap key.  These are kept separate to make it easy to tear
+# down an environment without breaking terraform mid-destroy.  Most new
+# deployments will have all recipes under a single key (Default), but the use
+# of multiple keys to segment your infrastructure is useful as it grows larger
 #
 recipes:
+  bootstrap:
+  default:
 
 # Environment specific overrides
 #
@@ -36,7 +36,7 @@ environments:
 # Sources for atmos templates
 #
 template_sources:
-  - name: atmos-recipes
-    location: git@github.com:/simplygenius/atmos-recipes.git
+- name: atmos-recipes
+  location: git@github.com:/simplygenius/atmos-recipes.git
 #  - name: atmos-pro-recipes
 #    location: git@github.com:simplygenius/atmos-pro-recipes.git

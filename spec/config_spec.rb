@@ -44,7 +44,8 @@ describe Atmos::Config do
 
     it "creates the dir" do
       within_construct do |c|
-        expect(config.tf_working_dir).to eq("#{config.tmp_root}/#{config.atmos_env}/tf")
+        expect(config.tf_working_dir).
+            to eq("#{config.tmp_root}/#{config.atmos_env}/tf/default")
         expect(Dir.exist?(config.tf_working_dir)).to be true
       end
     end
@@ -52,7 +53,7 @@ describe Atmos::Config do
     it "creates the dir with a group" do
       within_construct do |c|
         expect(config.tf_working_dir('bootstrap')).
-            to eq("#{config.tmp_root}/#{config.atmos_env}/bootstrap")
+            to eq("#{config.tmp_root}/#{config.atmos_env}/tf/bootstrap")
         expect(Dir.exist?(config.tf_working_dir('bootstrap'))).to be true
       end
     end

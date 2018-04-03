@@ -62,7 +62,7 @@ describe Atmos::TerraformExecutor do
 
     it "links recipes into working dir" do
       within_construct do |c|
-        c.file('config/atmos.yml', YAML.dump('recipes' => ['foo', 'bar']))
+        c.file('config/atmos.yml', YAML.dump('recipes' => {'default' => ['foo', 'bar']}))
         c.file('recipes/foo.tf')
         c.file('recipes/bar.tf')
         c.file('recipes/baz.tf')
@@ -83,7 +83,7 @@ describe Atmos::TerraformExecutor do
     it "links working group recipes into working group dir" do
       within_construct do |c|
         c.file('config/atmos.yml', YAML.dump(
-            'bootstrap_recipes' => ['foo', 'bar'], 'recipes' => ['hum']))
+            'recipes' => {'bootstrap' => ['foo', 'bar'], 'default' => ['hum']}))
         c.file('recipes/foo.tf')
         c.file('recipes/bar.tf')
         c.file('recipes/baz.tf')
@@ -151,7 +151,7 @@ describe Atmos::TerraformExecutor do
 
     it "removes atmos working dir links" do
       within_construct do |c|
-        c.file('config/atmos.yml', YAML.dump('recipes' => ['foo']))
+        c.file('config/atmos.yml', YAML.dump('recipes' => {'default' => ['foo']}))
         c.directory('modules')
         c.directory('templates')
         Atmos.config = Atmos::Config.new("ops")
@@ -182,7 +182,7 @@ describe Atmos::TerraformExecutor do
 
     it "removes atmos working group dir links" do
       within_construct do |c|
-        c.file('config/atmos.yml', YAML.dump('bootstrap_recipes' => ['foo']))
+        c.file('config/atmos.yml', YAML.dump('recipes' => {'bootstrap' => ['foo']}))
         c.directory('modules')
         c.directory('templates')
         Atmos.config = Atmos::Config.new("ops")
@@ -325,8 +325,7 @@ describe Atmos::TerraformExecutor do
         expect(File.exist?(file)).to be true
         vars = JSON.parse(File.read(file))
         expect(vars['terraform']['backend']['mytype']).
-            to eq('foo' => 'bar',
-                  'baz' => 'boo')
+            to match(hash_including('foo' => 'bar', 'baz' => 'boo'))
       end
     end
 

@@ -68,11 +68,10 @@ module Atmos
       end
     end
 
-    def tf_working_dir(group=nil)
-      group = group.present? ? group : 'tf'
+    def tf_working_dir(group='default')
       @tf_working_dir ||= {}
       @tf_working_dir[group] ||= begin
-        dir = File.join(tmp_dir, group)
+        dir = File.join(tmp_dir, 'tf', group)
         logger.debug("Terraform working dir: #{dir}")
         mkdir_p(dir)
         dir

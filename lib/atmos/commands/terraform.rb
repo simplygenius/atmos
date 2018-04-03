@@ -29,7 +29,7 @@ module Atmos::Commands
 
           # TODO: hack to allow apply/etc for bootstrap group
           # Fix this once we allow more extensive recipe grouping
-          working_group = nil
+          working_group = 'default'
           @terraform_arguments.each_with_index do |a, i|
             if a == "--group"
               @terraform_arguments.delete_at(i)

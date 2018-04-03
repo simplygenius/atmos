@@ -15,11 +15,11 @@ module Atmos
 
     class ProcessFailed < RuntimeError; end
 
-    def initialize(process_env: ENV, working_group: nil)
+    def initialize(process_env: ENV, working_group: 'default')
       @process_env = process_env
       @working_group = working_group
       @working_dir = Atmos.config.tf_working_dir(@working_group)
-      @recipes = @working_group == 'bootstrap' ? Atmos.config[:bootstrap_recipes] : Atmos.config[:recipes]
+      @recipes = Atmos.config["recipes.#{@working_group}"]
     end
 
     def run(*terraform_args, skip_backend: false, skip_secrets: false, get_modules: false, output_io: nil)

@@ -20,7 +20,7 @@ describe Atmos::Commands::Plan do
       te = Atmos::TerraformExecutor.new(env)
       expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
       expect(Atmos::TerraformExecutor).to receive(:new).
-          with(process_env: env, working_group: nil).and_return(te)
+          with(process_env: env, working_group: 'default').and_return(te)
       expect(te).to receive(:run).with("plan", get_modules: true)
       cli.run([])
     end
@@ -30,7 +30,7 @@ describe Atmos::Commands::Plan do
       te = Atmos::TerraformExecutor.new(env)
       expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
       expect(Atmos::TerraformExecutor).to receive(:new).
-          with(process_env: env, working_group: nil).and_return(te)
+          with(process_env: env, working_group: 'default').and_return(te)
       Atmos.config.instance_variable_get(:@config)["disable_auto_modules"] = true
       expect(te).to receive(:run).with("plan", get_modules: false)
       cli.run([])
