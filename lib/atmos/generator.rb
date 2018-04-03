@@ -109,7 +109,7 @@ module Atmos
 
     def apply_template(name)
       template_dir, source_path = template_dir(name)
-
+      logger.debug("Applying template '#{name}' from '#{template_dir}' in sourcepath '#{source_path}'")
       template_conf = load_template_config(template_dir)
 
       extra_generator_steps_file = File.join(template_dir, TEMPLATES_ACTIONS_FILE)
@@ -118,9 +118,11 @@ module Atmos
         Find.prune if f == File.join(template_dir, TEMPLATES_SPEC_FILE)  # don't copy over templates.yml
         Find.prune if f == extra_generator_steps_file # don't copy over templates.rb
 
-        template_rel = f.gsub(/#{template_dir}/, '')
-        source_rel = f.gsub(/#{source_path}\//, '')
-        dest_rel   = source_rel.gsub(/^#{name}\//, '')
+        # Using File.join(x, '') to ensure trailing slash to make sure we end
+        # up with a relative path
+        template_rel = f.gsub(/#{File.join(template_dir, '')}/, '')
+        source_rel = f.gsub(/#{File.join(source_path, '')}/, '')
+        dest_rel   = source_rel.gsub(/^#{File.join(name, '')}/, '')
 
         # prune non-directories at top level (the top level directory is the
         # template dir itself)
@@ -132,6 +134,7 @@ module Atmos
         optional = template_conf['optional'][template_rel] rescue nil
         Find.prune if optional && ! eval(optional)
 
+        logger.debug("Template '#{source_rel}' => '#{dest_rel}'")
         if File.directory?(f)
           empty_directory(dest_rel)
         else

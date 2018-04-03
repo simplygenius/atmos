@@ -141,6 +141,19 @@ describe Atmos::Generator do
       end
     end
 
+    it "handles sourcepath with trailing slash" do
+      within_construct do |c|
+        described_class.source_root(File.join(c.to_s, ''))
+        c.file('foo/templates.yml')
+        c.file('foo/foo.txt', "hello")
+        within_construct do |d|
+          gen.send(:apply_template, 'foo')
+          expect(File.exist?('foo.txt')).to be true
+          expect(open("#{d}/foo.txt").read).to eq(open("#{c}/foo/foo.txt").read)
+        end
+      end
+    end
+
     it "handles nested template" do
       within_construct do |c|
         described_class.source_root(c.to_s)
