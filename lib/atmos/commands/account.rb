@@ -45,7 +45,7 @@ module Atmos::Commands
             end
 
             account = Atmos.config.provider.account_manager.create_account(env, name: name, email: email)
-            logger.info "Account created: #{account.pretty_inspect}"
+            logger.info "Account created: #{display account}"
 
             source['account_id'] = account[:account_id].to_s
 
