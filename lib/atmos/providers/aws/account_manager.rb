@@ -61,6 +61,7 @@ module Atmos
             logger.debug("Account creation status check: #{resp.to_h}")
             status = resp.create_account_status.state
             account_id = resp.create_account_status.account_id
+            sleep 5
           end
 
           if status =~ /failed/i

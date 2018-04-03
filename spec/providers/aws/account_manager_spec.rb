@@ -13,6 +13,10 @@ describe Atmos::Providers::Aws::AccountManager do
     Aws.config[:stub_responses] = @orig_stub_responses
   end
 
+  before(:each) do
+    allow(manager).to receive(:sleep)
+  end
+
   describe "create_account" do
 
     it "creates an account for existing org" do
