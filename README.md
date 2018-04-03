@@ -95,6 +95,7 @@ Create a new `dev` account, and bootstrap it to work with atmos
 
 ```
 AWS_PROFILE=<user_profile_name> atmos account create dev
+AWS_PROFILE=<user_profile_name> atmos -e ops apply
 AWS_PROFILE=<user_profile_name> atmos -e dev bootstrap
 ```
 
