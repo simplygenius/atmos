@@ -81,7 +81,8 @@ module Atmos
           end
 
           auth_needed = true
-          credentials = read_auth_cache
+          cache_key = "#{user_name}-#{assume_role_name}"
+          credentials = read_auth_cache[cache_key]
 
           if credentials.present?
             logger.debug("Session cache present, checking expiration...")
@@ -111,7 +112,7 @@ module Atmos
               logger.info "No active session cache, authenticating..."
 
               credentials = assume_role(role_arn)
-              write_auth_cache(credentials)
+              write_auth_cache(cache_key => credentials)
 
             rescue ::Aws::STS::Errors::AccessDenied => e
               if e.message !~ /explicit deny/
@@ -144,7 +145,7 @@ module Atmos
               end
 
               credentials = assume_role(role_arn, serial_number: mfa_serial, token_code: token)
-              write_auth_cache(credentials)
+              write_auth_cache(cache_key => credentials)
 
             end
           end
@@ -196,7 +197,8 @@ module Atmos
         end
 
         def read_auth_cache
-          Atmos::Utils::SymbolizedMash.new(JSON.parse(File.read(auth_cache_file))) rescue nil
+          data = JSON.parse(File.read(auth_cache_file)) rescue {}
+          Atmos::Utils::SymbolizedMash.new(data)
         end
 
       end

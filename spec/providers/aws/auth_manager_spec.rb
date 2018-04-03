@@ -226,7 +226,7 @@ describe Atmos::Providers::Aws::AuthManager do
       expect(! File.exist?(manager.send(:auth_cache_file)))
       expect { |b| manager.authenticate({'AWS_PROFILE' => 'profile'}, &b) }.to yield_with_args
       expect(Atmos::Logging.contents).to match(/No active session cache, authenticating/)
-      expect(manager.send(:read_auth_cache)).to match(
+      expect(manager.send(:read_auth_cache)).to match("arnType-myrole" =>
                        hash_including(
                            'access_key_id',
                            'secret_access_key',
