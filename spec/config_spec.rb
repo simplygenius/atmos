@@ -101,6 +101,20 @@ describe Atmos::Config do
 
   end
 
+  describe "all_env_names" do
+
+    it "returns the list of all env names" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump(environments: {
+            ops: {account_id: 123},
+            dev: {account_id: 456}
+        }))
+        expect(config.all_env_names).to eq(["ops", "dev"])
+      end
+    end
+
+  end
+
   describe "account_hash" do
 
     it "returns the hash of all accounts" do

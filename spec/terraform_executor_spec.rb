@@ -243,6 +243,7 @@ describe Atmos::TerraformExecutor do
         expect(File.exist?(file)).to be true
         vars = JSON.parse(File.read(file))
         expect(vars['atmos_env']).to eq('ops')
+        expect(vars['all_env_names']).to eq(["ops"])
         expect(vars['account_ids']).to eq("ops" => 123)
         expect(vars['atmos_config']['foo']).to eq('bar')
         expect(vars['atmos_config']['baz_boo']).to eq('bum')
@@ -270,6 +271,7 @@ describe Atmos::TerraformExecutor do
         expect(File.exist?(file)).to be true
         vars = JSON.parse(File.read(file))
         expect(vars['atmos_env']).to eq('ops')
+        expect(vars['all_env_names']).to eq(["ops"])
         expect(vars['account_ids']).to eq("ops" => 123)
         expect(vars['atmos_config']['foo']).to eq('bar')
         expect(vars['atmos_config']['baz_boo']).to eq('bum')

@@ -41,6 +41,11 @@ module Atmos
       @provider ||= Atmos::ProviderFactory.get(self[:provider])
     end
 
+    def all_env_names
+      load
+      @full_config[:environments].keys
+    end
+
     def account_hash
       load
       environments = @full_config[:environments] || {}

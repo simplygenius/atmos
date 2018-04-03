@@ -194,6 +194,7 @@ module Atmos
 
         var_hash = {
             atmos_env: Atmos.config.atmos_env,
+            all_env_names: Atmos.config.all_env_names,
             account_ids: Atmos.config.account_hash,
             atmos_config: atmos_config
         }

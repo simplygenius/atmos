@@ -27,7 +27,9 @@ recipes:
   bootstrap:
   default:
 
-# Environment specific overrides
+# Environment specific overrides.  When adding new environments place them
+# after the existing ones so that you don't end up with permission issues when
+# bootstrapping the new account
 #
 environments:
   ops:
