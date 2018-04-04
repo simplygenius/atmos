@@ -1,4 +1,4 @@
-require 'atmos/commands/base_command'
+require_relative 'base_command'
 
 module Atmos::Commands
 

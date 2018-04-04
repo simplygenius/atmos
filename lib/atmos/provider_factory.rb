@@ -1,4 +1,4 @@
-require 'atmos'
+require_relative '../atmos'
 
 module Atmos
   class ProviderFactory

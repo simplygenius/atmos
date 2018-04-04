@@ -1,4 +1,4 @@
-require 'atmos/commands/terraform'
+require_relative 'terraform'
 
 module Atmos::Commands
 

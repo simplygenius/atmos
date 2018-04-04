@@ -1,12 +1,10 @@
-require 'atmos'
-require 'atmos/ui'
+require_relative '../atmos'
+require_relative '../atmos/ui'
 require 'clamp'
 require 'sigdump/setup'
 
-lib_dir = File.expand_path("..", __dir__,)
-commands_dir = File.join(lib_dir, 'atmos', 'commands')
-Dir.glob(File.join(commands_dir, '*.rb')) do |f|
-  require f.sub(/#{lib_dir}\//, "").sub(/\.rb$/, "")
+Dir.glob(File.join(File.join(__dir__, 'commands'), '*.rb')) do |f|
+  require_relative "commands/#{File.basename(f).sub(/\.rb$/, "")}"
 end
 
 module Atmos

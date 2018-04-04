@@ -1,5 +1,5 @@
-require 'atmos'
-require 'atmos/ui'
+require_relative '../../atmos'
+require_relative '../../atmos/ui'
 
 module Atmos
   module IpcActions

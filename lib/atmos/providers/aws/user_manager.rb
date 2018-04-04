@@ -1,5 +1,5 @@
-require 'atmos'
-require 'atmos/otp'
+require_relative '../../../atmos'
+require_relative '../../../atmos/otp'
 require 'aws-sdk-iam'
 require 'securerandom'
 

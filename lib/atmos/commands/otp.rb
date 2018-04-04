@@ -1,5 +1,5 @@
-require 'atmos/commands/base_command'
-require 'atmos/otp'
+require_relative 'base_command'
+require_relative '../../atmos/otp'
 require 'clipboard'
 
 module Atmos::Commands

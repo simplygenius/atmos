@@ -1,8 +1,8 @@
-require 'atmos'
+require_relative '../atmos'
+require_relative '../atmos/settings_hash'
+require_relative '../atmos/provider_factory'
 require 'yaml'
 require 'fileutils'
-require 'atmos/settings_hash'
-require 'atmos/provider_factory'
 require 'find'
 
 module Atmos

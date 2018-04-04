@@ -1,5 +1,5 @@
-require 'atmos/commands/base_command'
-require 'atmos/settings_hash'
+require_relative 'base_command'
+require_relative '../../atmos/settings_hash'
 require 'climate_control'
 
 module Atmos::Commands

@@ -1,6 +1,6 @@
-require 'atmos/commands/base_command'
-require 'atmos/generator_factory'
-require 'atmos/utils'
+require_relative 'base_command'
+require_relative '../../atmos/generator_factory'
+require_relative '../../atmos/utils'
 
 module Atmos::Commands
 

@@ -1,5 +1,4 @@
-require 'atmos/commands/base_command'
-require 'atmos/commands/generate'
+require_relative 'generate'
 
 module Atmos::Commands
 

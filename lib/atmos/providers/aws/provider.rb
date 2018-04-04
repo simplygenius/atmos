@@ -1,9 +1,8 @@
-require 'atmos'
-require 'atmos/providers/aws/auth_manager'
-require 'atmos/providers/aws/account_manager'
-require 'atmos/providers/aws/user_manager'
-require 'atmos/providers/aws/s3_secret_manager'
-require 'atmos/providers/aws/container_manager'
+require_relative '../../../atmos'
+
+Dir.glob(File.join(__dir__, '*.rb')) do |f|
+  require_relative "#{File.basename(f).sub(/\.rb$/, "")}"
+end
 
 module Atmos
   module Providers

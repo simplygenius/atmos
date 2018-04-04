@@ -1,10 +1,10 @@
-require 'atmos'
+require_relative '../../../atmos'
+require_relative '../../../atmos/utils'
+require_relative '../../../atmos/ui'
+require_relative '../../../atmos/otp'
 require 'aws-sdk-core'
 require 'aws-sdk-iam'
 require 'json'
-require 'atmos/utils'
-require 'atmos/ui'
-require 'atmos/otp'
 
 module Atmos
   module Providers

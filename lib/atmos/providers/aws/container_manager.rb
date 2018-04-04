@@ -1,4 +1,4 @@
-require 'atmos'
+require_relative '../../../atmos'
 require 'aws-sdk-ecs'
 require 'aws-sdk-ecr'
 require 'open3'

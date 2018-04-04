@@ -1,4 +1,4 @@
-require 'atmos'
+require_relative '../atmos'
 require 'highline'
 require 'rainbow'
 require 'yaml'

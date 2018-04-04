@@ -1,5 +1,5 @@
-require 'atmos/commands/base_command'
-require 'atmos/terraform_executor'
+require_relative 'base_command'
+require_relative '../../atmos/terraform_executor'
 
 module Atmos::Commands
 
