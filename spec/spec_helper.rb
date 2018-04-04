@@ -1,3 +1,6 @@
+require 'simplecov'
+SimpleCov.start
+
 require 'vcr'
 
 def fixture_dir

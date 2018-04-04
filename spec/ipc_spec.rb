@@ -111,7 +111,7 @@ describe Atmos::Ipc do
       ipc.listen do |sock_path|
         script_path = ipc.generate_client_script
         input = JSON.generate(action: 'ping', data: 'foo')
-        output, status = Open3.capture2(script_path, stdin_data: input)
+        output, status = Open3.capture2(script_path, stdin_data: input, unsetenv_others: true)
         expect(status.success?).to be true
         expect(JSON.parse(output)).to eq({"action" => "pong", "data" => "foo"})
       end
