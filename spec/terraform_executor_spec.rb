@@ -147,6 +147,39 @@ describe Atmos::TerraformExecutor do
 
   end
 
+  describe "link_shared_plugin_dir" do
+
+    it "links a shared plugin dir into terraform cwd" do
+      within_construct do |c|
+        c.file('config/atmos.yml')
+
+        Atmos.config = Atmos::Config.new("ops")
+        te.send(:link_shared_plugin_dir)
+
+        dest = File.join(Atmos.config.tmp_root, "terraform_plugins")
+        expect(File.exist?(dest)).to be true
+        link = File.join(te.send(:tf_recipes_dir), '.terraform', 'plugins')
+        expect(File.symlink?(link)).to be true
+        expect(File.readlink(link)).to eq(dest)
+      end
+    end
+
+    it "doesn't link if config disabled" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump("terraform" => {"disable_shared_plugins" => true}))
+
+        Atmos.config = Atmos::Config.new("ops")
+        te.send(:link_shared_plugin_dir)
+
+        dest = File.join(Atmos.config.tmp_root, "terraform_plugins")
+        expect(File.exist?(dest)).to be false
+        link = File.join(te.send(:tf_recipes_dir), '.terraform', 'plugins')
+        expect(File.symlink?(link)).to be false
+      end
+    end
+
+  end
+
   describe "clean_links" do
 
     it "removes atmos working dir links" do

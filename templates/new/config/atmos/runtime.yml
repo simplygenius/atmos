@@ -31,3 +31,10 @@ ui:
     # Set a custom command for notifications, embedded {{title|message|modal}}
     # will be replaced with the value passed from terraform
     command:
+
+# Configure terraform execution details
+terraform:
+  # By default, all terraform plugins are placed in a directory so they can be
+  # reused across all envs/groups.  This can be disabled here (you can also
+  # override using the terraform cli options for plugins)
+  disable_shared_plugins: false

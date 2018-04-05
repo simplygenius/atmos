@@ -123,6 +123,7 @@ module Atmos
 
     def setup_working_dir(skip_backend: false)
       clean_links
+      link_shared_plugin_dir
       link_support_dirs
       link_recipes
       write_atmos_vars
@@ -217,7 +218,7 @@ module Atmos
 
     def clean_links
       Find.find(@working_dir) do |f|
-        Find.prune if f =~ /\/.terraform\//
+        Find.prune if f =~ /\/.terraform\/modules\//
         File.delete(f) if File.symlink?(f)
       end
     end
@@ -225,6 +226,17 @@ module Atmos
     def link_support_dirs
       ['modules', 'templates'].each do |subdir|
         ln_sf(File.join(Atmos.config.root_dir, subdir), @working_dir)
+      end
+    end
+
+    def link_shared_plugin_dir
+      if ! Atmos.config["terraform.disable_shared_plugins"]
+        shared_plugins_dir = File.join(Atmos.config.tmp_root, "terraform_plugins")
+        mkdir_p(shared_plugins_dir)
+        terraform_state_dir = File.join(tf_recipes_dir, '.terraform')
+        mkdir_p(terraform_state_dir)
+        terraform_plugins_dir = File.join(terraform_state_dir, 'plugins')
+        ln_sf(shared_plugins_dir, terraform_plugins_dir)
       end
     end
 
