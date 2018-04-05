@@ -132,7 +132,11 @@ module Atmos
 
         # Only include optional files when their conditions eval to true
         optional = template_conf['optional'][template_rel] rescue nil
-        Find.prune if optional && ! eval(optional)
+        if optional
+          exclude = ! eval(optional)
+          logger.debug("Optional template '#{template_rel}' with condition: '#{optional}', excluding=#{exclude}")
+          Find.prune if exclude
+        end
 
         logger.debug("Template '#{source_rel}' => '#{dest_rel}'")
         if File.directory?(f)
