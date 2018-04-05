@@ -39,6 +39,6 @@ environments:
 #
 template_sources:
 - name: atmos-recipes
-  location: git@github.com:/simplygenius/atmos-recipes.git
+  location: https://github.com/simplygenius/atmos-recipes.git
 #  - name: atmos-pro-recipes
-#    location: git@github.com:simplygenius/atmos-pro-recipes.git
+#    location: https://github.com:simplygenius/atmos-pro-recipes.git
