@@ -51,6 +51,15 @@ describe Atmos::CLI do
 
   end
 
+  describe "config" do
+
+    it "produces config dump" do
+      cli.run(['config'])
+      expect(Atmos::Logging.contents).to match(/^atmos_env:/)
+    end
+
+  end
+
   describe "--debug" do
 
     it "defaults to info log level" do

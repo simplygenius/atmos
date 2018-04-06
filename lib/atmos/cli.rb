@@ -82,6 +82,12 @@ module Atmos
       end
     end
 
+    subcommand "config", "Display expanded config for atmos_env" do
+      def execute
+        logger.info YAML.dump(Atmos.config.to_h)
+      end
+    end
+
     # hook into clamp lifecycle to force logging setup even when we are calling
     # a subcommand
     def parse(arguments)
