@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'atmos/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "atmos"
+  spec.name          = "simplygenius-atmos"
   spec.version       = Atmos::VERSION
   spec.authors       = ["Matt Conway"]
   spec.email         = ["matt@simplygenius.com"]
