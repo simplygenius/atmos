@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/simplygenius/atmos.svg?branch=master)](https://travis-ci.org/simplygenius/atmos)
+[![Coverage Status](https://coveralls.io/repos/github/simplygenius/atmos/badge.svg?branch=master)](https://coveralls.io/github/simplygenius/atmos?branch=master)
+
 # Atmos
 
 Atmos(phere) - Breathe easier with terraform
@@ -29,18 +32,28 @@ Atmos provides a layer of organization on top of terraform for creating cloud sy
 
 ## Installation
 
-On Mac OS X:
-```
-brew install aws
-brew install terraform
-gem install atmos
-```
+First install the dependencies:
+ * [Install docker](https://www.docker.com/community-edition) for deploying containers
+ * Install terraform (optional if running atmos as a docker image): e.g. `brew install terraform` on OS X 
+ * Install the aws cli (optional, useful for managing aws credentials): e.g. `brew install aws` on OS X
+
+Then install atmos:
+
+To install as a gem:
+ * gem install simplygenius-atmos
+ * verify: `atmos --help`
+
+To install/run as a docker image:
+ * curl -sL https://raw.githubusercontent.com/simplygenius/atmos/master/bin/atmos-docker > /usr/local/bin/atmos
+ * chmod +x /usr/local/bin/atmos
+ * verify: `atmos --help`
+
+Note that when running as a docker image, UI notifications get forced inline as text output as atmos no longer has access to your current OS.
 
 ## Usage
 
 Usage is available via the command line: `atmos --help`
 The [terraform docs](https://www.terraform.io/docs/index.html) are excellent.
-
 
 ## Quickstart
 
@@ -64,8 +77,10 @@ atmos new
 Initialize the atmos project for aws.  When prompted, input a short name for your organization and the AWS account id to use for the ops environment:
 
 ```
-atmos generate aws/scaffold
+atmos generate --force aws/scaffold
 ```
+
+The `--force` is optional and just prevents the prompt for every change the generator is making to files in your repo.
 
 Optionally bring up config/atmos.yml in your editor and make any other desired changes.
 
@@ -83,7 +98,7 @@ AWS_PROFILE=<root_profile_name> atmos user create -l -k -g all-users -g ops-admi
 aws configure --profile <user_profile_name>
 ```
 
-If you supply the "-m" flag, it will automatically create and activate a virtual MFA device with the user, and prompt you to save the secret to the atmos mfa keystore for integrated usage.  You can skip saving the secret and instead just copy/paste it into your MFA device of choice.
+If you supply the "-m" flag, it will automatically create and activate a virtual MFA device with the user, and prompt you to save the secret to the atmos mfa keystore for integrated usage.  You can skip saving the secret and instead just copy/paste it into your MFA device of choice.  The "user create" command can also act in more of an upsert fashion, so to do something like reset a user's password and keys, you could do `atmos user create --force -l -m -k your@email.address`
 
 Login to the aws console as that user, change your password and setup MFA there if you prefer doing it that way.  Make sure you log out and back in again with MFA before you try setting up the [role switcher](#per-user-role-switcher-in-console)
 
@@ -104,7 +119,7 @@ Note that you can `export AWS_PROFILE=<user_profile_name>` in your environment, 
 Use the 'aws/service' template to setup an ECS Fargate based service, then apply it in the dev environment to make it active.  This template will also pull in some dependent templates to setup a vpc, dns for the provided domain and a wildcard cert to enable ssl for your service
 
 ```
-atmos generate aws/service
+atmos generate --force aws/service
 atmos -e dev apply
 
 ```
@@ -127,7 +142,7 @@ atmos -e dev container deploy -c services <service_name>
 The atmos aws scaffold also sets up a user named deployer, with restricted permissions sufficient to do the deploy.  Add the [key/secret](https://github.com/simplygenius/atmos-recipes/blob/master/aws/scaffold/recipes/atmos-permissions.tf#L159)) to the environment for your CI to get your CI to auto deploy on successful build.
 
 ```
-AWS_ACCESS_KEY_ID=<deployer_key> AWS_SECRET_ACCESS_KEY=<deployer_secret> atmos -e <env_based on branch> container deploy -c services <service_name>
+AWS_ACCESS_KEY_ID=<deployer_key> AWS_SECRET_ACCESS_KEY=<deployer_secret> atmos -e <env_based_on_branch> container deploy -c services <service_name>
 ```
 
 To clean it all up:
@@ -141,11 +156,24 @@ atmos -e dev destroy
 
 # Destroys the bootstrap resources (state, secret, lock storage and
 # cross-account access role)
-TF_VAR_force_destroy_buckets=true atmos -e dev --group bootstrap apply
+TF_VAR_force_destroy_buckets=true atmos -e dev apply --group bootstrap
 atmos -e dev destroy --group bootstrap
+
+# For normal usage you should rarely need to cleanup the ops account, but
+# included here in case you want to completely purge the atmos resources after
+# trying things out.
+
+# Cleanup non-bootstrap ops
+AWS_PROFILE=<root_profile_name> TF_VAR_force_destroy_buckets=true atmos -e ops apply
+AWS_PROFILE=<root_profile_name> atmos -e ops destroy
+
+# Cleanup ops bootstrap
+AWS_PROFILE=<root_profile_name> TF_VAR_force_destroy_buckets=true atmos -e ops apply --group bootstrap
+AWS_PROFILE=<root_profile_name> atmos -e ops destroy --group bootstrap
+
 ```
 
-These are separate commands so that day-day usage where you want to tear down everything (e.g. CI spinning up then destroying while testing) doesn't compromise your ability to use atmos/terraform.
+These are separate commands so that day-day usage where you want to tear down everything (e.g. CI spinning up then destroying while testing) doesn't compromise your ability to use atmos/terraform.  You can avoid the extra steps of applying with `TF_VAR_force_destroy_buckets=true` if you set `force_destroy_buckets: true` in atmos.yml
 
 ## Per-User Role switcher in Console
 
