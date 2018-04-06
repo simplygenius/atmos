@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+# fail fast
+set -e
+
+APP_VOLUME=${IMAGE_APP_VOLUME:-/app}
+
+docker run \
+  --interactive --tty --rm \
+  --volume "$(pwd)":"${APP_VOLUME}" \
+  --volume /var/run/docker.sock:/var/run/docker.sock \
+  simplygenius/atmos "$@"

@@ -10,7 +10,7 @@ COPY lib/atmos/version.rb $APP_DIR/lib/atmos/
 
  # "build-base ruby-dev"
 ENV BUILD_PACKAGES=""
-ENV APP_PACKAGES="bash git terraform"
+ENV APP_PACKAGES="bash git terraform docker"
 
 RUN apk --update upgrade && \
     apk add \
