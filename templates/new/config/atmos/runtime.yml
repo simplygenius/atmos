@@ -31,6 +31,9 @@ ui:
     # Set a custom command for notifications, embedded {{title|message|modal}}
     # will be replaced with the value passed from terraform
     command:
+    # Force notifications inline in atmos' stdout output rather than launching
+    # a GUI notification
+    force_inline: false
 
 # Configure terraform execution details
 terraform:

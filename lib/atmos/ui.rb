@@ -6,10 +6,19 @@ require 'open3'
 require 'os'
 require 'hashie'
 
+module OSDockerDetection
+  refine OS.singleton_class do
+    def docker?
+      @docker ||= File.exist?('/.dockerenv')
+    end
+  end
+end
+
 module Atmos
   module UI
     extend ActiveSupport::Concern
     include GemLogger::LoggerSupport
+    using OSDockerDetection
 
     def self.color_enabled=(val)
       Rainbow.enabled = val
@@ -83,9 +92,10 @@ module Atmos
 
       return result if Atmos.config["ui.notify.disable"].to_s == "true"
 
+      force_inline = Atmos.config["ui.notify.force_inline"].to_s == "true"
       command = Atmos.config["ui.notify.command"]
 
-      if command.present?
+      if command.present? && ! force_inline
 
         raise ArgumentError.new("notify command must be a list") if ! command.is_a?(Array)
 
@@ -96,7 +106,7 @@ module Atmos
         end
         result.merge! run_ui_process(*command)
 
-      elsif OS.mac?
+      elsif OS.mac? && ! force_inline
         display_method = modal ? "displayDialog" : "displayNotification"
 
         dialogScript = <<~EOF
@@ -112,16 +122,22 @@ module Atmos
 
         result.merge! run_ui_process("osascript", "-l", "JavaScript", "-e", dialogScript)
 
-      elsif OS.linux?
+      elsif OS.linux? && ! OS.docker? && ! force_inline
         # TODO: add a modal option
         result.merge! run_ui_process("notify-send", title, message)
 
       # TODO windows notifications?
-      # elseif OS.windows?
+      # elseif OS.windows? && ! force_inline
 
       else
+
         logger.debug("Notifications are unsupported on this OS")
-        logger.info("\n#{title}: #{message}\n")
+        logger.info(Rainbow("\n***** #{title} *****\n#{message}\n").orange)
+        if modal
+          logger.info(Rainbow("Hit enter to continue\n").orange)
+          $stdin.gets
+        end
+
       end
 
       return result

@@ -98,16 +98,47 @@ describe Atmos::UI do
           ui.notify(message: 'howdy', title: 'mytitle')
         end
 
+        it "uses logger for linux docker" do
+          expect(OS).to receive(:mac?).and_return(false)
+          expect(OS).to receive(:linux?).and_return(true)
+          expect(File).to receive(:exist?).with("/.dockerenv").and_return(true)
+          expect(ui).to receive(:run_ui_process).never
+          ui.notify(message: 'howdy', title: 'mytitle')
+          expect(Atmos::Logging.contents).to match(/mytitle.*howdy/m)
+        end
+
       end
 
       describe 'other' do
 
-        it "uses logger when unsupported" do
+        it "uses inline logger when unsupported" do
           expect(OS).to receive(:mac?).and_return(false)
           expect(OS).to receive(:linux?).and_return(false)
           expect(ui).to receive(:run_ui_process).never
           ui.notify(message: 'howdy', title: 'mytitle')
-          expect(Atmos::Logging.contents).to match(/mytitle: howdy/)
+          expect(Atmos::Logging.contents).to match(/mytitle.*howdy/m)
+        end
+
+        it "uses inline logger when forced" do
+          config = Atmos.config.instance_variable_get(:@config)
+          config.notation_put('ui.notify.force_inline', true)
+          expect(ui).to receive(:run_ui_process).never
+
+          expect(OS).to receive(:mac?).and_return(true, false, false)
+          expect(OS).to receive(:linux?).and_return(false, true, false)
+
+          ui.notify(message: 'howdy', title: 'mytitle')
+          expect(Atmos::Logging.contents).to match(/mytitle.*howdy/m)
+          Atmos::Logging.clear
+
+          ui.notify(message: 'howdy', title: 'mytitle')
+          expect(Atmos::Logging.contents).to match(/mytitle.*howdy/m)
+          Atmos::Logging.clear
+
+          config.notation_put('ui.notify.command', ["foo"])
+          ui.notify(message: 'howdy', title: 'mytitle')
+          expect(Atmos::Logging.contents).to match(/mytitle.*howdy/m)
+          Atmos::Logging.clear
         end
 
       end
