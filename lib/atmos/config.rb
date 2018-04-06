@@ -166,9 +166,9 @@ module Atmos
               end
             end
             result = result.sub(substr, expand(config, val).to_s)
-            result = true if result == 'true'
-            result = false if result == 'false'
           end
+          result = true if result == 'true'
+          result = false if result == 'false'
           result
         else
           obj

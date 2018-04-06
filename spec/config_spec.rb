@@ -274,6 +274,24 @@ describe Atmos::Config do
       end
     end
 
+    it "handles truthy" do
+      within_construct do |c|
+        c.file('config/atmos.yml',
+               YAML.dump(foo: true, bar: false,
+                         baz: '#{foo}', bum: '#{bar}',
+                         foo2: 'true', bar2: 'false',
+                         baz2: '#{foo2}', bum2: '#{bar2}'))
+        expect(config["foo"]).to be true
+        expect(config["bar"]).to be false
+        expect(config["baz"]).to be true
+        expect(config["bum"]).to be false
+        expect(config["foo2"]).to be true
+        expect(config["bar2"]).to be false
+        expect(config["baz2"]).to be true
+        expect(config["bum2"]).to be false
+      end
+    end
+
   end
 
 end
