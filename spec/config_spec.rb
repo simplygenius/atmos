@@ -258,6 +258,22 @@ describe Atmos::Config do
       end
     end
 
+    it "handles complex eval" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump(foo: "bar", boo: {bum: "dum"}, baz: '#{foo.size * boo.bum.size}'))
+        expect(config["baz"]).to eq("9")
+      end
+    end
+
+    it "shows file/line for config error" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump(baz: '#{foo.bar.size * 3}'))
+        expect{config["baz"]}.
+            to raise_error(RuntimeError,
+                           /Failing config.*foo\.bar\.size.*atmos.yml:\d+ => NoMethodError.*/)
+      end
+    end
+
   end
 
 end

@@ -149,13 +149,59 @@ module Atmos
           result = obj
           result.scan(INTERP_PATTERN).each do |substr, statement|
             # TODO: check for cycles
-            val = config.notation_get(statement)
-            result = result.sub(substr, expand(config, val.to_s))
+            if statement =~ /^[\w\.\[\]]$/
+              val = config.notation_get(statement)
+            else
+              # TODO: be consistent with dot notation between eval and
+              # notation_get.  eval ends up calling Hashie method_missing,
+              # which returns nil if a key doesn't exist, causing a nil
+              # exception for next item in chain, while notation_get returns
+              # nil gracefully for the entire chain (preferred)
+              begin
+                val = eval(statement, config.instance_eval("binding"))
+              rescue => e
+                file, line = find_config_error(substr)
+                file_msg = file.nil? ? "" : " in #{File.basename(file)}:#{line}"
+                raise RuntimeError.new("Failing config statement '#{substr}'#{file_msg} => #{e.class} #{e.message}")
+              end
+            end
+            result = result.sub(substr, expand(config, val).to_s)
+            result = true if result == 'true'
+            result = false if result == 'false'
           end
           result
         else
           obj
       end
+    end
+
+    def find_config_error(statement)
+      filename = nil
+      line = 0
+
+      configs = []
+      configs << config_file if File.exist?(config_file)
+      if Dir.exist?(configs_dir)
+        Find.find(configs_dir) do |f|
+          if f =~ /\.ya?ml/i
+            configs << f
+          end
+        end
+      end
+
+      configs.each do |c|
+        current_line = 0
+        File.foreach(c) do |f|
+          current_line += 1
+          if f.include?(statement)
+            filename = c
+            line = current_line
+            break
+          end
+        end
+      end
+
+      return filename, line
     end
   end
 
