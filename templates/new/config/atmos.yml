@@ -35,6 +35,12 @@ environments:
   ops:
     account_id:
 
+# A convenience for allowing other config statements to easily test if we are
+# running in a development environment, for example:
+# {is_dev ? 'dev val' : 'prod val'}
+#
+is_dev: "#{ /dev|test|demo/.match?(atmos_env) }"
+
 # Sources for atmos templates
 #
 template_sources:
