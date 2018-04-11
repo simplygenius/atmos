@@ -118,14 +118,22 @@ RSpec.configure do |config|
   Kernel.srand config.seed
 =end
   config.before(:each) do
+    Atmos::UI.color_enabled = false
+    Atmos::Logging.testing = true
+    Atmos::Logging.setup_logging(true, false, nil)
     Atmos::Logging.clear
+  end
+
+  config.after(:each) do |example|
+    if example.exception
+      puts Atmos::Logging.contents
+    end
   end
 
 end
 
 require 'atmos/logging'
-Atmos::Logging.testing = true
-Atmos::Logging.setup_logging(false, false, nil)
+require 'atmos/ui'
 
 require "test_construct/rspec_integration"
 

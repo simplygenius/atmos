@@ -101,7 +101,7 @@ module Atmos
     def self.setup_logging(debug, color, logfile)
       init_logger
 
-      ::Logging.logger.root.level = :debug if debug
+      ::Logging.logger.root.level = debug ? :debug : :info
       appenders = []
       detail_pattern = '[%d] %-5l %c{2} %m\n'
       plain_pattern = '%m\n'

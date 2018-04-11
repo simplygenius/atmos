@@ -3,7 +3,59 @@ require 'rainbow'
 
 describe Atmos::Logging do
 
+  let(:logger) { ::Logging.logger.root }
+
   describe "setup_logging" do
+
+    it "logs at info log level" do
+      described_class.setup_logging(false, false, nil)
+      logger.info("infolog")
+      expect(Atmos::Logging.contents).to include("infolog")
+      logger.debug("debuglog")
+      expect(Atmos::Logging.contents).to_not include("debuglog")
+    end
+
+    it "logs at debug log level" do
+      described_class.setup_logging(true, false, nil)
+      logger.info("infolog")
+      expect(Atmos::Logging.contents).to include("infolog")
+      logger.debug("debuglog")
+      expect(Atmos::Logging.contents).to include("debuglog")
+    end
+
+    it "can write to logfile" do
+      within_construct do |c|
+        expect(File.exist?('foo.log')).to be false
+        described_class.setup_logging(false, false, 'foo.log')
+        logger.info("howdy")
+        expect(File.exist?('foo.log')).to be true
+        expect(File.read('foo.log')).to include("howdy")
+        expect(Atmos::Logging.contents).to include("howdy")
+      end
+    end
+
+    it "can avoid writing to logfile" do
+      within_construct do |c|
+        expect(File.exist?('foo.log')).to be false
+        described_class.setup_logging(false, false, nil)
+        logger.info("howdy")
+        expect(File.exist?('foo.log')).to be false
+        expect(Atmos::Logging.contents).to include("howdy")
+      end
+    end
+
+    it "logs with color" do
+      described_class.setup_logging(false, true, nil)
+      logger.info("howdy")
+      a = ::Logging.logger.root.appenders.find {|a| a.try(:layout).try(:color_scheme) }
+      expect(a).to_not be_nil
+    end
+
+    it "outputs plain text" do
+      described_class.setup_logging(false, false, nil)
+      a = ::Logging.logger.root.appenders.find {|a| a.try(:layout).try(:color_scheme) }
+      expect(a).to be_nil
+    end
 
   end
 

@@ -6,17 +6,11 @@ describe Atmos::CLI do
   let(:cli) { described_class.new("") }
 
   around(:each) do |ex|
-    @orig_color = Atmos::UI.color_enabled
-    Atmos::UI.color_enabled = false
-    Atmos::Logging.setup_logging(false, false, nil)
-
     within_construct do |c|
       @c = c
       Atmos.config = nil
       ex.run
-      Atmos::UI.color_enabled = @orig_color
       Atmos.config = nil
-      Atmos::Logging.setup_logging(false, false, nil)
     end
   end
 
@@ -64,58 +58,37 @@ describe Atmos::CLI do
 
     it "defaults to info log level" do
       cli.run(['version'])
-      expect(Atmos::Logging.contents).to include(Atmos::VERSION)
-      cli.logger.debug("debuglog")
-      expect(Atmos::Logging.contents).to_not include("debuglog")
-      cli.logger.info("infolog")
-      expect(Atmos::Logging.contents).to include("infolog")
     end
 
     it "sets log level to debug" do
+      expect(Atmos::Logging).to receive(:setup_logging).with(true, any_args)
       cli.run(['--debug', 'version'])
-      expect(Atmos::Logging.contents).to include(Atmos::VERSION)
-      cli.logger.debug("debuglog")
-      expect(Atmos::Logging.contents).to include("debuglog")
-      cli.logger.info("infolog")
-      expect(Atmos::Logging.contents).to include("infolog")
     end
 
   end
 
   describe "logging" do
 
-    it "defaults to stdout" do
-      cli.run(['version'])
-      expect(Atmos::Logging.contents).to include(Atmos::VERSION)
-      cli.logger.info("infolog")
-      expect(Atmos::Logging.contents).to include("infolog")
-    end
-
-    it "defaults to writing to logfile" do
+    it "defaults to writing to logfile if in atmos repo" do
       conf = Atmos::Config.new("ops")
       expect(Atmos::Config).to receive(:new).and_return(conf)
       expect(conf).to receive(:is_atmos_repo?).and_return(true)
-      expect(File.exist?('atmos.log')).to be false
+      expect(Atmos::Logging).to receive(:setup_logging).with(any_args, 'atmos.log')
       cli.run(['version'])
-      expect(File.exist?('atmos.log')).to be true
-      expect(File.read('atmos.log')).to include(Atmos::VERSION)
-    end
-
-    it "can disable writing to logfile" do
-      expect(File.exist?('atmos.log')).to be false
-      cli.run(['--no-log', 'version'])
-      expect(File.exist?('atmos.log')).to be false
     end
 
     it "defaults to no logfile if not atmos repo" do
       conf = Atmos::Config.new("ops")
       expect(Atmos::Config).to receive(:new).and_return(conf)
       expect(conf).to receive(:is_atmos_repo?).and_return(false)
-      expect(File.exist?('atmos.log')).to be false
+      expect(Atmos::Logging).to receive(:setup_logging).with(any_args, nil)
       cli.run(['version'])
-      expect(File.exist?('atmos.log')).to be false
     end
 
+    it "can disable writing to logfile" do
+      expect(Atmos::Logging).to receive(:setup_logging).with(any_args, nil)
+      cli.run(['--no-log', 'version'])
+    end
 
   end
 
@@ -123,17 +96,15 @@ describe Atmos::CLI do
 
     it "defaults to color" do
       expect($stdout).to receive(:tty?).and_return(true)
+      expect(Atmos::Logging).to receive(:setup_logging).with(anything, true, anything)
+      expect(Atmos::UI).to receive(:color_enabled=).with(true)
       cli.run(['version'])
-      expect(Atmos::UI.color_enabled).to be true
-      a = ::Logging.logger.root.appenders.find {|a| a.try(:layout).try(:color_scheme) }
-      expect(a).to_not be_nil
     end
 
     it "outputs plain text" do
+      expect(Atmos::Logging).to receive(:setup_logging).with(anything, false, anything)
+      expect(Atmos::UI).to receive(:color_enabled=).with(false)
       cli.run(['--no-color', 'version'])
-      expect(Atmos::UI.color_enabled).to be false
-      a = ::Logging.logger.root.appenders.find {|a| a.try(:layout).try(:color_scheme) }
-      expect(a).to be_nil
     end
 
   end
