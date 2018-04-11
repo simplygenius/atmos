@@ -94,6 +94,7 @@ describe Atmos::UI do
         it "generates script for linux" do
           expect(OS).to receive(:mac?).and_return(false)
           expect(OS).to receive(:linux?).and_return(true)
+          expect(File).to receive(:exist?).with("/.dockerenv").and_return(false)
           expect(ui).to receive(:run_ui_process).with("notify-send", "mytitle", "howdy").and_return({})
           ui.notify(message: 'howdy', title: 'mytitle')
         end
