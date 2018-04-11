@@ -3,9 +3,10 @@ language: ruby
 cache: bundler
 
 rvm:
-  - 2.3
-  - 2.4
   - 2.5
 
-before_install: gem install bundler
+before_install:
+  - curl -sL https://releases.hashicorp.com/terraform/0.11.7/terraform_0.11.7_linux_amd64.zip > terraform.zip
+  - unzip terraform.zip
+
 script: bundle exec rspec spec
