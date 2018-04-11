@@ -92,6 +92,9 @@ describe Atmos::CLI do
     end
 
     it "defaults to writing to logfile" do
+      conf = Atmos::Config.new("ops")
+      expect(Atmos::Config).to receive(:new).and_return(conf)
+      expect(conf).to receive(:is_atmos_repo?).and_return(true)
       expect(File.exist?('atmos.log')).to be false
       cli.run(['version'])
       expect(File.exist?('atmos.log')).to be true
@@ -103,6 +106,16 @@ describe Atmos::CLI do
       cli.run(['--no-log', 'version'])
       expect(File.exist?('atmos.log')).to be false
     end
+
+    it "defaults to no logfile if not atmos repo" do
+      conf = Atmos::Config.new("ops")
+      expect(Atmos::Config).to receive(:new).and_return(conf)
+      expect(conf).to receive(:is_atmos_repo?).and_return(false)
+      expect(File.exist?('atmos.log')).to be false
+      cli.run(['version'])
+      expect(File.exist?('atmos.log')).to be false
+    end
+
 
   end
 
@@ -128,6 +141,7 @@ describe Atmos::CLI do
   describe "executable" do
 
     it "runs the cli" do
+      @c.file('config/atmos.yml')
       exe = File.expand_path('../../exe/atmos', __FILE__)
       output = `bundle exec #{exe} version`
       expect($?.exitstatus).to be(0)

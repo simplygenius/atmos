@@ -93,9 +93,10 @@ module Atmos
     def parse(arguments)
       super
       if Atmos.config.nil?
-        Atmos::Logging.setup_logging(debug?, color?, log? ? "atmos.log" : nil)
-        Atmos::UI.color_enabled = color?
         Atmos.config = Atmos::Config.new(atmos_env)
+        log = Atmos.config.is_atmos_repo? && log? ? "atmos.log" : nil
+        Atmos::Logging.setup_logging(debug?, color?, log)
+        Atmos::UI.color_enabled = color?
       end
     end
 
