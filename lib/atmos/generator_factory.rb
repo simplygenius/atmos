@@ -48,7 +48,8 @@ module Atmos
 
               expanded_sourcepaths << local_template_path
               logger.debug("Using git sourcepath: #{local_template_path}")
-            rescue
+            rescue => e
+              logger.log_exception(e, level: :debug)
               logger.warn("Could not read from git archive, ignoring sourcepath: #{sourcepath}")
             end
 
@@ -69,7 +70,8 @@ module Atmos
               local_template_path = File.join(tmpdir, template_subdir)
               expanded_sourcepaths << local_template_path
               logger.debug("Using zip sourcepath: #{local_template_path}")
-            rescue
+            rescue => e
+              logger.log_exception(e, level: :debug)
               logger.warn("Could not read from zip archive, ignoring sourcepath: #{sourcepath}")
             end
 
