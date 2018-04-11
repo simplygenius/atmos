@@ -17,6 +17,10 @@ end
 
 task :default => :test
 
-task :docker => [:clobber, :build] do
+task :docker do
   sh "docker build -t simplygenius/atmos ."
+end
+
+task :docker_dev do
+  sh "docker build -t simplygenius/atmos-dev -f Dockerfile.dev ."
 end

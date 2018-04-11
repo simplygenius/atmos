@@ -15,7 +15,7 @@ WORKDIR $APP_DIR
 COPY Gemfile Gemfile.lock *.gemspec $APP_DIR/
 COPY lib/atmos/version.rb $APP_DIR/lib/atmos/
 
-ENV BUILD_PACKAGES=""
+ENV BUILD_PACKAGES="build-base ruby-dev"
 ENV APP_PACKAGES="bash curl git docker"
 
 RUN apk --update upgrade && \
@@ -25,7 +25,7 @@ RUN apk --update upgrade && \
     apk add \
       --virtual build_deps \
       $BUILD_PACKAGES && \
-    bundle install --without development && \
+    bundle install && \
     apk del build_deps && \
     rm -rf /var/cache/apk/*
 
@@ -35,7 +35,7 @@ RUN curl -sL $TF_PKG > terraform.zip && \
     rm -f terraform.zip
 
 COPY . $APP_DIR/
-RUN bundle install --without development
+RUN bundle install
 
 WORKDIR $RUN_DIR
 VOLUME $RUN_DIR
