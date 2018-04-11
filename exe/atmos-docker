@@ -1,12 +1,27 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # fail fast
 set -e
 
 APP_VOLUME=${IMAGE_APP_VOLUME:-/app}
 
+if [[ -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ]]; then
+  if command -v aws &> /dev/null; then
+    export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
+    export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)
+    export AWS_REGION=$(aws configure get region)
+  else
+    echo "Usage through docker requires that access keys to be set in the environment"
+    echo "Install the aws cli to automatically look them up based on a profile name"
+    exit 1
+  fi
+fi
+
 docker run \
   --interactive --tty --rm \
   --volume "$(pwd)":"${APP_VOLUME}" \
   --volume /var/run/docker.sock:/var/run/docker.sock \
+  --env AWS_ACCESS_KEY_ID \
+  --env AWS_SECRET_ACCESS_KEY \
+  --env AWS_REGION \
   simplygenius/atmos "$@"
