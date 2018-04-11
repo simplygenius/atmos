@@ -126,7 +126,10 @@ RSpec.configure do |config|
 
   config.after(:each) do |example|
     if example.exception
+      puts
+      puts "Debug log for failing spec: #{example.full_description}"
       puts Atmos::Logging.contents
+      puts
     end
   end
 
