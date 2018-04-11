@@ -12,5 +12,6 @@ before_install:
   - mv terraform bin/
   - export PATH=$PATH:$PWD/bin/
   - terraform --version
+  - git --version
 
 script: bundle exec rspec spec
