@@ -6,6 +6,7 @@ rvm:
   - 2.5
 
 before_install:
+  - gem install bundler
   - curl -sL https://releases.hashicorp.com/terraform/0.11.7/terraform_0.11.7_linux_amd64.zip > terraform.zip
   - unzip terraform.zip
 
