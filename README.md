@@ -44,7 +44,7 @@ To install as a gem:
  * verify: `atmos --help`
 
 To install/run as a docker image:
- * curl -sL https://raw.githubusercontent.com/simplygenius/atmos/master/bin/atmos-docker > /usr/local/bin/atmos
+ * curl -sL https://raw.githubusercontent.com/simplygenius/atmos/master/exe/atmos-docker > /usr/local/bin/atmos
  * chmod +x /usr/local/bin/atmos
  * verify: `atmos --help`
 
