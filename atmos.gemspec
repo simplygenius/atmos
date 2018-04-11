@@ -14,15 +14,6 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/simplygenius/atmos"
   spec.license       = "Apache-2.0"
 
-  # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
-  # to allow pushing to a single host or delete this section to allow pushing to any host.
-  if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = "TODO: Set to 'http://mygemserver.com'"
-  else
-    raise "RubyGems 2.0 o r newer is required to protect against " \
-      "public gem pushes."
-  end
-
   spec.files = Dir['*.md', 'LICENSE', 'exe/**/*', 'lib/**/*', 'templates/**/*']
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
