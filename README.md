@@ -7,6 +7,10 @@ Atmos(phere) - Breathe easier with terraform
 
 Atmos provides a layer of organization on top of terraform for creating cloud system architectures with Amazon Web Services.  It handles the plumbing so you can focus on your application.  The core atmos runtime is free and open-source, with a business friendly license (Apache).  It provides some basic recipes to help get you going with a service oriented architecture implemented with AWS Elastic Container Services.  For more in-depth recipes, please check out the Atmos Pro offering.
 
+In a nutshell, you provide the green, atmos delivers the rest:
+
+![Architecture Diagram](docs/images/architecture_diagram.png)
+
 ## Goals
 
 * The whole is greater than the sum of its parts.  Assist in creating a cloud infrastructure _system_ rather than just discrete infrastructure components.  Learning aws and terraform is a lot to bite off when getting started.  It's much easier to start with a working system ,and learn incrementally as you go by making changes to it.
