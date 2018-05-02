@@ -66,12 +66,19 @@ describe Atmos::GeneratorFactory do
       end
     end
 
-
     it "expands a zip archive locally" do
       expanded = described_class.expand_sourcepaths(["#{fixture_dir}/template_repo.zip"])
       expect(expanded.size).to eq(1)
       expect(expanded.first).to match(/^\/.*/)
       expect(Dir.exist?(expanded.first)).to be true
+    end
+
+    it "expands a remote zip archive locally" do
+      expanded = described_class.expand_sourcepaths(["https://github.com/simplygenius/atmos-recipes/archive/v0.7.0.zip"])
+      expect(expanded.size).to eq(1)
+      expect(expanded.first).to match(/^\/.*/)
+      expect(Dir.exist?(expanded.first)).to be true
+      expect(Dir.entries(expanded.first)).to include("atmos-recipes-0.7.0")
     end
 
     it "uses subdir from a zip archive" do
