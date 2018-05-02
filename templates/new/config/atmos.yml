@@ -42,9 +42,12 @@ environments:
 is_dev: "#{ /dev|test|demo/.match?(atmos_env) }"
 
 # Sources for atmos templates
+# To circumvent the version lock and get the latest git master recipes, use the git
+# location, e.g.:
+# location: https://github.com/simplygenius/atmos-recipes.git
 #
 template_sources:
 - name: atmos-recipes
-  location: https://github.com/simplygenius/atmos-recipes.git
-#  - name: atmos-pro-recipes
-#    location: https://github.com:simplygenius/atmos-pro-recipes.git
+  location: https://github.com/simplygenius/atmos-recipes/archive/v#{atmos_version}.zip#atmos-recipes-#{atmos_version}
+#- name: atmos-pro-recipes
+#  location: https://github.com/simplygenius/atmos-pro-recipes/archive/v#{atmos_version}.zip#atmos-pro-recipes-#{atmos_version}
