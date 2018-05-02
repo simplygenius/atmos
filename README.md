@@ -155,7 +155,9 @@ AWS_ACCESS_KEY_ID=<deployer_key> AWS_SECRET_ACCESS_KEY=<deployer_secret> atmos -
 To clean it all up:
 
 ```
-# Applies flag to allow deleting empty buckets to existing resources
+# Applies flag to allow deleting empty buckets to existing resources.  By
+# default, this step is only required for non-development environments, but
+# doesn't hurt to use it for them too
 TF_VAR_force_destroy_buckets=true atmos -e dev apply
 
 # Destroys all non-bootstrap resources create by atmos
