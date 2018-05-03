@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    simplygenius-atmos (0.7.0)
+    simplygenius-atmos (0.7.1)
       activesupport
       aws-sdk-core
       aws-sdk-ecr
