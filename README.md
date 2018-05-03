@@ -6,7 +6,7 @@
 
 Atmos(phere) - Breathe easier with terraform
 
-Atmos provides a layer of organization on top of terraform for creating cloud system architectures with Amazon Web Services.  It handles the plumbing so you can focus on your application.  The core atmos runtime is free and open-source, with a business friendly license (Apache).  It provides some basic recipes to help get you going with a service oriented architecture implemented with AWS Elastic Container Services.  For more in-depth recipes, please check out the Atmos Pro offering.
+Atmos provides a layer of organization on top of terraform for creating cloud system architectures with Amazon Web Services.  It handles the plumbing so you can focus on your application.  The core atmos runtime is free and open-source, with a business friendly license (Apache).  It provides some basic recipes to help get you going with a service oriented architecture implemented with AWS Elastic Container Services.  For more in-depth recipes, please check out the [Atmos Pro](https://simplygenius.com/atmos-pro.html) offering.
 
 In a nutshell, you provide the green, atmos delivers the rest:
 
@@ -18,7 +18,7 @@ In a nutshell, you provide the green, atmos delivers the rest:
 
 * The command line is king.  Using a CLI to iterate on and manage core infrastructure has always been more effective for me, so I aim to make things as convenient and usable as possible from there.
 
-* No lock-in.  Since atmos just provides you convenience on top of using terraform, and the templates for defining your infrastructure are 99% in terraform, its possible to migrate away (albeit giving up all the convenience atmos provides) if your goals ever diverge from those of atmos.
+* No lock-in.  Since atmos just provides you convenience on top of using terraform, and the templates for defining your infrastructure are entirely in terraform, its possible to migrate away (albeit giving up all the convenience atmos provides) if your goals ever diverge from those of atmos.
 
 * Your infrastructure is an important product.  It should have its own repo and be tracked under configuration management, not just clickety-click-clicked on in a UI and promptly forgotten what it is you actually did to get there.  The only guarantee you have, is that things are going to need to change, and you'll be much better off with a system that allows you to iterate easily.  Atmos gets you started with minimal up-front knowledge, but provides a path for your infrastructure to evolve.
 
@@ -48,7 +48,7 @@ To install as a gem:
  * gem install simplygenius-atmos
  * verify: `atmos --help`
 
-To install/run as a docker image:
+To install/run as a docker image (experimental):
  * curl -sL https://raw.githubusercontent.com/simplygenius/atmos/master/exe/atmos-docker > /usr/local/bin/atmos
  * chmod +x /usr/local/bin/atmos
  * verify: `atmos --help`
@@ -216,4 +216,4 @@ The gem is available as open source under the terms of the [Apache 2.0 License](
 
 # About Us
 
-Simply Genius LLC is an independently run organization in Boston, MA USA.  Its Chief Everything is Matt Conway, a software engineer and executive with more than 20 years of experience in the Boston Tech Startup scene.  Atmos is his attempt at providing the world with the same tools, techniques, mindset and philosophy that he strives for when building a system architecture for a new startup.
+[Simply Genius LLC](https://simplygenius.com) is an independently run organization in Boston, MA USA.  Its Chief Everything is Matt Conway, a software engineer and executive with more than 20 years of experience in the Boston Tech Startup scene.  Atmos is his attempt at providing the world with the same tools, techniques, mindset and philosophy that he strives for when building a system architecture for a new startup.
