@@ -159,20 +159,37 @@ module Atmos
       end
     end
 
-    # terraform currently (v0.11.3) doesn't handle maps with nested maps or
+    # terraform currently (v0.11.7) doesn't handle maps with nested maps or
     # lists well, so flatten them - nested maps get expanded into the top level
     # one, with their keys being appended with underscores, and lists get
     # joined with "," so we end up with a single hash with homogenous types
-    def homogenize_for_terraform(h, root={}, prefix="")
-      h.each do |k, v|
-        if v.is_a? Hash
-          homogenize_for_terraform(v, root, "#{k}_")
-        else
-          v = v.join(",") if v.is_a? Array
-          root["#{prefix}#{k}"] = v
+    #
+    def homogenize_for_terraform(obj, prefix="")
+      if obj.is_a? Hash
+        result = {}
+        obj.each do |k, v|
+          ho = homogenize_for_terraform(v, "#{prefix}#{k}_")
+          if ho.is_a? Hash
+            result = result.merge(ho)
+          else
+            result["#{prefix}#{k}"] = ho
+          end
         end
+        return result
+      elsif obj.is_a? Array
+        result = []
+        obj.each do |o|
+          ho = homogenize_for_terraform(o, prefix)
+          if ho.is_a? Hash
+            result << ho.collect {|k, v| "#{k}=#{v}"}.join(";")
+          else
+            result << ho
+          end
+        end
+        return result.join(",")
+      else
+        return obj
       end
-      return root
     end
 
     def tf_recipes_dir
@@ -186,20 +203,20 @@ module Atmos
 
     def write_atmos_vars
       File.open(File.join(tf_recipes_dir, 'atmos.auto.tfvars.json'), 'w') do |f|
-        atmos_var_config = atmos_config = homogenize_for_terraform(Atmos.config.to_h)
-
-        var_prefix = Atmos.config['var_prefix']
-        if var_prefix
-          atmos_var_config = Hash[atmos_var_config.collect {|k, v| ["#{var_prefix}#{k}", v]}]
-        end
-
+        # A mapping in the auto vars file is ignored if a variable declaration doesn't exist for it in a tf file.  Thus,
+        # as a convenience to allow everything from atmos to be referenceable, we put everything from the atmos_config
+        # in a homogenized hash named atmos_config which is declared by the atmos scaffolding.  For variables which are
+        # declared, we also merge in atmos config with only the values homogenized (vs the entire map) so that hash
+        # variables if declared in terraform can be managed from yml, set here and accessed from terraform
+        #
+        atmos_config = homogenize_for_terraform(Atmos.config.to_h)
         var_hash = {
             atmos_env: Atmos.config.atmos_env,
             all_env_names: Atmos.config.all_env_names,
             account_ids: Atmos.config.account_hash,
             atmos_config: atmos_config
         }
-        var_hash = var_hash.merge(atmos_var_config)
+        var_hash = var_hash.merge(Atmos.config.to_h)
         f.puts(JSON.pretty_generate(var_hash))
       end
     end

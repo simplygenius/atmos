@@ -281,35 +281,7 @@ describe Atmos::TerraformExecutor do
         expect(vars['atmos_config']['foo']).to eq('bar')
         expect(vars['atmos_config']['baz_boo']).to eq('bum')
         expect(vars['foo']).to eq('bar')
-        expect(vars['baz_boo']).to eq('bum')
-      end
-    end
-
-    it "honors var_prefix if set" do
-      within_construct do |c|
-        c.file('config/atmos.yml', YAML.dump(
-            'var_prefix' => 'myprefix_',
-            'foo' => 'bar',
-            'baz' => {'boo' => 'bum'},
-            'environments' => {
-                'ops' => {
-                    'account_id' => 123
-                }
-            }
-        ))
-        Atmos.config = Atmos::Config.new("ops")
-        te.send(:write_atmos_vars)
-
-        file = File.join(te.send(:tf_recipes_dir), 'atmos.auto.tfvars.json')
-        expect(File.exist?(file)).to be true
-        vars = JSON.parse(File.read(file))
-        expect(vars['atmos_env']).to eq('ops')
-        expect(vars['all_env_names']).to eq(["ops"])
-        expect(vars['account_ids']).to eq("ops" => 123)
-        expect(vars['atmos_config']['foo']).to eq('bar')
-        expect(vars['atmos_config']['baz_boo']).to eq('bum')
-        expect(vars['myprefix_foo']).to eq('bar')
-        expect(vars['myprefix_baz_boo']).to eq('bum')
+        expect(vars['baz']).to eq({'boo' => 'bum'})
       end
     end
 
@@ -317,8 +289,25 @@ describe Atmos::TerraformExecutor do
 
   describe "homogenize_for_terraform" do
 
+    around :each do |ex|
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump({}))
+        Atmos.config = Atmos::Config.new("ops")
+        ex.run
+      end
+    end
+
     it "handles empty maps" do
       expect(te.send(:homogenize_for_terraform, {})).to eq({})
+    end
+
+    it "handles empty lists" do
+      expect(te.send(:homogenize_for_terraform, [])).to eq("")
+    end
+
+    it "handles scalars" do
+      expect(te.send(:homogenize_for_terraform, "foo")).to eq("foo")
+      expect(te.send(:homogenize_for_terraform, 1)).to eq(1)
     end
 
     it "handles basic maps" do
@@ -326,13 +315,21 @@ describe Atmos::TerraformExecutor do
     end
 
     it "handles basic arrays" do
+      expect(te.send(:homogenize_for_terraform, [1,2])).to eq("1,2")
+    end
+
+    it "handles arrays in maps" do
       expect(te.send(:homogenize_for_terraform, {"k1" => [1,2]})).to eq({"k1" => "1,2"})
+    end
+
+    it "handles maps in arrays" do
+      expect(te.send(:homogenize_for_terraform, [{"k1" => "v1", "k2" => "v2"}, {"k3" => "v3"}])).to eq("k1=v1;k2=v2,k3=v3")
     end
 
     it "flattens deep maps" do
       expect(te.send(:homogenize_for_terraform,
-                     {"k1" => {"k2" => 2, "k3" => 3, "k4" => {"k5" => 5, "k6" => [4, 5, 6]}}})).
-          to eq({"k1_k2" => 2, "k1_k3" => 3, "k4_k5" => 5, "k4_k6" => "4,5,6"})
+                     {"k0" => "v0", "k1" => {"k2" => 2, "k3" => 3, "k4" => {"k5" => 5, "k6" => [4, 5, 6]}}})).
+          to eq({"k0" => "v0", "k1_k2" => 2, "k1_k3" => 3, "k1_k4_k5" => 5, "k1_k4_k6" => "4,5,6"})
     end
 
   end
