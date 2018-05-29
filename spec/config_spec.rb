@@ -218,6 +218,18 @@ describe Atmos::Config do
       end
     end
 
+    it "merges additively env config" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump(foo: [1]))
+        c.file('config/atmos/foo.yml', YAML.dump(foo: [2]))
+        c.file('config/atmos/provider.yml', YAML.dump(provider: "aws", providers: {aws: {foo: [3]}}))
+        c.file('config/atmos/env.yml', YAML.dump(environments: {dev: {foo: [4]}}))
+
+        config = described_class.new("dev")
+        expect(config["foo"]).to eq([1, 2, 3, 4])
+      end
+    end
+
     it "supplies atmos_env" do
       within_construct do |c|
         c.file('config/atmos.yml', YAML.dump(foo: "bar"))
@@ -290,6 +302,37 @@ describe Atmos::Config do
         expect(config["baz2"]).to be true
         expect(config["bum2"]).to be false
       end
+    end
+
+    it "handles additive merge hack" do
+      within_construct do |c|
+        c.file('config/atmos.yml', YAML.dump(foo: ["^", "bar", ["^", "baz"]]))
+        expect(config["foo"]).to eq(["bar", ["baz"]])
+      end
+    end
+
+  end
+
+  describe "additive merge" do
+
+    let(:additive_merge) { config.class.const_get(:ADDITIVE_MERGE) }
+
+    it "handles empty merge" do
+      lhs = {}
+      rhs = {}
+      expect(lhs.deep_merge(rhs, &additive_merge)).to eq({})
+    end
+
+    it "performs deep merge additively" do
+      lhs = {x: 1, y: [1, 2], z: "foo", h: {a: 9, c: 7}}
+      rhs = {x: 2, y: [3, 4], z: "bar", h: {b: 8, c: 6}}
+      expect(lhs.deep_merge(rhs, &additive_merge)).to eq({x: 2, y: [1, 2, 3, 4], z: "bar", h: {a: 9, b: 8, c: 6}})
+    end
+
+    it "performs allows array override" do
+      lhs = {y: [1, 2]}
+      rhs = {y: ["^", 3, 4]}
+      expect(lhs.deep_merge(rhs, &additive_merge)).to eq({y: [3, 4]})
     end
 
   end

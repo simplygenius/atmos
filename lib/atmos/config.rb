@@ -87,6 +87,30 @@ module Atmos
 
     INTERP_PATTERN = /(\#\{([^\}]+)\})/
 
+    # TODO: do this better by writing own hash and/or custom merge logic that is not constrained by Hashie
+    ADDITIVE_MERGE = Proc.new do |key, this_val, other_val|
+      # Only recurses deeply if vals are both hash, then call this with keys from hash contents, not the key for the
+      # hash itself
+
+      # Warn if user fat fingered config
+      unless this_val.is_a?(other_val.class) || other_val.is_a?(this_val.class)
+        logger.warn("Different types in deep merge for `#{key}`: #{this_val.class}, #{other_val.class}")
+      end
+
+      result = other_val
+
+      if other_val.is_a?(Array)
+        # also see HACK in expand()
+        if other_val.first == "^"
+          result = other_val[1..-1]
+        else
+          result = this_val + other_val
+        end
+      end
+
+      result
+    end
+
     def load
       @config ||= begin
 
@@ -106,7 +130,7 @@ module Atmos
            if f =~ /\.ya?ml/i
              logger.debug("Loading atmos config file: #{f}")
              h = SettingsHash.new(YAML.load_file(f))
-             @full_config = @full_config.merge(h)
+             @full_config = @full_config.deep_merge(h, &ADDITIVE_MERGE)
            end
          end
         else
@@ -129,12 +153,12 @@ module Atmos
           env = {}
         end
 
-        conf = global.deep_merge(prov).
-           deep_merge(env).
-           deep_merge(
-               atmos_env: atmos_env,
-               atmos_version: Atmos::VERSION
-           )
+        conf = global.deep_merge(prov, &ADDITIVE_MERGE).
+            deep_merge(env, &ADDITIVE_MERGE).
+            deep_merge({
+                           atmos_env: atmos_env,
+                           atmos_version: Atmos::VERSION
+                       }, &ADDITIVE_MERGE)
         expand(conf, conf)
       end
     end
@@ -144,7 +168,11 @@ module Atmos
         when Hash
           SettingsHash.new(Hash[obj.collect {|k, v| [k, expand(config, v)] }])
         when Array
-          obj.collect {|i| expand(config, i) }
+          result = obj.collect {|i| expand(config, i) }
+          # HACK: accounting for the case when someone wants to force an override using '^' as the first list item, when
+          # there is no upstream to override (i.e. merge proc doesn't get triggered as key is unique, so just added verbatim)
+          result.delete_at(0) if result[0] == "^"
+          result
         when String
           result = obj
           result.scan(INTERP_PATTERN).each do |substr, statement|
