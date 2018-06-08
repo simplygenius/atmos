@@ -320,19 +320,51 @@ describe Atmos::Config do
     it "handles empty merge" do
       lhs = {}
       rhs = {}
-      expect(lhs.deep_merge(rhs, &additive_merge)).to eq({})
+      expect(config.send(:config_merge, lhs, rhs)).to eq({})
     end
 
     it "performs deep merge additively" do
       lhs = {x: 1, y: [1, 2], z: "foo", h: {a: 9, c: 7}}
       rhs = {x: 2, y: [3, 4], z: "bar", h: {b: 8, c: 6}}
-      expect(lhs.deep_merge(rhs, &additive_merge)).to eq({x: 2, y: [1, 2, 3, 4], z: "bar", h: {a: 9, b: 8, c: 6}})
+      expect(config.send(:config_merge, lhs, rhs)).to eq({x: 2, y: [1, 2, 3, 4], z: "bar", h: {a: 9, b: 8, c: 6}})
     end
 
-    it "performs allows array override" do
-      lhs = {y: [1, 2]}
-      rhs = {y: ["^", 3, 4]}
-      expect(lhs.deep_merge(rhs, &additive_merge)).to eq({y: [3, 4]})
+    it "performs disjoint deep merge additively (handles nils)" do
+      lhs = {x: {y: 9}}
+      rhs = {a: {b: 8}}
+      expect(config.send(:config_merge, lhs, rhs)).to eq({x: {y: 9}, a: {b: 8}})
+    end
+
+    it "allows array override" do
+      lhs = {"y" => [1, 2]}
+      rhs = {"^y" => [3, 4]}
+      expect(config.send(:config_merge, lhs, rhs)).to eq({"y" => [3, 4]})
+    end
+
+    it "handles override in same hash" do
+      lhs = {"y" => [1, 2], "^y" => [3, 4]}
+      rhs = {}
+      expect(config.send(:config_merge, lhs, rhs)).to eq({"y" => [3, 4]})
+    end
+
+    it "ignores override on lhs" do
+      lhs = {"^y" => [1, 2]}
+      rhs = {"y" => [3, 4]}
+      expect(config.send(:config_merge, lhs, rhs)).to eq({"y" => [1, 2, 3, 4]})
+    end
+
+    it "allows hash override" do
+      lhs = {"y" => {1 => 2}}
+      rhs = {"^y" => {3 => 4}}
+      expect(config.send(:config_merge, lhs, rhs)).to eq({"y" => {3 => 4}})
+    end
+
+    it "allows hash override with symbols" do
+      # only preserves if it is a symbol, doesn't make things indifferent -
+      # relies on Hashie on passed in args for that
+      lhs = {y: {1 => 2}}
+      rhs = {"^y": {3 => 4}}
+      expect(config.send(:config_merge, lhs, rhs)).to eq({y: {3 => 4}})
     end
 
   end

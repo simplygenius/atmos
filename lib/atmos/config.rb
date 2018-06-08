@@ -87,28 +87,42 @@ module Atmos
 
     INTERP_PATTERN = /(\#\{([^\}]+)\})/
 
-    # TODO: do this better by writing own hash and/or custom merge logic that is not constrained by Hashie
-    ADDITIVE_MERGE = Proc.new do |key, this_val, other_val|
-      # Only recurses deeply if vals are both hash, then call this with keys from hash contents, not the key for the
-      # hash itself
+    def config_merge(lhs, rhs)
+      result = nil
+
+      return rhs if lhs.nil?
 
       # Warn if user fat fingered config
-      unless this_val.is_a?(other_val.class) || other_val.is_a?(this_val.class)
-        logger.warn("Different types in deep merge for `#{key}`: #{this_val.class}, #{other_val.class}")
+      unless lhs.is_a?(rhs.class) || rhs.is_a?(lhs.class)
+        logger.warn("Different types in deep merge: #{lhs.class}, #{rhs.class}")
       end
 
-      result = other_val
+      case rhs
+      when Hash
+        result = lhs.deep_dup
 
-      if other_val.is_a?(Array)
-        # also see HACK in expand()
-        if other_val.first == "^"
-          result = other_val[1..-1]
-        else
-          result = this_val + other_val
+        lhs.each do |k, v|
+          if k =~ /^\^(.*)/
+            key = k.is_a?(Symbol) ? $1.to_sym : $1
+            result[key] = result.delete(k)
+          end
         end
+
+        rhs.each do |k, v|
+          if k =~ /^\^(.*)/
+            key = k.is_a?(Symbol) ? $1.to_sym : $1
+            result[key] = v
+          else
+            result[k] = config_merge(result[k], v)
+          end
+        end
+      when Enumerable
+        result = lhs + rhs
+      else
+        result = rhs
       end
 
-      result
+      return result
     end
 
     def load
@@ -130,7 +144,7 @@ module Atmos
            if f =~ /\.ya?ml/i
              logger.debug("Loading atmos config file: #{f}")
              h = SettingsHash.new(YAML.load_file(f))
-             @full_config = @full_config.deep_merge(h, &ADDITIVE_MERGE)
+             @full_config = config_merge(@full_config, h)
            end
          end
         else
@@ -153,12 +167,12 @@ module Atmos
           env = {}
         end
 
-        conf = global.deep_merge(prov, &ADDITIVE_MERGE).
-            deep_merge(env, &ADDITIVE_MERGE).
-            deep_merge({
-                           atmos_env: atmos_env,
-                           atmos_version: Atmos::VERSION
-                       }, &ADDITIVE_MERGE)
+        conf = config_merge(global, prov)
+        conf = config_merge(conf, env)
+        conf = config_merge(conf, {
+            atmos_env: atmos_env,
+            atmos_version: Atmos::VERSION
+        })
         expand(conf, conf)
       end
     end
