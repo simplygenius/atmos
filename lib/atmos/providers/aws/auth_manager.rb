@@ -95,7 +95,7 @@ module Atmos
             elsif Time.now > (expiration - session_renew_interval)
               begin
                 logger.info "Session approaching expiration, renewing..."
-                credentials = assume_role(role_arn, credentials: credentials)
+                credentials = assume_role(role_arn, credentials: credentials, user_name: user_name)
                 auth_needed = false
               rescue => e
                 logger.info "Failed to renew credentials using session cache, reason: #{e.message}"
@@ -111,7 +111,7 @@ module Atmos
             begin
               logger.info "No active session cache, authenticating..."
 
-              credentials = assume_role(role_arn)
+              credentials = assume_role(role_arn, user_name: user_name)
               write_auth_cache(cache_key => credentials)
 
             rescue ::Aws::STS::Errors::AccessDenied => e
@@ -144,7 +144,7 @@ module Atmos
                 exit(1)
               end
 
-              credentials = assume_role(role_arn, serial_number: mfa_serial, token_code: token)
+              credentials = assume_role(role_arn, serial_number: mfa_serial, token_code: token, user_name: user_name)
               write_auth_cache(cache_key => credentials)
 
             end
@@ -175,10 +175,18 @@ module Atmos
           else
             client_opts = {}
           end
+
+          user_name = opts.delete(:user_name)
+          if user_name
+            session_name = "Atmos-#{user_name}"
+          else
+            session_name = "Atmos"
+          end
+
           sts = ::Aws::STS::Client.new(client_opts)
           params = {
               duration_seconds: session_duration,
-              role_session_name: "Atmos",
+              role_session_name: session_name,
               role_arn: role_arn
           }.merge(opts)
           logger.debug("Assuming role: #{params}")
