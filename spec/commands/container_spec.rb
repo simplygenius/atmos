@@ -30,7 +30,7 @@ describe Atmos::Commands::Container do
     it "requires an cluster" do
       expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)
       expect(Atmos.config.provider.container_manager).to_not receive(:push)
-      expect { cli.run(["deploy"]) }.to raise_error(Clamp::UsageError, /'-c' is required/)
+      expect { cli.run(["deploy", "bar"]) }.to raise_error(Clamp::UsageError, /'-c' is required/)
     end
 
     it "requires a name" do
