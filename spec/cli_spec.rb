@@ -114,8 +114,8 @@ describe Atmos::CLI do
     it "runs the cli" do
       @c.file('config/atmos.yml')
       exe = File.expand_path('../../exe/atmos', __FILE__)
-      output = `bundle exec #{exe} version`
-      expect($?.exitstatus).to be(0)
+      output = `bundle exec #{exe} version 2>&1`
+      expect($?.exitstatus).to be(0), "exe failed: #{output}"
       expect(output).to include(Atmos::VERSION)
       expect(File.exist?('atmos.log')).to be true
       expect(File.read('atmos.log')).to include(Atmos::VERSION)

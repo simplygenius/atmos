@@ -18,7 +18,7 @@ describe "Initial Setup" do
     output, status = Open3.capture2e("bundle", "exec", exe, *args, stdin_data: stdin_data)
     puts output if output_on_fail && status.exitstatus != 0
     if ! allow_fail
-      expect(status.exitstatus).to be(0), "atmos #{args.join(' ')} failed"
+      expect(status.exitstatus).to be(0), "atmos #{args.join(' ')} failed: #{output}"
     end
     return output
   end
