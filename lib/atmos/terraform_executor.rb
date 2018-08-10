@@ -102,7 +102,18 @@ module Atmos
                         :out=>stdout_writer, :err=> stderr_writer, :in => :in)
 
             logger.debug("Terraform started with pid #{pid}")
-            Process.wait(pid)
+            begin
+              Process.wait(pid)
+            rescue Interrupt
+              logger.warn "Got SIGINT, sending to terraform pid=#{pid}"
+
+              Process.kill("INT", pid)
+              Process.wait(pid)
+
+              logger.debug "Completed signal cleanup"
+              exit!(1)
+            end
+
           end
 
           stdout_writer.close
@@ -271,8 +282,8 @@ module Atmos
              data = yield data if block_given?
              dest.write(data)
            end
-         rescue EOFError
-           nil
+         rescue IOError, EOFError => e
+           logger.log_exception(e, "Stream failure", level: :debug)
          rescue Exception => e
            logger.log_exception(e, "Stream failure")
          end
