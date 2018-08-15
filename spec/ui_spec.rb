@@ -253,4 +253,14 @@ describe Atmos::UI do
 
   end
 
+  describe "choose" do
+
+    it "chooses from menu input on stdout" do
+      result = nil
+      expect { simulate_stdin("2") { result = ui.choose("foo", "bar") } }.to output("1. foo\n2. bar\n?  ").to_stdout
+      expect(result).to eq("bar")
+    end
+
+  end
+
 end

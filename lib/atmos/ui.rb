@@ -41,13 +41,18 @@ module Atmos
       end
 
       def ask(question, answer_type=nil, &details)
-        s = @color ? Rainbow(question).send(@color) : question
+        question = @color ? Rainbow(question).send(@color) : question
         @atmos_ui.ask(question, answer_type, &details)
       end
 
       def agree(question, character=nil, &details)
-        s = @color ? Rainbow(question).send(@color) : question
+        question = @color ? Rainbow(question).send(@color) : question
         @atmos_ui.agree(question, character, &details)
+      end
+
+      def choose(*items, &details)
+        # TODO: figure out how to color menu
+        return @atmos_ui.choose(*items, &details)
       end
 
     end
@@ -70,6 +75,10 @@ module Atmos
 
     def agree(question, character=nil, &details)
       return Markup.new().agree(question, character, &details)
+    end
+
+    def choose(*items, &details)
+      return Markup.new().choose(*items, &details)
     end
 
     # Pretty display of hashes
