@@ -101,6 +101,17 @@ describe Atmos::Config do
 
   end
 
+  describe "plugin_manager" do
+
+    it "returns the plugin manager" do
+      within_construct do |c|
+        c.file('config/atmos.yml', "")
+        expect(config.plugin_manager).to be_instance_of(Atmos::PluginManager)
+      end
+    end
+
+  end
+
   describe "all_env_names" do
 
     it "returns the list of all env names" do

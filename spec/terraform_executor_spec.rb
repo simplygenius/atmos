@@ -561,7 +561,6 @@ describe Atmos::TerraformExecutor do
         # stdin with an IO, so hack it this way
         c.file(File.join(te.send(:tf_recipes_dir), "stdin.txt"), "foo\nyes\n")
         allow(te).to receive(:tf_cmd).and_return(["bash", "-c", "cat stdin.txt | terraform apply"])
-        expect(te).to receive(:notify).with(message: /waiting for user input/)
         expect {
             te.send(:execute, "apply", skip_secrets: true)
         }.to output(/showme = got var foo/).to_stdout
@@ -638,6 +637,55 @@ describe Atmos::TerraformExecutor do
       )
       expect(status.success?).to be true
       expect(output).to eq("")
+    end
+
+  end
+
+  describe "plugins" do
+
+    it "provides stdout to output filter plugin" do
+      within_construct do |c|
+        c.file('config/atmos.yml')
+        Atmos.config = Atmos::Config.new("ops")
+
+        filter = Class.new do
+          def self.data; @data ||= {output: ""}; end
+          def initialize(c); self.class.data[:context] = c; end
+          def filter(data); self.class.data[:filter_called] = true; self.class.data[:output] += data; ""; end
+          def close; self.class.data[:close_called] = true; end
+        end
+
+        Atmos.config.plugin_manager.register_output_filter(:stdout, filter)
+
+        te.send(:execute, "init", skip_secrets: true)
+        expect(filter.data[:context]).to match(hash_including(:process_env, :working_group))
+        expect(filter.data[:filter_called]).to eq(true)
+        expect(filter.data[:close_called]).to eq(true)
+        expect(filter.data[:output]).to match("Terraform initialized")
+      end
+    end
+
+
+    it "provides stderr to output filter plugin" do
+      within_construct do |c|
+        c.file('config/atmos.yml')
+        Atmos.config = Atmos::Config.new("ops")
+
+        filter = Class.new do
+          def self.data; @data ||= {output: ""}; end
+          def initialize(c); self.class.data[:context] = c; end
+          def filter(data); self.class.data[:filter_called] = true; self.class.data[:output] += data; ""; end
+          def close; self.class.data[:close_called] = true; end
+        end
+
+        Atmos.config.plugin_manager.register_output_filter(:stderr, filter)
+
+        te.send(:execute, "init", "1", "2", skip_secrets: true) rescue Atmos::TerraformExecutor::ProcessFailed
+        expect(filter.data[:context]).to match(hash_including(:process_env, :working_group))
+        expect(filter.data[:filter_called]).to eq(true)
+        expect(filter.data[:close_called]).to eq(true)
+        expect(filter.data[:output]).to match("The init command expects at most one argument")
+      end
     end
 
   end

@@ -1,6 +1,7 @@
 require_relative '../atmos'
 require_relative '../atmos/settings_hash'
 require_relative '../atmos/provider_factory'
+require_relative '../atmos/plugin_manager'
 require 'yaml'
 require 'fileutils'
 require 'find'
@@ -39,6 +40,10 @@ module Atmos
 
     def provider
       @provider ||= Atmos::ProviderFactory.get(self[:provider])
+    end
+
+    def plugin_manager
+      @plugin_manager ||= Atmos::PluginManager.new(self[:plugins])
     end
 
     def all_env_names

@@ -58,7 +58,7 @@ module Atmos
         end
       end
 
-      # lets tempfiles create by subprocesses be easily found by users
+      # lets tempfiles created by subprocesses be easily found by users
       env['TMPDIR'] = Atmos.config.tmp_dir
 
       # Lets terraform communicate back to atmos, e.g. for UI notifications
@@ -68,14 +68,12 @@ module Atmos
         IO.pipe do |stderr, stderr_writer|
 
           stdout_writer.sync = stderr_writer.sync = true
-          # TODO: more filtering on terraform output?
-          stdout_thr = pipe_stream(stdout, output_io.nil? ? $stdout : output_io) do |data|
-            if data =~ /^[\e\[\dm\s]*Enter a value:[\e\[\dm\s]*$/
-              notify(message: "Terraform is waiting for user input")
-            end
-            data
-          end
-          stderr_thr = pipe_stream(stderr, output_io.nil? ? $stderr : output_io)
+
+          stdout_filters = Atmos.config.plugin_manager.output_filters(:stdout, {process_env: @process_env, working_group: @working_group})
+          stderr_filters = Atmos.config.plugin_manager.output_filters(:stderr, {process_env: @process_env, working_group: @working_group})
+
+          stdout_thr = pipe_stream(stdout, output_io.nil? ? $stdout : output_io, &stdout_filters.filter_block)
+          stderr_thr = pipe_stream(stderr, output_io.nil? ? $stderr : output_io, &stderr_filters.filter_block)
 
           ipc.listen do |sock_path|
 
@@ -120,6 +118,8 @@ module Atmos
           stderr_writer.close
           stdout_thr.join
           stderr_thr.join
+          stdout_filters.close
+          stderr_filters.close
 
           status = $?.exitstatus
           logger.debug("Terraform exited: #{status}")

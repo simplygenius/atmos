@@ -35,6 +35,10 @@ ui:
     # a GUI notification
     force_inline: false
 
+# Ths list of plugin gems to load when running atmos
+plugins:
+#   - atmos-pro
+
 # Configure terraform execution details
 terraform:
   # By default, all terraform plugins are placed in a directory so they can be

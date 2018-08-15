@@ -7,6 +7,10 @@ Dir.glob(File.join(File.join(__dir__, 'commands'), '*.rb')) do |f|
   require_relative "commands/#{File.basename(f).sub(/\.rb$/, "")}"
 end
 
+Dir.glob(File.join(File.join(__dir__, 'plugins'), '*.rb')) do |f|
+  require_relative "plugins/#{File.basename(f).sub(/\.rb$/, "")}"
+end
+
 module Atmos
 
   # The command line interface to atmos
@@ -97,6 +101,8 @@ module Atmos
         log = Atmos.config.is_atmos_repo? && log? ? "atmos.log" : nil
         Atmos::Logging.setup_logging(debug?, color?, log)
         Atmos::UI.color_enabled = color?
+        Atmos.config.plugin_manager.register_output_filter(:stdout, Atmos::Plugins::PromptNotify)
+        Atmos.config.plugin_manager.load_plugins
       end
     end
 

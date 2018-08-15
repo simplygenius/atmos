@@ -92,6 +92,18 @@ describe Atmos::CLI do
 
   end
 
+  describe "plugins" do
+
+    it "adds the default plugins" do
+      conf = Atmos::Config.new("ops")
+      expect(Atmos::Config).to receive(:new).and_return(conf)
+      expect(conf).to receive(:is_atmos_repo?).and_return(false)
+      cli.run(['version'])
+      expect(conf.plugin_manager.output_filters(:stdout, {}).filters.first).to be_a_kind_of(Atmos::Plugins::PromptNotify)
+    end
+
+  end
+
   describe "--no-color" do
 
     it "defaults to color" do
