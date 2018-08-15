@@ -94,8 +94,10 @@ module Atmos
               auth_needed = true
             elsif Time.now > (expiration - session_renew_interval)
               begin
+                # TODO: investigate making all info a warn so we don't pollute stdout for shell scripts
                 logger.info "Session approaching expiration, renewing..."
                 credentials = assume_role(role_arn, credentials: credentials, user_name: user_name)
+                write_auth_cache(cache_key => credentials)
                 auth_needed = false
               rescue => e
                 logger.info "Failed to renew credentials using session cache, reason: #{e.message}"

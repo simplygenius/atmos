@@ -319,6 +319,7 @@ describe Atmos::Providers::Aws::AuthManager do
           with(a_kind_of(String),
                hash_including(credentials: hash_including(access_key_id: 'accessKeyFromCache'))).
           and_call_original
+      expect(manager).to receive(:write_auth_cache)
       expect { |b| manager.authenticate({'AWS_PROFILE' => 'profile'}, &b) }.to yield_with_args
       expect(Atmos::Logging.contents).to match(/Session approaching expiration, renewing/)
       expect(Atmos::Logging.contents).to_not match(/No active session cache, authenticating/)
