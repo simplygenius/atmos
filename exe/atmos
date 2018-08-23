@@ -1,4 +1,15 @@
 #!/usr/bin/env ruby
 
+# Set this environment variable to the path to the lib dir for a plugin gem to
+# make it easier to run against local directories for atmos+gem
+# e.g.
+# export BUNDLE_GEMFILE=/path/to/local/repo/atmos/Gemfile
+# export ATMOS_DEV_PLUGIN=/path/to/local/repo/atmos-myplugin/lib
+# bundle exec atmos "$@"
+#
+if ENV['ATMOS_DEV_PLUGIN']
+  $LOAD_PATH << File.expand_path(ENV['ATMOS_DEV_PLUGIN'])
+end
+
 require_relative '../lib/atmos/cli'
 Atmos::CLI.run
