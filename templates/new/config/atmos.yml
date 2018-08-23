@@ -50,4 +50,9 @@ template_sources:
 - name: atmos-recipes
   location: https://github.com/simplygenius/atmos-recipes/archive/v#{atmos_version}.zip#atmos-recipes-#{atmos_version}
 #- name: atmos-pro-recipes
-#  location: https://github.com/simplygenius/atmos-pro-recipes/archive/v#{atmos_version}.zip#atmos-pro-recipes-#{atmos_version}
+#  location: https://YOUR_API_KEY@releases.simplygenius.com/recipes/v#{atmos_version}#atmos-pro-recipes-#{atmos_version}
+
+# To get the atmos-pro gem, add the gem source like:
+#   gem sources -a https://YOUR_API_KEY@releases.simplygenius.com/gems/
+# then install the gem:
+#   gem install atmos-pro
