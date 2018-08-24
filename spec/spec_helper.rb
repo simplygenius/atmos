@@ -118,25 +118,25 @@ RSpec.configure do |config|
   Kernel.srand config.seed
 =end
   config.before(:each) do
-    Atmos::UI.color_enabled = false
-    Atmos::Logging.testing = true
-    Atmos::Logging.setup_logging(true, false, nil)
-    Atmos::Logging.clear
+    SimplyGenius::Atmos::UI.color_enabled = false
+    SimplyGenius::Atmos::Logging.testing = true
+    SimplyGenius::Atmos::Logging.setup_logging(true, false, nil)
+    SimplyGenius::Atmos::Logging.clear
   end
 
   config.after(:each) do |example|
     if example.exception
       puts
       puts "Debug log for failing spec: #{example.full_description}"
-      puts Atmos::Logging.contents
+      puts SimplyGenius::Atmos::Logging.contents
       puts
     end
   end
 
 end
 
-require 'atmos/logging'
-require 'atmos/ui'
+require 'simplygenius/atmos'
+require 'simplygenius/atmos/ui'
 
 require "test_construct/rspec_integration"
 

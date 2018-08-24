@@ -1,26 +1,34 @@
-require "atmos/commands/new"
+require "simplygenius/atmos/commands/new"
 
-describe Atmos::Commands::New do
+module SimplyGenius
+  module Atmos
+    module Commands
 
-  let(:cli) { described_class.new("") }
+      describe New do
 
-  describe "--help" do
+        let(:cli) { described_class.new("") }
 
-    it "produces help text under standard width" do
-      expect(cli.help).to be_line_width_for_cli
-    end
+        describe "--help" do
 
-  end
+          it "produces help text under standard width" do
+            expect(cli.help).to be_line_width_for_cli
+          end
 
-  describe "execute" do
+        end
 
-    it "generates the new template" do
-      within_construct do |d|
-        cli.run(["--quiet"])
-        expect(File.exist?('config/atmos.yml'))
+        describe "execute" do
+
+          it "generates the new template" do
+            within_construct do |d|
+              cli.run(["--quiet"])
+              expect(File.exist?('config/atmos.yml'))
+            end
+          end
+
+        end
+
       end
+
     end
-
   end
-
 end

@@ -1,43 +1,53 @@
-require 'atmos/providers/aws/provider'
+require 'simplygenius/atmos/providers/aws/provider'
 
-describe Atmos::Providers::Aws::Provider do
+module SimplyGenius
+  module Atmos
+    module Providers
+      module Aws
 
-  let(:provider) { described_class.new("aws") }
+        describe Provider do
 
-  describe "auth_manager" do
+          let(:provider) { described_class.new("aws") }
 
-    it "gets the auth manager" do
-      expect(provider.auth_manager).to be_instance_of(Atmos::Providers::Aws::AuthManager)
-    end
+          describe "auth_manager" do
 
-  end
+            it "gets the auth manager" do
+              expect(provider.auth_manager).to be_instance_of(Providers::Aws::AuthManager)
+            end
 
-  describe "user_manager" do
+          end
 
-    it "gets the user manager" do
-      expect(provider.user_manager).to be_instance_of(Atmos::Providers::Aws::UserManager)
-    end
+          describe "user_manager" do
 
-  end
+            it "gets the user manager" do
+              expect(provider.user_manager).to be_instance_of(Providers::Aws::UserManager)
+            end
 
-  describe "account_manager" do
+          end
 
-    it "gets the account manager" do
-      expect(provider.account_manager).to be_instance_of(Atmos::Providers::Aws::AccountManager)
-    end
+          describe "account_manager" do
 
-  end
+            it "gets the account manager" do
+              expect(provider.account_manager).to be_instance_of(Providers::Aws::AccountManager)
+            end
 
-  describe "secret_manager" do
+          end
 
-    it "gets the secret manager" do
-      within_construct do |c|
-        c.file('config/atmos.yml', YAML.dump('providers' => {'aws' => {'secret' => {}}}))
-        Atmos.config = Atmos::Config.new("ops")
-        expect(provider.secret_manager).to be_instance_of(Atmos::Providers::Aws::S3SecretManager)
+          describe "secret_manager" do
+
+            it "gets the secret manager" do
+              within_construct do |c|
+                c.file('config/atmos.yml', YAML.dump('providers' => {'aws' => {'secret' => {}}}))
+                Atmos.config = Config.new("ops")
+                expect(provider.secret_manager).to be_instance_of(Providers::Aws::S3SecretManager)
+              end
+            end
+
+          end
+
+        end
+
       end
     end
-
   end
-
 end

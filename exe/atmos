@@ -11,5 +11,5 @@ if ENV['ATMOS_DEV_PLUGIN']
   $LOAD_PATH << File.expand_path(ENV['ATMOS_DEV_PLUGIN'])
 end
 
-require_relative '../lib/atmos/cli'
-Atmos::CLI.run
+require_relative '../lib/simplygenius/atmos/cli'
+SimplyGenius::Atmos::CLI.run

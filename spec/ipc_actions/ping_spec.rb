@@ -1,15 +1,23 @@
-require "atmos/ipc_actions/ping"
+require "simplygenius/atmos/ipc_actions/ping"
 
-describe Atmos::IpcActions::Ping do
+module SimplyGenius
+  module Atmos
+    module IpcActions
 
-  let(:action) { described_class.new() }
+      describe Ping do
 
-  describe "ping" do
+        let(:action) { described_class.new() }
 
-    it "handles a message" do
-      expect(action.execute(data: "foo")).to eq(data: "foo", action: "pong")
+        describe "ping" do
+
+          it "handles a message" do
+            expect(action.execute(data: "foo")).to eq(data: "foo", action: "pong")
+          end
+
+        end
+
+      end
+
     end
-
   end
-
 end

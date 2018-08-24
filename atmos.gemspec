@@ -1,11 +1,11 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'atmos/version'
+require 'simplygenius/atmos/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "simplygenius-atmos"
-  spec.version       = Atmos::VERSION
+  spec.version       = SimplyGenius::Atmos::VERSION
   spec.authors       = ["Matt Conway"]
   spec.email         = ["matt@simplygenius.com"]
 
