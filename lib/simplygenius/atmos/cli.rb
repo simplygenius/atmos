@@ -1,14 +1,11 @@
 require_relative '../atmos'
 require_relative '../atmos/ui'
+require_relative '../atmos/plugin'
 require 'clamp'
 require 'sigdump/setup'
 
 Dir.glob(File.join(File.join(__dir__, 'commands'), '*.rb')) do |f|
   require_relative "commands/#{File.basename(f).sub(/\.rb$/, "")}"
-end
-
-Dir.glob(File.join(File.join(__dir__, 'plugins'), '*.rb')) do |f|
-  require_relative "plugins/#{File.basename(f).sub(/\.rb$/, "")}"
 end
 
 module SimplyGenius
@@ -102,7 +99,6 @@ module SimplyGenius
           log = Atmos.config.is_atmos_repo? && log? ? "atmos.log" : nil
           Logging.setup_logging(debug?, color?, log)
           UI.color_enabled = color?
-          Atmos.config.plugin_manager.register_output_filter(:stdout, Plugins::PromptNotify)
           Atmos.config.plugin_manager.load_plugins
         end
       end

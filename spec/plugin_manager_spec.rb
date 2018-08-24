@@ -10,17 +10,17 @@ module SimplyGenius
 
         it "creates the manager with nil plugins" do
           pm = described_class.new(nil)
-          expect(pm.instance_variable_get(:@plugins)).to eq []
+          expect(pm.instance_variable_get(:@plugin_gem_names)).to eq []
         end
 
         it "creates the manager with empty plugins" do
           pm = described_class.new([])
-          expect(pm.instance_variable_get(:@plugins)).to eq []
+          expect(pm.instance_variable_get(:@plugin_gem_names)).to eq []
         end
 
         it "creates the manager with some plugins" do
           pm = described_class.new(["my_plugin_gem"])
-          expect(pm.instance_variable_get(:@plugins)).to eq ["my_plugin_gem"]
+          expect(pm.instance_variable_get(:@plugin_gem_names)).to eq ["my_plugin_gem"]
         end
 
       end
@@ -43,6 +43,27 @@ module SimplyGenius
           pm = described_class.new([])
           expect { pm.load_plugin("my_plugin") }.to_not raise_error
           expect(Logging.contents).to match(/Failed to load atmos plugin/)
+        end
+
+        it "initializes plugin classes once" do
+          pm = described_class.new([])
+          c1 = Class.new(PluginBase)
+          c2 = Class.new(PluginBase)
+          expect { pm.load_plugins }.to_not raise_error
+          expect(pm.instance_variable_get(:@plugin_instances)).to match [instance_of(c1), instance_of(c2)]
+          expect { pm.load_plugins }.to_not raise_error
+          expect(pm.instance_variable_get(:@plugin_instances)).to match [instance_of(c1), instance_of(c2)]
+        end
+
+        it "allows plugin init to fail" do
+          pm = described_class.new([])
+          c1 = Class.new(PluginBase) do
+            def initialize
+              raise "bad"
+            end
+          end
+          expect { pm.load_plugins }.to_not raise_error
+          expect(Logging.contents).to match(/Failed to initialize plugin/)
         end
 
       end
