@@ -7,89 +7,77 @@ module SimplyGenius
   module Atmos
 
     # From https://github.com/rubber/rubber/blob/master/lib/rubber/commands/vulcanize.rb
-    class Generator < Thor
+    class Generator
 
-      include Thor::Actions
+      include GemLogger::LoggerSupport
+      include UI
 
-      def initialize(*args, **opts)
-        super
-        @dependencies = opts[:dependencies]
+      def initialize(*sourcepaths, **opts)
+        @sourcepaths = sourcepaths
+        if opts.has_key?(:dependencies)
+          @dependencies = opts.delete(:dependencies)
+        else
+          @dependencies = true
+        end
+        @thor_opts = opts
+        @thor_generators = {}
+        @resolved_templates = {}
       end
 
-      no_commands do
+      # TODO: store/track installed templates in a file in target repo
 
-        include GemLogger::LoggerSupport
-        include UI
-
-        TEMPLATES_SPEC_FILE = 'templates.yml'
-        TEMPLATES_ACTIONS_FILE = 'templates.rb'
-
-        def self.valid_templates
-          all_entries = []
-          source_paths_for_search.collect do |path|
-            entries = []
-            if Dir.exist?(path)
-              Find.find(path) do |f|
-                Find.prune if File.basename(f) =~  /(^\.)|svn|CVS/
-
-                template_spec = File.join(f, TEMPLATES_SPEC_FILE)
-                if File.exist?(template_spec)
-                  entries << f.sub(/^#{path}\//, '')
-                  Find.prune
-                end
-              end
-              all_entries << entries.sort
-            else
-              logger.warn("Sourcepath does not exist: #{path}")
-            end
-          end
-
-          return all_entries.flatten
-        end
-
-        def valid_templates
-          self.class.valid_templates
-        end
-
-        def generate(template_names)
+      def generate(template_names)
           seen = Set.new
           Array(template_names).each do |template_name|
+
             template_dependencies = find_dependencies(template_name)
             template_dependencies << template_name
+
             template_dependencies.each do |tname|
               apply_template(tname) unless seen.include?(tname)
               seen << tname
             end
+
           end
         end
-
-      end
 
       protected
 
-      def template_dir(name)
-        template_dir = nil
-        source_path = nil
-        source_paths.each do |sp|
-          potential_template_dir = File.join(sp, name, '')
-          template_spec = File.join(sp, name, TEMPLATES_SPEC_FILE)
-          if File.exist?(template_spec) && File.directory?(potential_template_dir)
-            template_dir = potential_template_dir
-            source_path = sp
-            break
+      # TODO: allow fully qualifying dependent templates by source name, e.g. atmos-recipes:scaffold
+
+      def sourcepath_for(name)
+        @resolved_templates[name] ||= begin
+          sps = @sourcepaths.select do |sp|
+            sp.template_names.include?(name)
           end
-        end
 
-        unless template_dir.present?
-          raise ArgumentError.new("Invalid template #{name}, use one of: #{valid_templates.join(', ')}")
-        end
+          sp = nil
+          if sps.size == 0
+            raise ArgumentError.new("Could not find template: #{name}")
+          elsif sps.size > 1
+            if @thor_opts[:force]
+              sp = sps.first
+            else
+              sp_names = sps.collect(&:name)
+              sp_names.collect {|n| sp_names.count(n)}
 
-        return template_dir, source_path
+              choice = choose do |menu|
+                menu.prompt = "Which source for template '#{name}'? "
+                sp_names.each { |n| menu.choice(n) }
+                menu.default = sp_names.first
+              end
+              sp = sps[sp_names.index(choice)]
+            end
+            logger.info "Using source '#{sp.name}' for template '#{name}'"
+          else
+            sp = sps.first
+          end
+
+          sp
+        end
       end
 
       def find_dependencies(name, seen=[])
-        template_dir, source_path = template_dir(name)
-
         return [] unless @dependencies
 
         if seen.include?(name)
@@ -98,8 +86,8 @@ module SimplyGenius
         end
         seen << name
 
-        template_conf = load_template_config(template_dir)
-        template_dependencies = Set.new(Array(template_conf['dependent_templates'] || []))
+        sp = sourcepath_for(name)
+        template_dependencies = Set.new(sp.template_dependencies(name))
 
         template_dependencies.clone.each do |dep|
           template_dependencies.merge(find_dependencies(dep, seen.dup))
@@ -109,90 +97,123 @@ module SimplyGenius
       end
 
       def apply_template(name)
-        template_dir, source_path = template_dir(name)
-        logger.debug("Applying template '#{name}' from '#{template_dir}' in sourcepath '#{source_path}'")
-        template_conf = load_template_config(template_dir)
+        sp = sourcepath_for(name)
 
-        extra_generator_steps_file = File.join(template_dir, TEMPLATES_ACTIONS_FILE)
-
-        Find.find(template_dir) do |f|
-          Find.prune if f == File.join(template_dir, TEMPLATES_SPEC_FILE)  # don't copy over templates.yml
-          Find.prune if f == extra_generator_steps_file # don't copy over templates.rb
-
-          # Using File.join(x, '') to ensure trailing slash to make sure we end
-          # up with a relative path
-          template_rel = f.gsub(/#{File.join(template_dir, '')}/, '')
-          source_rel = f.gsub(/#{File.join(source_path, '')}/, '')
-          dest_rel   = source_rel.gsub(/^#{File.join(name, '')}/, '')
-
-          # prune non-directories at top level (the top level directory is the
-          # template dir itself)
-          if f !~ /\// && ! File.directory?(f)
-            Find.prune
-          end
-
-          # Only include optional files when their conditions eval to true
-          optional = template_conf['optional'][template_rel] rescue nil
-          if optional
-            exclude = ! eval(optional)
-            logger.debug("Optional template '#{template_rel}' with condition: '#{optional}', excluding=#{exclude}")
-            Find.prune if exclude
-          end
-
-          logger.debug("Template '#{source_rel}' => '#{dest_rel}'")
-          if File.directory?(f)
-            empty_directory(dest_rel)
-          else
-            copy_file(source_rel, dest_rel, mode: :preserve)
+        @thor_generators[sp] ||= begin
+          Class.new(ThorGenerator) do
+            source_root sp.directory
           end
         end
 
-        if File.exist? extra_generator_steps_file
-          eval File.read(extra_generator_steps_file), binding, extra_generator_steps_file
+        gen = @thor_generators[sp].new(sp, **@thor_opts)
+        gen.apply(name)
+        gen # makes testing easier by giving a handle to thor generator instance
+      end
+
+      class ThorGenerator < Thor
+
+        include Thor::Actions
+
+        def initialize(source_path, **opts)
+          @source_path = source_path
+          super([], **opts)
+          source_path
         end
-      end
 
-      def load_template_config(template_dir)
-        YAML.load(File.read(File.join(template_dir, 'templates.yml'))) || {} rescue {}
-      end
+        no_commands do
+          include GemLogger::LoggerSupport
+          include UI
 
-      def raw_config(yml_file)
-        @raw_configs ||= {}
-        @raw_configs[yml_file] ||= SettingsHash.new((YAML.load_file(yml_file) rescue {}))
-      end
+          def apply(name)
+            template_dir = @source_path.template_dir(name)
+            path = @source_path.directory
 
-      def add_config(yml_file, key, value, additive: true)
-        new_yml = SettingsHash.add_config(yml_file, key, value, additive: additive)
-        create_file yml_file, new_yml
-        @raw_configs.delete(yml_file) if @raw_configs
-      end
+            logger.debug("Applying template '#{name}' from '#{template_dir}' in sourcepath '#{path}'")
 
-      def get_config(yml_file, key)
-        config = raw_config(yml_file)
-        config.notation_get(key)
-      end
+            Find.find(template_dir) do |f|
+              Find.prune if f == @source_path.template_config_path(name)  # don't copy over templates.yml
+              Find.prune if f == @source_path.template_actions_path(name) # don't copy over templates.rb
 
-      def config_present?(yml_file, key, value=nil)
-        val = get_config(yml_file, key)
+              require 'pry'
+              if f =~ /templates\.(yml)|(rb)/
+                binding.pry
+              end
 
-        result = val.present?
-        if value && result
-          if val.is_a?(Array)
-            result = Array(value).all? {|v| val.include?(v) }
-          else
-            result = (val == value)
+              # Using File.join(x, '') to ensure trailing slash to make sure we end
+              # up with a relative path
+              template_rel = f.gsub(/#{File.join(template_dir, '')}/, '')
+              source_rel = f.gsub(/#{File.join(path, '')}/, '')
+              dest_rel   = source_rel.gsub(/^#{File.join(name, '')}/, '')
+
+              # prune non-directories at top level (the top level directory is the
+              # template dir itself)
+              if f !~ /\// && ! File.directory?(f)
+                Find.prune
+              end
+
+              # Only include optional files when their conditions eval to true
+              optional = @source_path.template_optional(name)[template_rel]
+              if optional
+                exclude = ! eval(optional)
+                logger.debug("Optional template '#{template_rel}' with condition: '#{optional}', excluding=#{exclude}")
+                Find.prune if exclude
+              end
+
+              logger.debug("Template '#{source_rel}' => '#{dest_rel}'")
+              if File.directory?(f)
+                empty_directory(dest_rel)
+              else
+                copy_file(source_rel, dest_rel, mode: :preserve)
+              end
+            end
+
+            eval @source_path.template_actions(name), binding, @source_path.template_actions_path(name)
           end
+
         end
 
-        return result
-      end
+        desc "raw_config <yml_filename>", "Loads yml file"
+        def raw_config(yml_file)
+          @raw_configs ||= {}
+          @raw_configs[yml_file] ||= SettingsHash.new((YAML.load_file(yml_file) rescue {}))
+        end
 
-      # TODO make a context object for these actions, and populate it with things
-      # like template_dir from within apply
-      def new_keys?(src_yml_file, dest_yml_file)
-        src = raw_config(src_yml_file).keys.sort
-        dest = raw_config(dest_yml_file).keys.sort
-        (src - dest).size > 0
+        desc "add_config <yml_filename> <key> <value> [additive: true]", "Adds config to yml file if not there (additive=true)"
+        def add_config(yml_file, key, value, additive: true)
+          new_yml = SettingsHash.add_config(yml_file, key, value, additive: additive)
+          create_file yml_file, new_yml
+          @raw_configs.delete(yml_file) if @raw_configs
+        end
+
+        desc "get_config <yml_filename> <key>", "Gets value of key (dot-notation for nesting) from yml file"
+        def get_config(yml_file, key)
+          config = raw_config(yml_file)
+          config.notation_get(key)
+        end
+
+        desc "config_present? <yml_filename> <key> <value>", "Tests if key is in yml file and equal to value if supplied"
+        def config_present?(yml_file, key, value=nil)
+          val = get_config(yml_file, key)
+
+          result = val.present?
+          if value && result
+            if val.is_a?(Array)
+              result = Array(value).all? {|v| val.include?(v) }
+            else
+              result = (val == value)
+            end
+          end
+
+          return result
+        end
+
+        desc "new_keys? <src_yml_filename> <dest_yml_filename>", "Tests if src/dest yml have differing top level keys"
+        def new_keys?(src_yml_file, dest_yml_file)
+          src = raw_config(src_yml_file).keys.sort
+          dest = raw_config(dest_yml_file).keys.sort
+          (src - dest).size > 0
+        end
+
       end
 
     end

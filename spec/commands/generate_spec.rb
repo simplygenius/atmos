@@ -23,7 +23,7 @@ module SimplyGenius
               c.file('sp1/foo/templates.yml')
               c.file('sp2/bar/templates.yml')
               cli.run(["--sourcepath", "#{c.to_s}/sp1", "--sourcepath", "#{c.to_s}/sp2", "--list"])
-              expect(Logging.contents).to include("foo, bar, new")
+              expect(Logging.contents).to match(/Sourcepath sp1.*foo.*Sourcepath sp2.*bar.*Sourcepath bundled.*new.*/m)
             end
           end
 
@@ -41,7 +41,7 @@ module SimplyGenius
                   Atmos.config = Config.new("ops")
 
                   cli.run(["--list"])
-                  expect(Logging.contents).to match(/foo/)
+                  expect(Logging.contents).to match(/Sourcepath local.*foo/m)
                 end
               end
             ensure
@@ -60,7 +60,7 @@ module SimplyGenius
               c.file('baz/boo/templates.yml')
 
               cli.run(["--sourcepath", c.to_s, "--list"])
-              expect(Logging.contents).to include("bar, baz/boo, foo")
+              expect(Logging.contents.lines).to include(/foo/, /bar/, /baz\/boo/)
             end
           end
 
@@ -80,14 +80,14 @@ module SimplyGenius
         describe "--no-dependencies" do
 
           it "does dependencies by default" do
-            expect(GeneratorFactory).to receive(:create).
+            expect(Generator).to receive(:new).
                 with(any_args, hash_including(dependencies: true)).
                 and_return(double(generate: nil))
             cli.run(["foo"])
           end
 
           it "can disable dependencies" do
-            expect(GeneratorFactory).to receive(:create).
+            expect(Generator).to receive(:new).
                 with(any_args, hash_including(dependencies: false)).
                 and_return(double(generate: nil))
             cli.run(["--no-dependencies", "foo"])
@@ -112,7 +112,7 @@ module SimplyGenius
 
           it "generates an error for bad template" do
             within_construct do |d|
-              expect { cli.run(["--quiet", "foo"]) }.to raise_error(ArgumentError)
+              expect { cli.run(["--quiet", "foo"]) }.to raise_error(SystemExit)
             end
           end
 
@@ -131,7 +131,7 @@ module SimplyGenius
                     }
                 ]))
                 Atmos.config = Config.new("ops")
-                cli.run(["--quiet", "--sourcepath", "#{c.to_s}/sp1", "new"])
+                cli.run(["--quiet", "--force", "--sourcepath", "#{c.to_s}/sp1", "new"])
                 expect(File.exist?('foo.txt')).to be true
                 expect(File.exist?('bar.txt')).to be false
                 expect(File.exist?('.gitignore')).to be false
@@ -153,7 +153,7 @@ module SimplyGenius
                 ]))
                 Atmos.config = Config.new("ops")
 
-                cli.run(["--quiet", "new"])
+                cli.run(["--quiet", "--force", "new"])
                 expect(File.exist?('foo.txt')).to be true
                 expect(File.exist?('.gitignore')).to be false
               end

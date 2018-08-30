@@ -1,5 +1,6 @@
 require_relative 'base_command'
-require_relative '../../atmos/generator_factory'
+require_relative '../../atmos/source_path'
+require_relative '../../atmos/generator'
 require_relative '../../atmos/utils'
 
 module SimplyGenius
@@ -41,50 +42,45 @@ module SimplyGenius
         def execute
           signal_usage_error "template name is required" if template_list.blank? && ! list?
 
+          sourcepaths = []
+          sourcepath_list.each do |sp|
+            sourcepaths << SourcePath.new(File.basename(sp), sp)
+          end
+
           # don't want to fail for new repo
           if  Atmos.config && Atmos.config.is_atmos_repo?
-            config_sourcepaths = Atmos.config['template_sources'].try(:collect, &:location) || []
-            sourcepath_list.concat(config_sourcepaths)
-          end
-
-          # Always search for templates against the bundled templates directory
-          sourcepath_list << File.expand_path('../../../../../templates', __FILE__)
-
-          g = GeneratorFactory.create(sourcepath_list,
-                                             force: force?,
-                                             pretend: dryrun?,
-                                             quiet: quiet?,
-                                             skip: skip?,
-                                             dependencies: dependencies?)
-          if list?
-            logger.info "Valid templates are:"
-            list_templates(g, template_list).each {|l| logger.info(l) }
-          else
-            g.generate(template_list)
-          end
-
-        end
-
-        def list_templates(generator, name_filters)
-          # Format templates into comma-separated paragraph with limt of 70 characters per line
-          filtered_names = generator.valid_templates.select do |name|
-            name_filters.blank? || name_filters.any? {|f| name =~ /#{f}/ }
-          end
-
-          lines = ['']
-          filtered_names.each do |template_name|
-            line = lines.last
-            if line.size == 0
-              line << template_name
-            elsif line.size + template_name.size > 68
-              line << ','
-              lines << template_name # new line
-            else
-              line << ", " + template_name
+            Atmos.config['template_sources'].try(:each) do |item|
+              sourcepaths << SourcePath.new(item.name, item.location)
             end
           end
 
-          return lines
+          # Always search for templates against the bundled templates directory
+          sourcepaths << SourcePath.new('bundled', File.expand_path('../../../../../templates', __FILE__))
+
+          if list?
+            logger.info "Valid templates are:"
+            sourcepaths.each do |sp|
+              logger.info("\tSourcepath #{sp}")
+              filtered_names = sp.template_names.select do |name|
+                template_list.blank? || template_list.any? {|f| name =~ /#{f}/ }
+              end
+              filtered_names.each {|n| logger.info ("\t\t#{n}")}
+            end
+          else
+            g = Generator.new(*sourcepaths,
+                                 force: force?,
+                                 pretend: dryrun?,
+                                 quiet: quiet?,
+                                 skip: skip?,
+                                 dependencies: dependencies?)
+            begin
+              g.generate(template_list)
+            rescue  ArgumentError => e
+              logger.error(e.message)
+              exit 1
+            end
+          end
+
         end
 
       end
