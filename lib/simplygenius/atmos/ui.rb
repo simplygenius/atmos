@@ -103,7 +103,8 @@ module SimplyGenius
 
         return result if Atmos.config["ui.notify.disable"].to_s == "true"
 
-        force_inline = Atmos.config["ui.notify.force_inline"].to_s == "true"
+        force_inline = opts[:inline].to_s == "true" || Atmos.config["ui.notify.force_inline"].to_s == "true"
+
         command = Atmos.config["ui.notify.command"]
 
         if command.present? && ! force_inline
@@ -142,7 +143,7 @@ module SimplyGenius
 
         else
 
-          logger.debug("Notifications are unsupported on this OS")
+          logger.debug("Notifications are unsupported on this OS") unless force_inline
           logger.info(Rainbow("\n***** #{title} *****\n#{message}\n").orange)
           if modal
             logger.info(Rainbow("Hit enter to continue\n").orange)

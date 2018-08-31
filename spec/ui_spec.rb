@@ -121,6 +121,19 @@ module SimplyGenius
               expect(ui).to receive(:run_ui_process).never
               ui.notify(message: 'howdy', title: 'mytitle')
               expect(Logging.contents).to match(/mytitle.*howdy/m)
+              expect(Logging.contents).to match(/Notifications are unsupported/m)
+            end
+
+            it "uses inline logger when given option" do
+              expect(ui).to receive(:run_ui_process).never
+
+              expect(OS).to receive(:mac?).and_return(true)
+              expect(OS).to receive(:linux?).and_return(false)
+
+              ui.notify(message: 'howdy', title: 'mytitle', inline: true)
+              expect(Logging.contents).to match(/mytitle.*howdy/m)
+              expect(Logging.contents).to_not match(/Notifications are unsupported/m)
+              Logging.clear
             end
 
             it "uses inline logger when forced" do
@@ -133,9 +146,10 @@ module SimplyGenius
 
               ui.notify(message: 'howdy', title: 'mytitle')
               expect(Logging.contents).to match(/mytitle.*howdy/m)
+              expect(Logging.contents).to_not match(/Notifications are unsupported/m)
               Logging.clear
 
-              ui.notify(message: 'howdy', title: 'mytitle')
+              ui.notify(message: 'howdy', title: 'mytitle', inline: false)
               expect(Logging.contents).to match(/mytitle.*howdy/m)
               Logging.clear
 
