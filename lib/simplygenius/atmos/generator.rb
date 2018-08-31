@@ -134,11 +134,6 @@ module SimplyGenius
               Find.prune if f == @source_path.template_config_path(name)  # don't copy over templates.yml
               Find.prune if f == @source_path.template_actions_path(name) # don't copy over templates.rb
 
-              require 'pry'
-              if f =~ /templates\.(yml)|(rb)/
-                binding.pry
-              end
-
               # Using File.join(x, '') to ensure trailing slash to make sure we end
               # up with a relative path
               template_rel = f.gsub(/#{File.join(template_dir, '')}/, '')
