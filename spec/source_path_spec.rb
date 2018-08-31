@@ -215,6 +215,7 @@ module SimplyGenius
           expanded = described_class.new("test", repo_dir)
           expect(expanded.directory).to match(/^\/.*/)
           expect(Dir.exist?(expanded.directory)).to be true
+          expect(expanded.template_dir('template1')).to start_with(expanded.directory)
         end
 
         it "uses subdir from a git archive" do
@@ -248,10 +249,11 @@ module SimplyGenius
         end
 
         it "uses subdir from a zip archive" do
-          expanded = described_class.new("test", "#{fixture_dir}/template_repo.zip#template_repo/subdir")
+          expanded = described_class.new("test", "#{fixture_dir}/template_repo.zip#template_repo")
           expect(expanded.directory).to match(/^\/.*/)
-          expect(expanded.directory).to match(/template_repo\/subdir$/)
+          expect(expanded.directory).to match(/template_repo$/)
           expect(Dir.exist?(expanded.directory)).to be true
+          expect(expanded.template_dir('template1')).to start_with(expanded.directory)
         end
 
       end

@@ -100,8 +100,8 @@ module SimplyGenius
               g = Git.clone(sourcepath, 'atmos-checkout', depth: 1, path: tmpdir)
               local_template_path = File.join(g.dir.path, template_subdir)
 
-              sourcepath_dir = local_template_path
-              logger.debug("Using git sourcepath: #{local_template_path}")
+              sourcepath_dir = File.expand_path(local_template_path)
+              logger.debug("Using git sourcepath: #{sourcepath_dir}")
             rescue => e
               msg = "Could not read from git archive, ignoring sourcepath: #{name}, #{location}"
               logger.log_exception(e, msg, level: :debug)
@@ -123,8 +123,8 @@ module SimplyGenius
               end
 
               local_template_path = File.join(tmpdir, template_subdir)
-              sourcepath_dir = local_template_path
-              logger.debug("Using zip sourcepath: #{local_template_path}")
+              sourcepath_dir = File.expand_path(local_template_path)
+              logger.debug("Using zip sourcepath: #{sourcepath_dir}")
             rescue => e
               msg = "Could not read from zip archive, ignoring sourcepath: #{name}, #{location}"
               logger.log_exception(e, msg, level: :debug)
@@ -135,8 +135,8 @@ module SimplyGenius
 
         else
 
-          logger.debug("Using local sourcepath: #{sourcepath}")
           sourcepath_dir = File.expand_path(sourcepath)
+          logger.debug("Using local sourcepath: #{sourcepath_dir}")
 
         end
 
@@ -145,7 +145,6 @@ module SimplyGenius
       
       def template_dirs
         @template_dirs ||= begin
-          directory = expand_location
           template_dirs = {}
           if directory && Dir.exist?(directory)
 
