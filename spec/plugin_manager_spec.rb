@@ -10,17 +10,37 @@ module SimplyGenius
 
         it "creates the manager with nil plugins" do
           pm = described_class.new(nil)
-          expect(pm.instance_variable_get(:@plugin_gem_names)).to eq []
+          expect(pm.plugins).to eq []
         end
 
         it "creates the manager with empty plugins" do
           pm = described_class.new([])
-          expect(pm.instance_variable_get(:@plugin_gem_names)).to eq []
+          expect(pm.plugins).to eq []
         end
 
-        it "creates the manager with some plugins" do
-          pm = described_class.new(["my_plugin_gem"])
-          expect(pm.instance_variable_get(:@plugin_gem_names)).to eq ["my_plugin_gem"]
+        it "creates the manager with plugin name only" do
+          pm = described_class.new(["my_plugin_gem", "other_plugin"])
+          expect(pm.plugins).to eq [{"name" => "my_plugin_gem"}, {"name" => "other_plugin"}]
+          expect(pm.plugins.first["name"]).to eq "my_plugin_gem"
+          expect(pm.plugins.first[:name]).to eq "my_plugin_gem"
+          expect(pm.plugins.last["name"]).to eq "other_plugin"
+          expect(pm.plugins.last[:name]).to eq "other_plugin"
+        end
+
+        it "creates the manager with plugin hashes" do
+          pm = described_class.new([{name: "my_plugin_gem"}, {"name" => "other_plugin"}])
+          expect(pm.plugins).to eq [{"name" => "my_plugin_gem"}, {"name" => "other_plugin"}]
+          expect(pm.plugins.first["name"]).to eq "my_plugin_gem"
+          expect(pm.plugins.first[:name]).to eq "my_plugin_gem"
+          expect(pm.plugins.last["name"]).to eq "other_plugin"
+          expect(pm.plugins.last[:name]).to eq "other_plugin"
+        end
+
+        it "skips invalid plugins" do
+          pm = described_class.new([1])
+          expect(pm.plugins).to eq([]), "plugin thats not a hash or string should be skipped"
+          pm = described_class.new([{foo: "bar"}])
+          expect(pm.plugins).to eq([]), "plugin missing name should be skipped"
         end
 
       end
@@ -30,34 +50,54 @@ module SimplyGenius
         it "handles gems named with dashes" do
           pm = described_class.new([])
           expect(pm).to receive(:require).with("my/plugin")
-          pm.load_plugin("my-plugin")
+          pm.load_plugin(name: "my-plugin")
         end
 
         it "handles gems named without dashes" do
           pm = described_class.new([])
           expect(pm).to receive(:require).with("my_plugin")
-          pm.load_plugin("my_plugin")
+          pm.load_plugin(name: "my_plugin")
         end
 
         it "allows plugin loading to fail" do
           pm = described_class.new([])
-          expect { pm.load_plugin("my_plugin") }.to_not raise_error
+          expect { pm.load_plugin(name: "my_plugin") }.to_not raise_error
           expect(Logging.contents).to match(/Failed to load atmos plugin/)
         end
 
         it "initializes plugin classes once" do
-          pm = described_class.new([])
-          c1 = Class.new(PluginBase)
-          c2 = Class.new(PluginBase)
+          # we check for new plugin classes after each load of a plugin, so use a real gem here
+          pm = described_class.new(["rubygems"])
+          c1 = Class.new(Plugin)
+          c2 = Class.new(Plugin)
           expect { pm.load_plugins }.to_not raise_error
+          expect(pm.instance_variable_get(:@plugin_classes)).to match [c1, c2]
           expect(pm.instance_variable_get(:@plugin_instances)).to match [instance_of(c1), instance_of(c2)]
           expect { pm.load_plugins }.to_not raise_error
+          expect(pm.instance_variable_get(:@plugin_classes)).to match [c1, c2]
           expect(pm.instance_variable_get(:@plugin_instances)).to match [instance_of(c1), instance_of(c2)]
         end
 
+        it "initializes plugin classes after each plugin loaded, with that plugins config" do
+          plugin1 = {name: "plugin1", foo: "bar"}
+          plugin2 = {name: "plugin2", baz: "boo"}
+          c1, c2  = nil, nil
+          pm = described_class.new([plugin1, plugin2])
+          expect(pm).to receive(:load_plugin).with(plugin1) do
+            c1 = Class.new(Plugin)
+            expect(c1).to receive(:new).with(plugin1)
+          end
+          expect(pm).to receive(:load_plugin).with(plugin2) do
+            c2 = Class.new(Plugin)
+            expect(c2).to receive(:new).with(plugin2)
+          end
+
+          pm.load_plugins
+        end
+
         it "allows plugin init to fail" do
-          pm = described_class.new([])
-          c1 = Class.new(PluginBase) do
+          pm = described_class.new(["rubygems"])
+          c1 = Class.new(Plugin) do
             def initialize
               raise "bad"
             end
@@ -72,8 +112,8 @@ module SimplyGenius
 
         it "loads each plugin" do
           pm = described_class.new(["foo", "bar"])
-          expect(pm).to receive(:load_plugin).with("foo").ordered
-          expect(pm).to receive(:load_plugin).with("bar").ordered
+          expect(pm).to receive(:load_plugin).with(name: "foo").ordered
+          expect(pm).to receive(:load_plugin).with(name: "bar").ordered
           pm.load_plugins
         end
 

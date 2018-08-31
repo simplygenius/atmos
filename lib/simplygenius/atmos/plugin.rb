@@ -1,14 +1,24 @@
 require_relative '../atmos'
-require_relative 'plugin_base'
-require_relative 'plugins/prompt_notify'
+require 'active_support/core_ext/class'
+
+Dir.glob(File.join(File.join(__dir__, 'plugins'), '*.rb')) do |f|
+  require_relative "plugins/#{File.basename(f).sub(/\.rb$/, "")}"
+end
 
 module SimplyGenius
   module Atmos
 
-    class Plugin < PluginBase
+    class Plugin
+      include GemLogger::LoggerSupport
 
-      def initialize
-        register_output_filter(:stdout, Plugins::PromptNotify)
+      attr_reader :config
+
+      def initialize(config)
+        @config = config
+      end
+
+      def register_output_filter(type, clazz)
+        Atmos.config.plugin_manager.register_output_filter(type, clazz)
       end
 
     end

@@ -1,5 +1,6 @@
 require_relative '../atmos'
-require_relative 'plugin_base'
+require_relative 'plugin'
+require 'set'
 
 module SimplyGenius
   module Atmos
@@ -7,34 +8,60 @@ module SimplyGenius
     class PluginManager
       include GemLogger::LoggerSupport
 
-      def initialize(plugin_gem_names)
-        @plugin_gem_names = Array(plugin_gem_names)
+      attr_reader :plugins
+
+      def initialize(plugins)
+        @plugins = []
+        Array(plugins).each do |plugin|
+          if plugin.is_a?(String)
+            name = plugin
+            plugin = SettingsHash.new
+            plugin[:name] = name
+          elsif plugin.is_a?(Hash)
+            plugin = SettingsHash.new(plugin)
+            if plugin[:name].blank?
+              logger.error "Invalid plugin definition, :name missing: #{plugin}"
+              next
+            end
+          else
+            logger.error "Invalid plugin definition: #{plugin}"
+            next
+          end
+          @plugins << plugin
+        end
+
+        @plugin_classes = Set.new
         @plugin_instances = []
         @output_filters = {}
       end
 
       def load_plugins
-        @plugin_gem_names.each do |plugin_gem_name|
-          load_plugin(plugin_gem_name)
-        end
-        PluginBase.descendants.each do |plugin_class|
-          begin
-            unless @plugin_instances.any? {|i| i.instance_of?(plugin_class) }
-              @plugin_instances << plugin_class.new
+        @plugins.each do |plugin|
+          load_plugin(plugin)
+
+          # Check for new plugin classes after each plugin load so that we can
+          # initialize them with their own config hash
+          Plugin.descendants.each do |plugin_class|
+            begin
+              if ! @plugin_classes.include?(plugin_class)
+                @plugin_classes << plugin_class
+                @plugin_instances << plugin_class.new(plugin)
+              end
+            rescue StandardError => e
+              logger.log_exception e, "Failed to initialize plugin: #{plugin_class}"
             end
-          rescue StandardError => e
-            logger.log_exception e, "Failed to initialize plugin: #{plugin_class}"
           end
         end
       end
 
-      def load_plugin(plugin_gem_name)
+      def load_plugin(plugin)
         begin
-          require_name = plugin_gem_name.gsub('-', '/')
-          logger.debug("Loading plugin #{plugin_gem_name} as #{require_name}")
+          name = plugin[:name]
+          require_name = plugin[:require] || name.gsub('-', '/')
+          logger.debug("Loading plugin #{name} as #{require_name}")
           require require_name
         rescue LoadError, StandardError => e
-          logger.log_exception e, "Failed to load atmos plugin: #{plugin_gem_name} - #{e.message}"
+          logger.log_exception e, "Failed to load atmos plugin: #{name} - #{e.message}"
         end
       end
 
