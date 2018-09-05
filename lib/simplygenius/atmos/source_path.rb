@@ -61,16 +61,32 @@ module SimplyGenius
       def template_config(name)
         @configs[name] ||= begin
           data = File.read(template_config_path(name))
-          YAML.load(data) || {}
+          SettingsHash.new(YAML.load(data) || {})
         end
       end
 
       def template_dependencies(name)
-        Array(template_config(name)['dependent_templates'])
+        deps = Array(template_config(name)[:dependent_templates])
+
+        deps = deps.collect do |d|
+          if d.kind_of?(String)
+            tmpl = SettingsHash.new({template: d})
+          elsif d.kind_of?(Hash)
+            tmpl = d
+          else
+            raise TypeError.new("Invalid template structure: #{d}")
+          end
+
+          raise ArgumentError.new("Template must be named with :template key: #{tmpl}") unless tmpl[:template]
+
+          tmpl
+        end
+
+        deps
       end
 
       def template_optional(name)
-        template_config(name)['optional'] || {}
+        template_config(name)[:optional] || {}
       end
 
       protected

@@ -26,20 +26,27 @@ module SimplyGenius
 
       # TODO: store/track installed templates in a file in target repo
 
-      def generate(template_names)
-          seen = Set.new
-          Array(template_names).each do |template_name|
+      def generate(template_names, context=SettingsHash.new)
+        seen = Set.new
+        context = SettingsHash.new(context) unless context.kind_of?(SettingsHash)
 
-            template_dependencies = find_dependencies(template_name)
-            template_dependencies << template_name
+        Array(template_names).each do |template_name|
 
-            template_dependencies.each do |tname|
-              apply_template(tname) unless seen.include?(tname)
-              seen << tname
-            end
+          tmpl = SettingsHash.new.merge(context).merge({template: template_name})
 
+          walk_dependencies(tmpl).each do |tmpl|
+            tname = tmpl[:template]
+            seen_tmpl = (tmpl.notation_get(context_path(tname)) || SettingsHash.new).merge({template: tname})
+            apply_template(tmpl) unless seen.include?(seen_tmpl)
+            seen <<  seen_tmpl
           end
+
         end
+      end
+
+      def context_path(name)
+        name.gsub('-', '_').gsub('/', '.')
+      end
 
       protected
 
@@ -77,26 +84,38 @@ module SimplyGenius
         end
       end
 
-      def find_dependencies(name, seen=[])
-        return [] unless @dependencies
+      # depth first iteration of dependencies
+      def walk_dependencies(tmpl, seen=Set.new)
+        Enumerator.new do |yielder|
+          tmpl = SettingsHash.new(tmpl) unless tmpl.kind_of?(SettingsHash)
+          name = tmpl[:template]
 
-        if seen.include?(name)
+          if @dependencies
+            if seen.include?(name)
+                seen << name
+                raise ArgumentError.new("Circular template dependency: #{seen.to_a.join(" => ")}")
+            end
             seen << name
-            raise ArgumentError.new("Circular template dependency: #{seen.to_a.join(" => ")}")
+
+            sp = sourcepath_for(name)
+            template_dependencies = sp.template_dependencies(name)
+
+            template_dependencies.each do |dep|
+              child = dep.clone
+              child_name = child.delete(:template)
+              child = child.merge(tmpl).merge(template: child_name)
+              walk_dependencies(child, seen.dup).each {|d| yielder << d }
+            end
+          end
+
+          yielder << tmpl
         end
-        seen << name
-
-        sp = sourcepath_for(name)
-        template_dependencies = Set.new(sp.template_dependencies(name))
-
-        template_dependencies.clone.each do |dep|
-          template_dependencies.merge(find_dependencies(dep, seen.dup))
-        end
-
-        return template_dependencies.to_a
       end
 
-      def apply_template(name)
+      def apply_template(tmpl)
+        tmpl = SettingsHash.new(tmpl) unless tmpl.kind_of?(SettingsHash)
+        name = tmpl[:template]
+        context = tmpl
         sp = sourcepath_for(name)
 
         @thor_generators[sp] ||= begin
@@ -105,32 +124,38 @@ module SimplyGenius
           end
         end
 
-        gen = @thor_generators[sp].new(sp, **@thor_opts)
-        gen.apply(name)
+        gen = @thor_generators[sp].new(name, context, sp, self, **@thor_opts)
+        gen.apply
         gen # makes testing easier by giving a handle to thor generator instance
       end
 
       class ThorGenerator < Thor
 
         include Thor::Actions
+        attr_reader :name, :context, :context_path, :source_path, :parent
 
-        def initialize(source_path, **opts)
+        def initialize(name, context, source_path, parent, **opts)
+          @name = name
+          @context = context
           @source_path = source_path
+          @parent = parent
+          @context_path = parent.context_path(name)
           super([], **opts)
-          source_path
         end
 
         no_commands do
+
           include GemLogger::LoggerSupport
           include UI
 
-          def apply(name)
+          def apply
             template_dir = @source_path.template_dir(name)
             path = @source_path.directory
 
             logger.debug("Applying template '#{name}' from '#{template_dir}' in sourcepath '#{path}'")
 
             Find.find(template_dir) do |f|
+              next if f == template_dir  # don't create a directory for the template dir itself, but don't prune so we recurse
               Find.prune if f == @source_path.template_config_path(name)  # don't copy over templates.yml
               Find.prune if f == @source_path.template_actions_path(name) # don't copy over templates.rb
 
@@ -139,12 +164,6 @@ module SimplyGenius
               template_rel = f.gsub(/#{File.join(template_dir, '')}/, '')
               source_rel = f.gsub(/#{File.join(path, '')}/, '')
               dest_rel   = source_rel.gsub(/^#{File.join(name, '')}/, '')
-
-              # prune non-directories at top level (the top level directory is the
-              # template dir itself)
-              if f !~ /\// && ! File.directory?(f)
-                Find.prune
-              end
 
               # Only include optional files when their conditions eval to true
               optional = @source_path.template_optional(name)[template_rel]
@@ -165,6 +184,32 @@ module SimplyGenius
             eval @source_path.template_actions(name), binding, @source_path.template_actions_path(name)
           end
 
+          def lookup_context(varname)
+            varname.blank? ? nil: context.notation_get("#{context_path}.#{varname}")
+          end
+        end
+
+        desc "ask <question string> [varname: name]", "Asks a question, allowing context to provide answer using varname"
+        def ask(question, answer_type = nil, varname: nil, &details)
+          result = lookup_context(varname)
+          if result.nil?
+            result = super(question, answer_type, &details)
+          end
+          result
+        end
+
+        desc "agree <question string> [varname: name]", "Asks a Y/N question, allowing context to provide answer using varname"
+        def agree(question, character = nil, varname: nil, &details)
+          result = lookup_context(varname)
+          if result.nil?
+            result = super(question, character, &details)
+          end
+          !!result
+        end
+
+        desc "generate <tmpl_name> [context_hash]", "Generates the given template with optional context"
+        def generate(name, ctx: context)
+          parent.send(:generate, [name], ctx)
         end
 
         desc "raw_config <yml_filename>", "Loads yml file"

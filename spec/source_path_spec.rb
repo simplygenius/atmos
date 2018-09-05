@@ -163,8 +163,24 @@ module SimplyGenius
             c.file("template4/templates.yml", {"dependent_templates" => "one"}.to_yaml)
             expect { sp.template_dependencies("notemplate") }.to raise_error(TypeError)
             expect(sp.template_dependencies("template1")).to eq([])
-            expect(sp.template_dependencies("template3")).to eq(["one", "two"])
-            expect(sp.template_dependencies("template4")).to eq(["one"])
+            expect(sp.template_dependencies("template3")).to eq([{"template" => "one"}, {"template" => "two"}])
+            expect(sp.template_dependencies("template4")).to eq([{"template" => "one"}])
+          end
+        end
+
+        it "fails for invalid template structure" do
+          with_templates do |c, sp|
+            c.file("template3/templates.yml", {"dependent_templates" => [true]}.to_yaml)
+            c.file("template4/templates.yml", {"dependent_templates" => [{"foo" => true}]}.to_yaml)
+            expect { sp.template_dependencies("template3") }.to raise_error(TypeError)
+            expect { sp.template_dependencies("template4") }.to raise_error(ArgumentError)
+          end
+        end
+
+        it "passes through template hash" do
+          with_templates do |c, sp|
+            c.file("template3/templates.yml", {"dependent_templates" => [{"template" => 'foo', "var" => "value"}]}.to_yaml)
+            expect(sp.template_dependencies("template3")).to eq([{"template" => "foo", "var" => "value"}])
           end
         end
 
