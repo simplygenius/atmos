@@ -6,6 +6,14 @@ module SimplyGenius
 
       describe Generate do
 
+        before(:each) do
+          Atmos.config = Config.new("ops")
+          @config = SettingsHash.new
+          Atmos.config.instance_variable_set(:@config, @config)
+
+          SourcePath.clear_registry
+        end
+
         let(:cli) { described_class.new("") }
 
         describe "--help" do
@@ -34,8 +42,8 @@ module SimplyGenius
                 within_construct do |d|
                   d.file("config/atmos.yml", YAML.dump(template_sources: [
                       {
-                        name: "local",
-                        location: c.to_s
+                          name: "local",
+                          location: c.to_s
                       }
                   ]))
                   Atmos.config = Config.new("ops")
@@ -47,6 +55,19 @@ module SimplyGenius
             ensure
               Atmos.config = nil
             end
+          end
+
+        end
+
+        describe "--context" do
+
+          it "uses given context when running generator" do
+            gen = double(generate: nil, visited_templates: [])
+            expect(Generator).to receive(:new).
+                with(any_args, hash_including(dependencies: true)).
+                and_return(gen)
+            expect(gen).to receive(:generate).with("new", context: {foo: "bar", baz: {boo: "bum"}, none: nil, blank: ""})
+            cli.run(["--context", "foo=bar", "--context", "baz.boo=bum", "--context", "none", "--context", "blank=", "new"])
           end
 
         end
@@ -82,15 +103,108 @@ module SimplyGenius
           it "does dependencies by default" do
             expect(Generator).to receive(:new).
                 with(any_args, hash_including(dependencies: true)).
-                and_return(double(generate: nil))
+                and_return(double(generate: nil, visited_templates: []))
             cli.run(["foo"])
           end
 
           it "can disable dependencies" do
             expect(Generator).to receive(:new).
                 with(any_args, hash_including(dependencies: false)).
-                and_return(double(generate: nil))
+                and_return(double(generate: nil, visited_templates: []))
             cli.run(["--no-dependencies", "foo"])
+          end
+
+        end
+
+        describe "state_file" do
+
+          it "reads state file from config" do
+            within_construct do |c|
+              @config.notation_put("generate.state_file", nil)
+              expect(cli.state_file).to be nil
+              @config.notation_put("generate.state_file", ".atmos-templates.yml")
+              expect(cli.state_file).to eq(".atmos-templates.yml")
+            end
+          end
+
+        end
+
+        describe "state" do
+
+          it "has empty state when no state file" do
+            within_construct do |c|
+              @config.notation_put("generate.state_file", nil)
+              expect(cli.state).to eq({})
+            end
+          end
+
+          it "has empty state when state file not there" do
+            within_construct do |c|
+              @config.notation_put("generate.state_file", ".atmos-templates.yml")
+              expect(cli.state).to eq({})
+            end
+          end
+
+          it "reads state from state file" do
+            within_construct do |c|
+              c.file(".atmos-templates.yml", YAML.dump({foo: "bar"}))
+              @config.notation_put("generate.state_file", ".atmos-templates.yml")
+              expect(cli.state).to eq({"foo" => "bar"})
+            end
+          end
+
+        end
+
+        describe "save_state" do
+
+          let(:file) { ".atmos-templates.yml" }
+          let(:sp) { SourcePath.new("spname", "/tmp/mydir") }
+          let(:t1) { Template.new("tmplname1", "/tmp/mydir/tmplname1", sp) }
+          let(:t2) { Template.new("tmplname2", "/tmp/mydir/tmplname2", sp) }
+
+          it "does nothing if no state file" do
+            within_construct do |c|
+              @config.notation_put("generate.state_file", nil)
+              cli.save_state([t1, t2], [])
+              expect(Dir["#{c}/*"]).to eq([])
+            end
+          end
+
+          it "saves list of templates" do
+            within_construct do |c|
+              @config.notation_put("generate.state_file", file)
+              cli.save_state([t1], [])
+              expect(File.exist?(file)).to be true
+              expect(YAML.load_file(file)).to eq({"visited_templates"=>[
+                  # FIXME shallow_merge cuz scoped_context adds a hash, and Hashie::Mash aliases merge to deep_merge
+                  t1.to_h.shallow_merge("context" => t1.scoped_context)
+              ], "entrypoint_templates" => []})
+            end
+          end
+
+          it "updates and sorts existing list of templates" do
+            within_construct do |c|
+              @config.notation_put("generate.state_file", file)
+              cli.save_state([t2], [])
+              cli.save_state([t1], [])
+              expect(File.exist?(file)).to be true
+              expect(YAML.load_file(file)).to eq({"visited_templates"=>[
+                  t1.to_h.shallow_merge("context" => t1.scoped_context),
+                  t2.to_h.shallow_merge("context" => t2.scoped_context)
+              ], "entrypoint_templates" => []})
+            end
+          end
+
+          it "updates and sorts entrypoint templates" do
+            within_construct do |c|
+              @config.notation_put("generate.state_file", file)
+              cli.save_state([], ["tmpl3", "tmpl2"])
+              cli.save_state([], ["tmpl1"])
+              expect(File.exist?(file)).to be true
+              expect(YAML.load_file(file)).to eq({"visited_templates"=>[], "entrypoint_templates" => [
+                  "tmpl1", "tmpl2", "tmpl3"
+              ]})
+            end
           end
 
         end
@@ -116,7 +230,7 @@ module SimplyGenius
             end
           end
 
-          it "gives cli sourcepath precedence over config and builtin" do
+          it "fails for duplicate templates" do
             within_construct do |c|
               c.file('sp1/new/templates.yml')
               c.file('sp1/new/foo.txt')
@@ -124,38 +238,7 @@ module SimplyGenius
               c.file('sp2/new/bar.txt')
 
               within_construct do |d|
-                d.file("config/atmos.yml", YAML.dump(template_sources: [
-                    {
-                      name: "local",
-                      location: "#{c.to_s}/sp2"
-                    }
-                ]))
-                Atmos.config = Config.new("ops")
-                cli.run(["--quiet", "--force", "--sourcepath", "#{c.to_s}/sp1", "new"])
-                expect(File.exist?('foo.txt')).to be true
-                expect(File.exist?('bar.txt')).to be false
-                expect(File.exist?('.gitignore')).to be false
-              end
-            end
-          end
-
-          it "gives config sourcepath precedence over builtin" do
-            within_construct do |c|
-              c.file('sp1/new/templates.yml')
-              c.file('sp1/new/foo.txt')
-
-              within_construct do |d|
-                d.file("config/atmos.yml", YAML.dump(template_sources: [
-                    {
-                      name: "local",
-                      location: "#{c.to_s}/sp1"
-                    }
-                ]))
-                Atmos.config = Config.new("ops")
-
-                cli.run(["--quiet", "--force", "new"])
-                expect(File.exist?('foo.txt')).to be true
-                expect(File.exist?('.gitignore')).to be false
+                expect { cli.run(["--quiet", "--force", "--sourcepath", "#{c.to_s}/sp1", "new"]) }.to raise_error(SystemExit)
               end
             end
           end

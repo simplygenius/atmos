@@ -10,10 +10,10 @@ module SimplyGenius
     class Generator
 
       include GemLogger::LoggerSupport
-      include UI
 
-      def initialize(*sourcepaths, **opts)
-        @sourcepaths = sourcepaths
+      attr_reader :visited_templates
+
+      def initialize(**opts)
         if opts.has_key?(:dependencies)
           @dependencies = opts.delete(:dependencies)
         else
@@ -22,124 +22,60 @@ module SimplyGenius
         @thor_opts = opts
         @thor_generators = {}
         @resolved_templates = {}
+        @visited_templates = []
       end
 
-      # TODO: store/track installed templates in a file in target repo
-
-      def generate(template_names, context=SettingsHash.new)
+      def generate(*template_names, context: {})
         seen = Set.new
-        context = SettingsHash.new(context) unless context.kind_of?(SettingsHash)
 
-        Array(template_names).each do |template_name|
+        template_names.each do |template_name|
 
-          tmpl = SettingsHash.new.merge(context).merge({template: template_name})
+          # clone since we are mutating context and can be called from within a
+          # template, walk_deps also clones
+          tmpl = SourcePath.find_template(template_name)
+          tmpl.clone.context.merge!(context)
 
-          walk_dependencies(tmpl).each do |tmpl|
-            tname = tmpl[:template]
-            seen_tmpl = (tmpl.notation_get(context_path(tname)) || SettingsHash.new).merge({template: tname})
-            apply_template(tmpl) unless seen.include?(seen_tmpl)
+          if @dependencies
+            deps = tmpl.walk_dependencies.to_a
+          else
+            deps = [tmpl]
+          end
+
+          deps.each do |dep_tmpl|
+            seen_tmpl = [dep_tmpl.name, dep_tmpl.scoped_context]
+            unless seen.include?(seen_tmpl)
+              apply_template(dep_tmpl)
+              visited_templates << dep_tmpl
+            end
             seen <<  seen_tmpl
           end
 
         end
-      end
 
-      def context_path(name)
-        name.gsub('-', '_').gsub('/', '.')
+        return visited_templates
       end
 
       protected
 
-      # TODO: allow fully qualifying dependent templates by source name, e.g. atmos-recipes:scaffold
-
-      def sourcepath_for(name)
-        @resolved_templates[name] ||= begin
-          sps = @sourcepaths.select do |sp|
-            sp.template_names.include?(name)
-          end
-
-          sp = nil
-          if sps.size == 0
-            raise ArgumentError.new("Could not find template: #{name}")
-          elsif sps.size > 1
-            if @thor_opts[:force]
-              sp = sps.first
-            else
-              sp_names = sps.collect(&:name)
-              sp_names.collect {|n| sp_names.count(n)}
-
-              choice = choose do |menu|
-                menu.prompt = "Which source for template '#{name}'? "
-                sp_names.each { |n| menu.choice(n) }
-                menu.default = sp_names.first
-              end
-              sp = sps[sp_names.index(choice)]
-            end
-            logger.info "Using source '#{sp.name}' for template '#{name}'"
-          else
-            sp = sps.first
-          end
-
-          sp
-        end
-      end
-
-      # depth first iteration of dependencies
-      def walk_dependencies(tmpl, seen=Set.new)
-        Enumerator.new do |yielder|
-          tmpl = SettingsHash.new(tmpl) unless tmpl.kind_of?(SettingsHash)
-          name = tmpl[:template]
-
-          if @dependencies
-            if seen.include?(name)
-                seen << name
-                raise ArgumentError.new("Circular template dependency: #{seen.to_a.join(" => ")}")
-            end
-            seen << name
-
-            sp = sourcepath_for(name)
-            template_dependencies = sp.template_dependencies(name)
-
-            template_dependencies.each do |dep|
-              child = dep.clone
-              child_name = child.delete(:template)
-              child = child.merge(tmpl).merge(template: child_name)
-              walk_dependencies(child, seen.dup).each {|d| yielder << d }
-            end
-          end
-
-          yielder << tmpl
-        end
-      end
-
       def apply_template(tmpl)
-        tmpl = SettingsHash.new(tmpl) unless tmpl.kind_of?(SettingsHash)
-        name = tmpl[:template]
-        context = tmpl
-        sp = sourcepath_for(name)
-
-        @thor_generators[sp] ||= begin
-          Class.new(ThorGenerator) do
-            source_root sp.directory
-          end
+        @thor_generators[tmpl.source] ||= Class.new(ThorGenerator) do
+          source_root tmpl.source.directory
         end
 
-        gen = @thor_generators[sp].new(name, context, sp, self, **@thor_opts)
+        gen = @thor_generators[tmpl.source].new(tmpl, self, **@thor_opts)
         gen.apply
+
         gen # makes testing easier by giving a handle to thor generator instance
       end
 
       class ThorGenerator < Thor
 
         include Thor::Actions
-        attr_reader :name, :context, :context_path, :source_path, :parent
+        attr_reader :tmpl, :parent
 
-        def initialize(name, context, source_path, parent, **opts)
-          @name = name
-          @context = context
-          @source_path = source_path
+        def initialize(tmpl, parent, **opts)
+          @tmpl = tmpl
           @parent = parent
-          @context_path = parent.context_path(name)
           super([], **opts)
         end
 
@@ -149,24 +85,24 @@ module SimplyGenius
           include UI
 
           def apply
-            template_dir = @source_path.template_dir(name)
-            path = @source_path.directory
+            template_dir = tmpl.directory
+            path = tmpl.source.directory
 
-            logger.debug("Applying template '#{name}' from '#{template_dir}' in sourcepath '#{path}'")
+            logger.debug("Applying template '#{tmpl.name}' from '#{template_dir}' in sourcepath '#{path}'")
 
             Find.find(template_dir) do |f|
               next if f == template_dir  # don't create a directory for the template dir itself, but don't prune so we recurse
-              Find.prune if f == @source_path.template_config_path(name)  # don't copy over templates.yml
-              Find.prune if f == @source_path.template_actions_path(name) # don't copy over templates.rb
+              Find.prune if f == tmpl.config_path  # don't copy over templates.yml
+              Find.prune if f == tmpl.actions_path # don't copy over templates.rb
 
               # Using File.join(x, '') to ensure trailing slash to make sure we end
               # up with a relative path
               template_rel = f.gsub(/#{File.join(template_dir, '')}/, '')
               source_rel = f.gsub(/#{File.join(path, '')}/, '')
-              dest_rel   = source_rel.gsub(/^#{File.join(name, '')}/, '')
+              dest_rel   = source_rel.gsub(/^#{File.join(tmpl.name, '')}/, '')
 
               # Only include optional files when their conditions eval to true
-              optional = @source_path.template_optional(name)[template_rel]
+              optional = tmpl.optional[template_rel]
               if optional
                 exclude = ! eval(optional)
                 logger.debug("Optional template '#{template_rel}' with condition: '#{optional}', excluding=#{exclude}")
@@ -181,11 +117,23 @@ module SimplyGenius
               end
             end
 
-            eval @source_path.template_actions(name), binding, @source_path.template_actions_path(name)
+            eval tmpl.actions, binding, tmpl.actions_path
+          end
+
+          def context
+            tmpl.context
+          end
+
+          def scoped_context
+            tmpl.scoped_context
           end
 
           def lookup_context(varname)
-            varname.blank? ? nil: context.notation_get("#{context_path}.#{varname}")
+            varname.blank? ? nil: tmpl.scoped_context[varname]
+          end
+
+          def track_context(varname, value)
+            varname.blank? || value.nil? ? nil: tmpl.scoped_context[varname] = value
           end
         end
 
@@ -195,6 +143,7 @@ module SimplyGenius
           if result.nil?
             result = super(question, answer_type, &details)
           end
+          track_context(varname, result)
           result
         end
 
@@ -204,12 +153,14 @@ module SimplyGenius
           if result.nil?
             result = super(question, character, &details)
           end
-          !!result
+          result = !!result
+          track_context(varname, result)
+          result
         end
 
         desc "generate <tmpl_name> [context_hash]", "Generates the given template with optional context"
         def generate(name, ctx: context)
-          parent.send(:generate, [name], ctx)
+          parent.generate(name, context: ctx.clone)
         end
 
         desc "raw_config <yml_filename>", "Loads yml file"
@@ -247,7 +198,7 @@ module SimplyGenius
           return result
         end
 
-        desc "new_keys? <src_yml_filename> <dest_yml_filename>", "Tests if src/dest yml have differing top level keys"
+        desc "new_keys? <src_yml_filename> <dest_yml_filename>", "Tests if src yml has top level keys not present in dest yml"
         def new_keys?(src_yml_file, dest_yml_file)
           src = raw_config(src_yml_file).keys.sort
           dest = raw_config(dest_yml_file).keys.sort

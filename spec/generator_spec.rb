@@ -8,209 +8,102 @@ module SimplyGenius
 
       include TestConstruct::Helpers
 
+      before(:each) do
+        SourcePath.clear_registry
+      end
+
+      let(:gen) { described_class.new(quiet: true, force: true) }
+
       def with_sourcepaths
-        within_construct do |c|
-          c.file('sp1/template1/templates.yml')
-          c.file('sp2/template2/templates.yml')
-          yield c, [SourcePath.new("sp1", "#{c}/sp1"), SourcePath.new("sp2", "#{c}/sp2")]
-        end
-      end
+        within_construct do |sp_dir|
+          sp_dir.file('sp1/template1/templates.yml')
+          sp_dir.file('sp2/template2/templates.yml')
+          sp1 = SourcePath.new("sp1", "#{sp_dir}/sp1")
+          sp2 = SourcePath.new("sp2", "#{sp_dir}/sp2")
+          SourcePath.registry << sp1 << sp2
 
-      describe "sourcepath_for" do
-
-        it "finds sourcepath for template" do
-          with_sourcepaths do |c, sps|
-            gen = described_class.new(*sps)
-            expect(gen.send(:sourcepath_for, "template1")).to eq(sps[0])
-            expect(gen.send(:sourcepath_for, "template2")).to eq(sps[1])
+          within_construct do |app_dir|
+            # cwd at this point for tests using this is app_dir
+            yield sp_dir, app_dir
           end
         end
-
-        it "memoizes sourcepath" do
-          with_sourcepaths do |c, sps|
-            gen = described_class.new(*sps)
-            expect(sps[0]).to receive(:template_names).once.and_call_original
-            expect(gen.send(:sourcepath_for, "template1")).to eq(sps[0])
-            expect(gen.send(:sourcepath_for, "template1")).to eq(sps[0])
-          end
-        end
-
-        it "fails if no matching sourcepath" do
-          with_sourcepaths do |c, sps|
-            gen = described_class.new(*sps)
-            expect { gen.send(:sourcepath_for, "template3") }.to raise_error(ArgumentError, /Could not find template/)
-          end
-        end
-
-        it "prompts for duplicate sourcepath" do
-          with_sourcepaths do |c, sps|
-            c.file('sp2/template1/templates.yml')
-            gen = described_class.new(*sps)
-            result = nil
-            expect {
-              simulate_stdin("2") {
-                result = gen.send(:sourcepath_for, "template1")
-              }
-            }.to output(/1. sp1\n2. sp2\n/).to_stdout
-            expect(result).to eq(sps[1])
-          end
-        end
-
-        it "uses first for duplicate sourcepath when forcing" do
-          with_sourcepaths do |c, sps|
-            c.file('sp2/template1/templates.yml')
-            gen = described_class.new(*sps, force: true)
-            result = gen.send(:sourcepath_for, "template1")
-            expect(result).to eq(sps[0])
-          end
-        end
-
-      end
-
-      describe "walk_dependencies" do
-
-        it "can skip dependencies" do
-          with_sourcepaths do |c, sps|
-            c.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => 'template1'))
-            gen = described_class.new(*sps, dependencies: false)
-            expect(gen.send(:walk_dependencies, {template: 'template2'}).to_a).to eq([{'template' => 'template2'}])
-          end
-        end
-
-        it "handles simple dep" do
-          with_sourcepaths do |c, sps|
-            c.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => 'template1'))
-            gen = described_class.new(*sps, dependencies: true)
-            expect(gen.send(:walk_dependencies, {template: 'template2'}).to_a).to eq([{'template' => 'template1'}, {'template' => 'template2'}])
-          end
-        end
-
-        it "handles nested dep" do
-          with_sourcepaths do |c, sps|
-            c.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => 'template1'))
-            c.file('sp2/template3/templates.yml', YAML.dump('dependent_templates' => 'template2'))
-            gen = described_class.new(*sps, dependencies: true)
-            expect(gen.send(:walk_dependencies, {template: 'template3'}).to_a).to eq([{"template" => "template1"}, {"template" => "template2"}, {"template" => "template3"}])
-          end
-        end
-
-        it "handles multiple deps" do
-          with_sourcepaths do |c, sps|
-            c.file('sp2/template2/templates.yml')
-            c.file('sp2/template3/templates.yml', YAML.dump('dependent_templates' => ['template2', 'template1']))
-            gen = described_class.new(*sps, dependencies: true)
-            expect(gen.send(:walk_dependencies, {template: 'template3'}).to_a).to eq([{"template" => "template2"}, {"template" => "template1"}, {"template" => "template3"}])
-          end
-        end
-
-        it "handles circular" do
-          with_sourcepaths do |c, sps|
-            c.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => ['template4']))
-            c.file('sp2/template3/templates.yml', YAML.dump('dependent_templates' => ['template2']))
-            c.file('sp2/template4/templates.yml', YAML.dump('dependent_templates' => ['template3']))
-            gen = described_class.new(*sps, dependencies: true)
-            expect { gen.send(:walk_dependencies, {template: 'template4'}).to_a }.to raise_error(ArgumentError, /Circular/)
-          end
-        end
-
       end
 
       describe "apply_template" do
 
         it "handles simple template" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/foo.txt', "hello")
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.send(:apply_template, {template: 'template1'})
-              expect(File.exist?('foo.txt')).to be true
-              expect(open("#{d}/foo.txt").read).to eq("hello")
-              expect(Dir["*"]).to eq(['foo.txt'])
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/foo.txt', "hello")
+            gen.send(:apply_template, SourcePath.find_template('template1'))
+            expect(File.exist?("#{app_dir}/foo.txt")).to be true
+            expect(open("foo.txt").read).to eq("hello")
+            expect(Dir["*"]).to eq(["foo.txt"])
           end
         end
 
         it "handles nested template" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/subdir/template3/templates.yml')
-            c.file('sp1/subdir/template3/foo.txt', "hello")
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.send(:apply_template, {template: 'subdir/template3'})
-              expect(File.exist?('foo.txt')).to be true
-              expect(open("#{d}/foo.txt").read).to eq("hello")
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/subdir/template3/templates.yml')
+            sp_dir.file('sp1/subdir/template3/foo.txt', "hello")
+            gen.send(:apply_template, SourcePath.find_template('subdir/template3'))
+            expect(File.exist?('foo.txt')).to be true
+            expect(open("foo.txt").read).to eq("hello")
           end
         end
 
         it "ignores template metadata" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/templates.yml')
-            c.file('sp1/template1/templates.rb')
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.send(:apply_template, {template: 'template1'})
-              expect(File.exist?('templates.yml')).to be false
-              expect(File.exist?('templates.rb')).to be false
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/templates.yml')
+            sp_dir.file('sp1/template1/templates.rb')
+            gen.send(:apply_template, SourcePath.find_template('template1'))
+            expect(File.exist?('templates.yml')).to be false
+            expect(File.exist?('templates.rb')).to be false
           end
         end
 
         it "preserves directory structure" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/subdir/foo.txt', "hello")
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.send(:apply_template, {template: 'template1'})
-              expect(File.exist?('subdir/foo.txt')).to be true
-              expect(open("#{d}/subdir/foo.txt").read).to eq("hello")
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/subdir/foo.txt', "hello")
+            gen.send(:apply_template, SourcePath.find_template('template1'))
+            expect(File.exist?('subdir/foo.txt')).to be true
+            expect(open("#{app_dir}/subdir/foo.txt").read).to eq("hello")
           end
         end
 
         it "handles optional qualifier" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/templates.yml', YAML.dump('optional' => {'sub/bar.txt' => 'false'}))
-            c.file('sp1/template1/foo.txt', "hello")
-            c.file('sp1/template1/sub/bar.txt', "there")
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.send(:apply_template, {template: 'template1'})
-              expect(File.exist?('foo.txt')).to be true
-              expect(File.exist?('sub/bar.txt')).to be false
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/templates.yml', YAML.dump('optional' => {'sub/bar.txt' => 'false'}))
+            sp_dir.file('sp1/template1/foo.txt', "hello")
+            sp_dir.file('sp1/template1/sub/bar.txt', "there")
+            gen.send(:apply_template, SourcePath.find_template('template1'))
+            expect(File.exist?('foo.txt')).to be true
+            expect(File.exist?('sub/bar.txt')).to be false
           end
         end
 
         it "optional qualifier sees helper methods" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/templates.yml', YAML.dump('optional' => {
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/templates.yml', YAML.dump('optional' => {
                 'sub/foo.txt' => 'get_config("foo.yml", "not")',
                 'sub/bar.txt' => 'get_config("foo.yml", "foo")'
             }))
-            c.file('sp1/template1/foo.yml', YAML.dump("foo" => "bar"))
-            c.file('sp1/template1/sub/foo.txt', "hello")
-            c.file('sp1/template1/sub/bar.txt', "there")
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.send(:apply_template, {template: 'template1'})
-              expect(File.exist?('sub/foo.txt')).to be false
-              expect(File.exist?('sub/bar.txt')).to be true
-            end
+            sp_dir.file('sp1/template1/foo.yml', YAML.dump("foo" => "bar"))
+            sp_dir.file('sp1/template1/sub/foo.txt', "hello")
+            sp_dir.file('sp1/template1/sub/bar.txt', "there")
+            gen.send(:apply_template, SourcePath.find_template('template1'))
+            expect(File.exist?('sub/foo.txt')).to be false
+            expect(File.exist?('sub/bar.txt')).to be true
           end
         end
 
         it "processes procedural template" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/templates.yml', YAML.dump('optional' => {'sub/bar.txt' => 'false'}))
-            c.file('sp1/template1/templates.rb', 'append_to_file "foo.txt", "there"')
-            c.file('sp1/template1/foo.txt', "hello")
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.send(:apply_template, {template: 'template1'})
-              expect(File.exist?('foo.txt')).to be true
-              expect(open("#{d}/foo.txt").read).to eq("hellothere")
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/templates.yml', YAML.dump('optional' => {'sub/bar.txt' => 'false'}))
+            sp_dir.file('sp1/template1/templates.rb', 'append_to_file "foo.txt", "there"')
+            sp_dir.file('sp1/template1/foo.txt', "hello")
+            gen.send(:apply_template, SourcePath.find_template('template1'))
+            expect(File.exist?('foo.txt')).to be true
+            expect(open("#{app_dir}/foo.txt").read).to eq("hellothere")
           end
         end
 
@@ -219,99 +112,97 @@ module SimplyGenius
       describe "generate" do
 
         it "generates single" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/foo.txt')
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.generate('template1')
-              expect(File.exist?('foo.txt')).to be true
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/foo.txt')
+            gen.generate('template1')
+            expect(File.exist?('foo.txt')).to be true
           end
         end
 
         it "generates multiple" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/foo.txt')
-            c.file('sp2/template2/bar.txt')
-            c.file('sp2/subdir/template3/templates.yml')
-            c.file('sp2/subdir/template3/baz.txt')
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.generate(['template1', 'template2', 'subdir/template3'])
-              expect(File.exist?('foo.txt')).to be true
-              expect(File.exist?('bar.txt')).to be true
-              expect(File.exist?('baz.txt')).to be true
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/foo.txt')
+            sp_dir.file('sp2/template2/bar.txt')
+            sp_dir.file('sp2/subdir/template3/templates.yml')
+            sp_dir.file('sp2/subdir/template3/baz.txt')
+            gen.generate('template1', 'template2', 'subdir/template3')
+            expect(File.exist?('foo.txt')).to be true
+            expect(File.exist?('bar.txt')).to be true
+            expect(File.exist?('baz.txt')).to be true
+          end
+        end
+
+        it "can choose when to perform dependencies" do
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => 'template1'))
+            gen = described_class.new(quiet: true, force: true)
+            expect(gen.generate('template2').to_a.collect(&:name)).to eq(['template1', 'template2'])
+            gen = described_class.new(quiet: true, force: true, dependencies: true)
+            expect(gen.generate('template2').to_a.collect(&:name)).to eq(['template1', 'template2'])
+            gen = described_class.new(quiet: true, force: true, dependencies: false)
+            expect(gen.generate('template2').to_a.collect(&:name)).to eq(['template2'])
           end
         end
 
         it "generates with deps" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/foo.txt')
-            c.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => ['template1']))
-            c.file('sp2/template2/bar.txt')
-            c.file('sp2/subdir/template3/templates.yml', YAML.dump('dependent_templates' => ['template2']))
-            c.file('sp2/subdir/template3/baz.txt')
-            gen = described_class.new(*sps, quiet: true, force: true)
-            within_construct do |d|
-              gen.generate('subdir/template3')
-              expect(File.exist?('foo.txt')).to be true
-              expect(File.exist?('bar.txt')).to be true
-              expect(File.exist?('baz.txt')).to be true
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/foo.txt')
+            sp_dir.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => ['template1']))
+            sp_dir.file('sp2/template2/bar.txt')
+            sp_dir.file('sp2/subdir/template3/templates.yml', YAML.dump('dependent_templates' => ['template2']))
+            sp_dir.file('sp2/subdir/template3/baz.txt')
+            gen.generate('subdir/template3')
+            expect(File.exist?('foo.txt')).to be true
+            expect(File.exist?('bar.txt')).to be true
+            expect(File.exist?('baz.txt')).to be true
           end
         end
 
         it "generates uniquely" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/templates.rb', 'create_file "files/#{Time.now.to_f}", "foo"')
-            c.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => ['template1']))
-            c.file('sp2/template3/templates.yml', YAML.dump('dependent_templates' => ['template2', 'template1']))
-            gen = described_class.new(*sps, quiet: true, dependencies: true)
-            within_construct do |d|
-              gen.generate('template3')
-              expect(Dir["files/*"].size).to eq 1
-            end
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/templates.rb', 'create_file "files/#{Time.now.to_f}", "foo"')
+            sp_dir.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => ['template1']))
+            sp_dir.file('sp2/template3/templates.yml', YAML.dump('dependent_templates' => ['template2', 'template1']))
+            gen.generate('template3')
+            expect(Dir["files/*"].size).to eq 1
           end
         end
 
         it "factors context into uniqueness" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/templates.rb', 'create_file "files/#{Time.now.to_f}", context')
-            c.file('sp2/template2/templates.yml', YAML.dump(
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/templates.rb', 'create_file "files/#{Time.now.to_f}", context')
+            sp_dir.file('sp2/template2/templates.yml', YAML.dump(
                 'dependent_templates' => [
-                    {'template' => 'template1', 'template1' => {'name' => 'template2'}}
+                    {'name' => 'template1', 'context' => {'template1' => {'foo' => 'bar'}}}
                 ]))
-            c.file('sp2/template3/templates.yml', YAML.dump(
+            sp_dir.file('sp2/template3/templates.yml', YAML.dump(
                 'dependent_templates' => [
-                    'template2',
-                    {'template' => 'template1', 'template1' => {'name' => 'template3'}}
+                    {'name' => 'template1', 'context' => {'template1' => {'bar' => 'baz'}}}
                 ]))
-            gen = described_class.new(*sps, quiet: true, dependencies: true)
-            within_construct do |d|
-              gen.generate('template3')
-              expect(Dir["files/*"].size).to eq 2
-            end
+            sp_dir.file('sp2/template4/templates.yml', YAML.dump(
+                'dependent_templates' => ['template2', 'template3']
+            ))
+            expect(gen.generate('template4').collect(&:name)).to eq(['template1', 'template2', 'template1', 'template3', 'template4'])
+            expect(Dir["files/*"].size).to eq 2
           end
         end
 
         it "ignores other template context for uniqueness" do
-          with_sourcepaths do |c, sps|
-            c.file('sp1/template1/templates.rb', 'create_file "files/#{Time.now.to_f}", context')
-            c.file('sp2/template2/templates.yml', YAML.dump(
+          with_sourcepaths do |sp_dir, app_dir|
+            sp_dir.file('sp1/template1/templates.rb', 'create_file "files/#{Time.now.to_f}", context')
+            sp_dir.file('sp2/template2/templates.yml', YAML.dump(
                 'dependent_templates' => [
-                    {'template' => 'template1', 'template5' => {'name' => 'template2'}}
+                    {'name' => 'template1', 'context' => {'template5' => {'foo' => 'bar'}}}
                 ]))
-            c.file('sp2/template3/templates.yml', YAML.dump(
+            sp_dir.file('sp2/template3/templates.yml', YAML.dump(
                 'dependent_templates' => [
-                    'template2',
-                    {'template' => 'template1', 'template5' => {'name' => 'template3'}}
+                    {'name' => 'template1', 'context' => {'template5' => {'bar' => 'baz'}}}
                 ]))
-            gen = described_class.new(*sps, quiet: true, dependencies: true)
-            within_construct do |d|
-              gen.generate('template3')
-              expect(Dir["files/*"].size).to eq 1
-            end
+            sp_dir.file('sp2/template4/templates.yml', YAML.dump(
+                'dependent_templates' => ['template2', 'template3']
+            ))
+            expect(gen.generate('template4').collect(&:name)).to eq(['template1', 'template2', 'template3', 'template4'])
+            expect(Dir["files/*"].size).to eq 1
           end
         end
 
@@ -322,9 +213,8 @@ module SimplyGenius
         describe "uses UI actions" do
 
           it "passes through to UI" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
-              thor = gen.send(:apply_template, {template: 'template1'})
+            with_sourcepaths do |sp_dir, app_dir|
+              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
 
               expect{thor.say('foo')}.to output("foo\n").to_stdout
               expect{thor.error.say('foo')}.to output("foo\n").to_stdout
@@ -338,43 +228,60 @@ module SimplyGenius
           end
 
           it "skips UI by looking up from context" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
-              thor = gen.send(:apply_template, {template: 'template1', template1: {foo: "answer", bar: "yes"}})
+            with_sourcepaths do |sp_dir, app_dir|
+              tmpl = SourcePath.find_template('template1')
+              tmpl.scoped_context.merge!({foo: "answer", bar: "yes"})
+              thor = gen.send(:apply_template, tmpl)
 
               result = nil
-              expect { simulate_stdin("other") { result = thor.ask("question ", varname: :notfoo) } }.to output("question ").to_stdout
+              expect { simulate_stdin("other") { result = thor.ask("question ", varname: :askfoo) } }.to output("question ").to_stdout
               expect(result).to eq("other")
               expect(thor.ask("question ", varname: :foo)).to eq("answer")
 
               result = nil
-              expect { simulate_stdin("n") { result = thor.agree("question ", varname: :notfoo) } }.to output("question ").to_stdout
+              expect { simulate_stdin("n") { result = thor.agree("question ", varname: :agreefoo) } }.to output("question ").to_stdout
               expect(result).to eq(false)
               expect(thor.agree("question ", varname: :foo)).to eq(true)
             end
           end
 
-          it "uses template name to namespace context lookup" do
-            with_sourcepaths do |c, sps|
-              c.file('sp2/subdir/template-3/templates.yml')
-              gen = described_class.new(*sps, quiet: true, force: true)
-              thor = gen.send(:apply_template, {template: 'subdir/template-3', subdir: {template_3: {foo: "answer"}}})
+          it "populates context with answer" do
+            with_sourcepaths do |sp_dir, app_dir|
+              tmpl = SourcePath.find_template('template1')
+              thor = gen.send(:apply_template, tmpl)
 
-              expect(thor.agree("question ", varname: :foo)).to eq(true)
+              result = nil
+              expect { simulate_stdin("other") { result = thor.ask("question ", varname: :askfoo) } }.to output("question ").to_stdout
+              expect(result).to eq("other")
+              expect(tmpl.scoped_context[:askfoo]).to eq("other")
+
+              result = nil
+              expect { simulate_stdin("n") { result = thor.agree("question ", varname: :agreefoo) } }.to output("question ").to_stdout
+              expect(result).to eq(false)
+              expect(tmpl.scoped_context[:agreefoo]).to eq(false)
+            end
+          end
+
+          it "uses template name to namespace context lookup" do
+            with_sourcepaths do |sp_dir, app_dir|
+              sp_dir.file('sp2/subdir/template-3/templates.yml')
+              tmpl = SourcePath.find_template('subdir/template-3')
+              tmpl.context.merge!(subdir: {template_3: {foo: "answer"}})
+              expect(tmpl.scoped_context).to eq({"foo" => "answer"})
+              thor = gen.send(:apply_template, tmpl)
+
+              expect(thor.ask("question ", varname: :foo)).to eq("answer")
             end
           end
 
           it "passes context to dependencies by defaut" do
-            with_sourcepaths do |c, sps|
-              c.file('sp1/template1/templates.rb', 'create_file("foo.txt", ask("question", varname: :foo))')
-              c.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => ['template1']))
-              c.file('sp2/template3/templates.yml', YAML.dump('dependent_templates' => [{template: 'template2', template1: {foo: "other"}, template2: {foo: "answer"}}]))
-              within_construct do |d|
-                gen = described_class.new(*sps, quiet: true, force: true)
-                gen.generate('template3')
-                expect(File.exist?('foo.txt')).to be true
-                expect(File.read('foo.txt')).to eq("other")
-              end
+            with_sourcepaths do |sp_dir, app_dir|
+              sp_dir.file('sp1/template1/templates.rb', 'create_file("foo.txt", ask("question", varname: :foo))')
+              sp_dir.file('sp2/template2/templates.yml', YAML.dump('dependent_templates' => ['template1']))
+              sp_dir.file('sp2/template3/templates.yml', YAML.dump('dependent_templates' => [{name: 'template2', context: {template1: {foo: "other"}, template2: {foo: "answer"}}}]))
+              gen.generate('template3')
+              expect(File.exist?('foo.txt')).to be true
+              expect(File.read('foo.txt')).to eq("other")
             end
           end
 
@@ -383,13 +290,12 @@ module SimplyGenius
         describe "raw_configs" do
 
           it "loads config file once" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
-              c.file('foo.yml', YAML.dump('foo' => 'bar'))
+            with_sourcepaths do |sp_dir, app_dir|
+              app_dir.file('foo.yml', YAML.dump('foo' => 'bar'))
 
               expect(YAML).to receive(:load_file).once.with('foo.yml').and_call_original
 
-              thor = gen.send(:apply_template, {template: 'template1'})
+              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
               config = thor.raw_config('foo.yml')
               expect(config).to be_a_kind_of(SettingsHash)
               expect(config['foo']).to eq('bar')
@@ -405,11 +311,10 @@ module SimplyGenius
         describe "get_config" do
 
           it "gets config from yml" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
-              thor = gen.send(:apply_template, {template: 'template1'})
+            with_sourcepaths do |sp_dir, app_dir|
+              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
 
-              c.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}))
+              app_dir.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}))
 
               expect(thor.get_config('foo.yml', 'foo.bar')).to eq('baz')
             end
@@ -420,11 +325,10 @@ module SimplyGenius
         describe "config_present?" do
 
           it "checks for presence" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
-              thor = gen.send(:apply_template, {template: 'template1'})
+            with_sourcepaths do |sp_dir, app_dir|
+              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
 
-              c.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}, 'list' => ['one']))
+              app_dir.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}, 'list' => ['one']))
 
               expect(thor.config_present?('foo.yml', 'foo.bar')).to be true
               expect(thor.config_present?('foo.yml', 'list')).to be true
@@ -433,11 +337,10 @@ module SimplyGenius
           end
 
           it "checks for simple value" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
-              thor = gen.send(:apply_template, {template: 'template1'})
+            with_sourcepaths do |sp_dir, app_dir|
+              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
 
-              c.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}))
+              app_dir.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}))
 
               expect(thor.config_present?('foo.yml', 'foo.bar', 'baz')).to be true
               expect(thor.config_present?('foo.yml', 'foo.bar', 'not')).to be false
@@ -445,11 +348,10 @@ module SimplyGenius
           end
 
           it "checks for list contents" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
-              thor = gen.send(:apply_template, {template: 'template1'})
+            with_sourcepaths do |sp_dir, app_dir|
+              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
 
-              c.file('foo.yml', YAML.dump('foo' => {'bar' => ['hum', 'baz']}))
+              app_dir.file('foo.yml', YAML.dump('foo' => {'bar' => ['hum', 'baz']}))
 
               expect(thor.config_present?('foo.yml', 'foo.bar', 'baz')).to be true
               expect(thor.config_present?('foo.yml', 'foo.bar', 'not')).to be false
@@ -458,11 +360,10 @@ module SimplyGenius
           end
 
           it "checks for all of list to be present" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
-              thor = gen.send(:apply_template, {template: 'template1'})
+            with_sourcepaths do |sp_dir, app_dir|
+              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
 
-              c.file('foo.yml', YAML.dump('foo' => ['hum', 'baz']))
+              app_dir.file('foo.yml', YAML.dump('foo' => ['hum', 'baz']))
 
               expect(thor.config_present?('foo.yml', 'foo', 'hum')).to be true
               expect(thor.config_present?('foo.yml', 'foo', 'baz')).to be true
@@ -480,31 +381,28 @@ module SimplyGenius
         describe "add_config" do
 
           it "adds to config file multiple times preseving comments" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
+            with_sourcepaths do |sp_dir, app_dir|
 
-              c.file('sp1/template1/templates.rb', <<~EOF
+              sp_dir.file('sp1/template1/templates.rb', <<~EOF
                 add_config "config/atmos.yml", "foo.bar.baz", "bum"
                 add_config "config/atmos.yml", "dude", "ette"
               EOF
               )
-              within_construct do |d|
-                data = <<~EOF
-                  # comment 1
-                  foo:
-                    # comment 2
-                    bah: blah
-                  hum: hi
-                EOF
-                d.file("config/atmos.yml", data)
-                gen.send(:apply_template, {template: 'template1'})
+              data = <<~EOF
+                # comment 1
+                foo:
+                  # comment 2
+                  bah: blah
+                hum: hi
+              EOF
+              app_dir.file("config/atmos.yml", data)
+              gen.send(:apply_template, SourcePath.find_template('template1'))
 
-                new_data = File.read("config/atmos.yml")
-                expect(new_data.lines.grep(/comment/).length).to eq(2)
+              new_data = File.read("config/atmos.yml")
+              expect(new_data.lines.grep(/comment/).length).to eq(2)
 
-                new_data = YAML.load(new_data)
-                expect(new_data).to eq({"foo"=>{"bah"=>"blah", "bar"=>{"baz"=>"bum"}}, "hum"=>"hi", "dude"=>"ette"})
-              end
+              new_data = YAML.load(new_data)
+              expect(new_data).to eq({"foo"=>{"bah"=>"blah", "bar"=>{"baz"=>"bum"}}, "hum"=>"hi", "dude"=>"ette"})
             end
           end
 
@@ -513,41 +411,43 @@ module SimplyGenius
         describe "new_keys?" do
 
           it "checks if config has more keys" do
-            with_sourcepaths do |c, sps|
-              gen = described_class.new(*sps, quiet: true, force: true)
+            with_sourcepaths do |sp_dir, app_dir|
 
-              c.file('sp1/template1//templates.rb', 'new_keys? "#{template_dir}/foo.yml", "foo.yml"')
+              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+
               data = {"foo" => 'bar', "hum" => 'hi'}
-              c.file("foo.yml", YAML.dump(data))
+              sp_dir.file("foo.yml", YAML.dump(data))
+              app_dir.file("foo.yml", YAML.dump(data))
 
-              thor = gen.send(:apply_template, {template: 'template1'})
+              expect(thor.new_keys?("#{sp_dir}/foo.yml", 'foo.yml')).to be false
 
-              within_construct do |d|
-                d.file("foo.yml", YAML.dump(data))
-                expect(thor.send(:new_keys?, "#{d}/foo.yml", 'foo.yml')).to be false
+              # new_keys? only reads a file once (via raw_config)
+              within_construct do |sp_dir|
+                sp_dir.file("foo.yml", YAML.dump({"foo" => 'bar'}))
+                expect(thor.new_keys?("#{sp_dir}/foo.yml", 'foo.yml')).to be false
               end
 
-              within_construct do |d|
-                d.file("foo.yml", YAML.dump({"foo" => 'bar'}))
-                expect(thor.send(:new_keys?, "#{d}/foo.yml", 'foo.yml')).to be false
+              within_construct do |sp_dir|
+                sp_dir.file("foo.yml", YAML.dump({"baz" => "bum"}))
+                expect(thor.new_keys?("#{sp_dir}/foo.yml", 'foo.yml')).to be true
               end
 
-              within_construct do |d|
-                d.file("foo.yml", YAML.dump(data.merge("baz" => "bum")))
-                expect(thor.send(:new_keys?, "#{d}/foo.yml", 'foo.yml')).to be true
+              within_construct do |sp_dir|
+                sp_dir.file("foo.yml", YAML.dump(data.merge("baz" => "bum")))
+                expect(thor.new_keys?("#{sp_dir}/foo.yml", 'foo.yml')).to be true
               end
+
             end
           end
 
         end
 
-        describe "apply_template" do
+        describe "generate" do
 
           it "can generate another template" do
-            with_sourcepaths do |c, sps|
-              c.file('sp2/template2/foo.txt', "hello")
-              gen = described_class.new(*sps, quiet: true, force: true)
-              thor = gen.send(:apply_template, {template: 'template1'})
+            with_sourcepaths do |sp_dir, app_dir|
+              sp_dir.file('sp2/template2/foo.txt', "hello")
+              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
 
               expect(File.exist?('foo.txt')).to be false
               thor.generate('template2')
@@ -556,17 +456,22 @@ module SimplyGenius
           end
 
           it "passes context to dependencies by defaut" do
-            with_sourcepaths do |c, sps|
-              c.file('sp1/template1/templates.rb', 'create_file("foo.yml", context.to_yaml)')
-              c.file('sp2/template2/templates.rb', "generate('template1')")
+            with_sourcepaths do |sp_dir, app_dir|
+              sp_dir.file('sp1/template1/templates.rb', <<~EOF
+                create_file("context.yml", context.to_yaml)
+                create_file("scoped_context.yml", scoped_context.to_yaml)
+              EOF
+              )
+              sp_dir.file('sp2/template2/templates.rb', "generate('template1')")
               ctx = {template1: {foo: "other"}, template2: {foo: "answer"}}
-              c.file('sp2/template3/templates.yml', YAML.dump('dependent_templates' => [{template: 'template2'}.merge(ctx)]))
-              within_construct do |d|
-                gen = described_class.new(*sps, quiet: true, force: true)
-                gen.generate('template3')
-                expect(File.exist?('foo.yml')).to be true
-                expect(YAML.load_file('foo.yml')).to eq(SettingsHash.new(ctx.merge(template: 'template1')))
-              end
+              sp_dir.file('sp2/template3/templates.yml', YAML.dump('dependent_templates' => [
+                  {name: 'template2'}.merge(context: ctx)
+              ]))
+              gen.generate('template3')
+              expect(File.exist?('context.yml')).to be true
+              expect(File.exist?('scoped_context.yml')).to be true
+              expect(YAML.load_file('context.yml')).to eq(SettingsHash.new(ctx))
+              expect(YAML.load_file('scoped_context.yml')).to eq(SettingsHash.new(ctx)[:template1])
             end
           end
 

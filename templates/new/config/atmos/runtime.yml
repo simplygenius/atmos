@@ -20,6 +20,11 @@ otp:
   # The file where otp secrets are stored
   secret_file: ~/.atmos.yml
 
+# Configure the template generator
+generate:
+  # The file storing the record of each generated template
+  state_file: .atmos-templates.yml
+
 # Configure the UI components
 ui:
   # Configures UI notifications

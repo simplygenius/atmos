@@ -10,7 +10,7 @@ module SimplyGenius
 
       let(:sp) { described_class.new("myname", "mylocation") }
 
-      def with_templates
+     def with_templates
         within_construct do |c|
           c.file('notemplate/foo')
           c.file('template1/templates.yml', "config: true")
@@ -42,6 +42,14 @@ module SimplyGenius
 
       end
 
+      describe "to_h" do
+
+        it "provides a hash" do
+          expect(sp.to_h).to eq({"name" => "myname", "location" => "mylocation"})
+        end
+
+      end
+
       describe "directory" do
 
         it "only expands once" do
@@ -58,13 +66,30 @@ module SimplyGenius
 
       end
 
-      describe "template_dir" do
+      describe "templates" do
 
-        it "returns the fully qualified template path" do
+        it "returns the templates hash" do
           with_templates do |c, sp|
-            expect(sp.template_dir("notemplate")).to be_nil
-            expect(sp.template_dir("template1")).to eq("#{c}/template1")
-            expect(sp.template_dir("subdir1/template2")).to eq("#{c}/subdir1/template2")
+            expect(sp.send(:templates).size).to eq(2)
+            expect(sp.send(:templates)['template1']).to match instance_of(Template)
+            expect(sp.send(:templates)['template1'].name).to eq('template1')
+            expect(sp.send(:templates)['template1'].directory).to eq("#{c}/template1")
+            expect(sp.send(:templates)['template1'].source).to be sp
+            expect(sp.send(:templates)['subdir1/template2']).to match instance_of(Template)
+          end
+        end
+
+      end
+
+      describe "template" do
+
+        it "returns the named template" do
+          with_templates do |c, sp|
+            expect(sp.template("template1")).to match instance_of(Template)
+            expect(sp.template("template1").name).to eq('template1')
+            expect(sp.template("template1").directory).to eq("#{c}/template1")
+            expect(sp.template("template1").source).to be sp
+            expect(sp.template("subdir1/template2")).to match instance_of(Template)
           end
         end
 
@@ -86,114 +111,6 @@ module SimplyGenius
             c.file('git/templates.yml')
             c.file('.not/templates.yml')
             expect(sp.template_names).to eq(["foo.bar", "subdir1/template2", "template1"])
-          end
-        end
-
-      end
-
-      describe "template_actions_path" do
-
-        it "returns the actions path" do
-          with_templates do |c, sp|
-            expect { sp.template_actions_path("notemplate") }.to raise_error(TypeError)
-            expect(sp.template_actions_path("template1")).to eq("#{c}/template1/templates.rb")
-            expect(sp.template_actions_path("subdir1/template2")).to eq("#{c}/subdir1/template2/templates.rb")
-          end
-        end
-
-      end
-
-      describe "template_actions" do
-
-        it "returns the actions" do
-          with_templates do |c, sp|
-            expect { sp.template_actions("notemplate") }.to raise_error(TypeError)
-            expect(sp.template_actions("template1")).to eq("#actions")
-            expect(sp.template_actions("subdir1/template2")).to eq("")
-          end
-        end
-
-        it "only reads action file once" do
-          with_templates do |c, sp|
-            expect(File).to receive(:read).once.and_return("#actions")
-            sp.template_actions("template1")
-            sp.template_actions("template1")
-          end
-        end
-
-      end
-
-      describe "template_config_path" do
-
-        it "returns the config path" do
-          with_templates do |c, sp|
-            expect { sp.template_config_path("notemplate") }.to raise_error(TypeError)
-            expect(sp.template_config_path("template1")).to eq("#{c}/template1/templates.yml")
-            expect(sp.template_config_path("subdir1/template2")).to eq("#{c}/subdir1/template2/templates.yml")
-          end
-        end
-
-      end
-
-      describe "template_config" do
-
-        it "returns the config" do
-          with_templates do |c, sp|
-            expect { sp.template_config("notemplate") }.to raise_error(TypeError)
-            expect(sp.template_config("template1")).to eq({"config" => true})
-            expect(sp.template_config("subdir1/template2")).to eq({})
-          end
-        end
-
-        it "only reads config file once" do
-          with_templates do |c, sp|
-            expect(File).to receive(:read).once.and_return("#config")
-            sp.template_config("template1")
-            sp.template_config("template1")
-          end
-        end
-
-      end
-
-      describe "template_dependencies" do
-
-        it "returns the dependencies" do
-          with_templates do |c, sp|
-            c.file("template3/templates.yml", {"dependent_templates" => ["one", "two"]}.to_yaml)
-            c.file("template4/templates.yml", {"dependent_templates" => "one"}.to_yaml)
-            expect { sp.template_dependencies("notemplate") }.to raise_error(TypeError)
-            expect(sp.template_dependencies("template1")).to eq([])
-            expect(sp.template_dependencies("template3")).to eq([{"template" => "one"}, {"template" => "two"}])
-            expect(sp.template_dependencies("template4")).to eq([{"template" => "one"}])
-          end
-        end
-
-        it "fails for invalid template structure" do
-          with_templates do |c, sp|
-            c.file("template3/templates.yml", {"dependent_templates" => [true]}.to_yaml)
-            c.file("template4/templates.yml", {"dependent_templates" => [{"foo" => true}]}.to_yaml)
-            expect { sp.template_dependencies("template3") }.to raise_error(TypeError)
-            expect { sp.template_dependencies("template4") }.to raise_error(ArgumentError)
-          end
-        end
-
-        it "passes through template hash" do
-          with_templates do |c, sp|
-            c.file("template3/templates.yml", {"dependent_templates" => [{"template" => 'foo', "var" => "value"}]}.to_yaml)
-            expect(sp.template_dependencies("template3")).to eq([{"template" => "foo", "var" => "value"}])
-          end
-        end
-
-      end
-
-      describe "template_optional" do
-
-        it "returns the optional hash" do
-          with_templates do |c, sp|
-            c.file("template3/templates.yml", {"optional" => {"file1" => true}}.to_yaml)
-            expect { sp.template_optional("notemplate") }.to raise_error(TypeError)
-            expect(sp.template_optional("template1")).to eq({})
-            expect(sp.template_optional("template3")).to eq({"file1" => true})
           end
         end
 
@@ -231,7 +148,7 @@ module SimplyGenius
           expanded = described_class.new("test", repo_dir)
           expect(expanded.directory).to match(/^\/.*/)
           expect(Dir.exist?(expanded.directory)).to be true
-          expect(expanded.template_dir('template1')).to start_with(expanded.directory)
+          expect(expanded.template('template1').directory).to start_with(expanded.directory)
         end
 
         it "uses subdir from a git archive" do
@@ -269,7 +186,48 @@ module SimplyGenius
           expect(expanded.directory).to match(/^\/.*/)
           expect(expanded.directory).to match(/template_repo$/)
           expect(Dir.exist?(expanded.directory)).to be true
-          expect(expanded.template_dir('template1')).to start_with(expanded.directory)
+          expect(expanded.template('template1').directory).to start_with(expanded.directory)
+        end
+
+      end
+
+      describe "registry" do
+
+        before(:each) { SourcePath.clear_registry }
+
+        it "provides a registry" do
+          expect(SourcePath.registry).to eq([])
+        end
+
+        it "adds to registry" do
+          SourcePath.register("registeredsp", "registeredlocation")
+          expect(SourcePath.registry.size).to eq(1)
+          expect(SourcePath.registry[0]).to match instance_of(SourcePath)
+          expect(SourcePath.registry[0].name).to eq("registeredsp")
+          expect(SourcePath.registry[0].location).to eq("registeredlocation")
+        end
+
+        it "finds template in registry" do
+          within_construct do |c|
+            c.file('sp1/template1/templates.yml')
+            c.file('sp1/templatedupe/templates.yml')
+            c.file('sp2/template2/templates.yml')
+            c.file('sp2/templatedupe/templates.yml')
+            sp1 = SourcePath.new("sp1", "#{c}/sp1")
+            sp2 = SourcePath.new("sp2", "#{c}/sp2")
+            SourcePath.registry << sp1 << sp2
+            tmpl = SourcePath.find_template('template1')
+            expect(tmpl.name).to eq('template1')
+            expect(tmpl.source).to eq(sp1)
+            expect(tmpl.directory).to eq("#{c}/sp1/template1")
+            tmpl = SourcePath.find_template('template2')
+            expect(tmpl.name).to eq('template2')
+            expect(tmpl.source).to eq(sp2)
+            expect(tmpl.directory).to eq("#{c}/sp2/template2")
+
+            expect {SourcePath.find_template('notemplate') }.to raise_error(ArgumentError, /Could not find/)
+            expect {SourcePath.find_template('templatedupe') }.to raise_error(ArgumentError, /must be unique/)
+          end
         end
 
       end

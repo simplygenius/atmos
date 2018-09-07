@@ -1,5 +1,6 @@
 require_relative '../atmos'
 require_relative '../atmos/ui'
+require_relative '../atmos/template'
 require 'find'
 require 'tmpdir'
 require 'fileutils'
@@ -13,28 +14,44 @@ module SimplyGenius
     class SourcePath
       include GemLogger::LoggerSupport
 
-      TEMPLATES_SPEC_FILE = 'templates.yml'
-      TEMPLATES_ACTIONS_FILE = 'templates.rb'
-
+      class_attribute :registry, default: []
       attr_reader :name, :location
+
+      def self.clear_registry
+        registry.clear
+        @resolved_templates.clear if @resolved_templates
+      end
+
+      def self.register(name, location)
+        registry << SourcePath.new(name, location)
+      end
+
+      def self.find_template(template_name)
+        @resolved_templates ||= {}
+        @resolved_templates[template_name] ||= begin
+          tmpls = registry.collect {|sp| sp.template(template_name) }.compact
+
+          if tmpls.size == 0
+            raise ArgumentError.new("Could not find the template: #{template_name}")
+          elsif tmpls.size > 1
+            raise ArgumentError.new("Template names must be unique, #{template_name} exists in multiple sources: #{tmpls.collect(&:source)}")
+          end
+
+          tmpls.first
+        end
+      end
 
       def initialize(name, location)
         @name = name
         @location = location
-        @configs = {}
-        @actions = {}
       end
 
       def to_s
         "#{name} (#{location})"
       end
 
-      def template_names
-        template_dirs.keys.sort
-      end
-
-      def template_dir(name)
-        template_dirs[name]
+      def to_h
+        SettingsHash.new({name: name, location: location})
       end
 
       def directory
@@ -46,47 +63,12 @@ module SimplyGenius
         end
       end
 
-      def template_actions_path(name)
-        File.join(template_dir(name), TEMPLATES_ACTIONS_FILE)
+      def template_names
+        templates.keys.sort
       end
 
-      def template_actions(name)
-        @actions[name] ||= (File.exist?(template_actions_path(name)) ? File.read(template_actions_path(name)) : "")
-      end
-
-      def template_config_path(name)
-        File.join(template_dir(name), TEMPLATES_SPEC_FILE)
-      end
-
-      def template_config(name)
-        @configs[name] ||= begin
-          data = File.read(template_config_path(name))
-          SettingsHash.new(YAML.load(data) || {})
-        end
-      end
-
-      def template_dependencies(name)
-        deps = Array(template_config(name)[:dependent_templates])
-
-        deps = deps.collect do |d|
-          if d.kind_of?(String)
-            tmpl = SettingsHash.new({template: d})
-          elsif d.kind_of?(Hash)
-            tmpl = d
-          else
-            raise TypeError.new("Invalid template structure: #{d}")
-          end
-
-          raise ArgumentError.new("Template must be named with :template key: #{tmpl}") unless tmpl[:template]
-
-          tmpl
-        end
-
-        deps
-      end
-
-      def template_optional(name)
-        template_config(name)[:optional] || {}
+      def template(name)
+        templates[name]
       end
 
       protected
@@ -167,7 +149,7 @@ module SimplyGenius
             Find.find(directory) do |f|
               Find.prune if File.basename(f) =~  /(^\.)|svn|CVS|git/
 
-              template_spec = File.join(f, TEMPLATES_SPEC_FILE)
+              template_spec = File.join(f, Template::TEMPLATES_SPEC_FILE)
               if File.exist?(template_spec)
                 template_name = f.sub(/^#{directory}\//, '')
 
@@ -188,6 +170,12 @@ module SimplyGenius
 
           template_dirs
         end
+      end
+
+      def templates
+        @templates ||= Hash[template_dirs.collect do |tname, dir|
+          [tname, Template.new(tname, dir, self)]
+        end]
       end
 
     end
