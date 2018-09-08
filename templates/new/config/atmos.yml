@@ -62,4 +62,10 @@ template_sources:
 # To get the atmos-pro gem, add the gem source like:
 #   gem sources -a https://YOUR_API_KEY@releases.simplygenius.com/gems/
 # then install the gem:
-#   gem install atmos-pro
+#   gem install simplygenius-atmos-pro
+# then add simplygenius-atmos-pro to the plugins key below
+#
+# The list of plugin gems to load when running atmos
+#
+plugins:
+#   - simplygenius-atmos-pro
