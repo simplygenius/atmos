@@ -1,4 +1,5 @@
 require 'simplygenius/atmos/config'
+require 'climate_control'
 
 module SimplyGenius
   module Atmos
@@ -15,7 +16,6 @@ module SimplyGenius
           expect(config.atmos_env).to eq(env)
           expect(config.root_dir).to eq(Dir.pwd)
           expect(config.config_file).to eq("#{Dir.pwd}/config/atmos.yml")
-          expect(config.configs_dir).to eq("#{Dir.pwd}/config/atmos")
           expect(config.tmp_root).to eq("#{Dir.pwd}/tmp")
         end
 
@@ -161,12 +161,93 @@ module SimplyGenius
 
       end
 
+      describe "load_config_sources" do
+
+        it "does nothing if no sources" do
+          within_construct do |c|
+            conf = SettingsHash.new
+            result = config.send(:load_config_sources, "", conf)
+            expect(result).to be conf
+          end
+        end
+
+        it "loads from single relative pattern" do
+          within_construct do |c|
+            c.file('config/atmos/foo.yml', YAML.dump(foo: "baz"))
+            c.file('config/atmos/bar.yml', YAML.dump(bar: "bum"))
+            conf = SettingsHash.new
+            result = config.send(:load_config_sources, "#{c}/config", conf, "atmos/*.yml")
+            expect(result).to_not be conf
+            expect(result["foo"]).to eq("baz")
+            expect(result["bar"]).to eq("bum")
+            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/foo.yml", "#{c}/config/atmos/bar.yml"])
+          end
+        end
+
+        it "loads from single absolute pattern" do
+          within_construct do |c|
+            c.file('atmos/foo.yml', YAML.dump(foo: "baz"))
+            c.file('atmos/bar.yml', YAML.dump(bar: "bum"))
+            conf = SettingsHash.new
+            result = config.send(:load_config_sources, "#{c}/config", conf, "#{c}/atmos/*.yml")
+            expect(result).to_not be conf
+            expect(result["foo"]).to eq("baz")
+            expect(result["bar"]).to eq("bum")
+            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/atmos/foo.yml", "#{c}/atmos/bar.yml"])
+          end
+        end
+
+        it "loads from expandable pattern" do
+          within_construct do |c|
+            c.file('home/foo.yml', YAML.dump(foo: "baz"))
+            conf = SettingsHash.new
+
+            result = nil
+            ClimateControl.modify("HOME" => "#{c}/home") do
+              result = config.send(:load_config_sources, "#{c}/config", conf, "~/*.yml")
+            end
+
+            expect(result).to_not be conf
+            expect(result["foo"]).to eq("baz")
+            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/home/foo.yml"])
+          end
+        end
+
+        it "loads from multiple patterns" do
+          within_construct do |c|
+            c.file('config/atmos/foo.yml', YAML.dump(bar: "baz"))
+            c.file('atmos/bar.yml', YAML.dump(baz: "bum"))
+            conf = SettingsHash.new
+            result = config.send(:load_config_sources, "#{c}/config", conf, "atmos/*.yml", "#{c}/atmos/*.yml")
+            expect(result).to_not be conf
+            expect(result["bar"]).to eq("baz")
+            expect(result["baz"]).to eq("bum")
+            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/foo.yml", "#{c}/atmos/bar.yml"])
+          end
+        end
+
+        it "merges config additively" do
+          within_construct do |c|
+            c.file('config/atmos/foo.yml', YAML.dump(foo: [1], bar: {baz: "boo"}))
+            c.file('config/atmos/bar.yml', YAML.dump(foo: [2], bar: {bum: "hum"}))
+            conf = SettingsHash.new
+            result = config.send(:load_config_sources, "#{c}/config", conf, "atmos/*.yml")
+            expect(result).to_not be conf
+            expect(result["foo"]).to eq([1, 2])
+            expect(result["bar"]["baz"]).to eq("boo")
+            expect(result["bar"]["bum"]).to eq("hum")
+          end
+        end
+
+      end
+
       describe "load" do
 
         it "warns if main config file not present" do
           within_construct do |c|
             config.send(:load)
             expect(Logging.contents).to match(/Could not find an atmos config file/)
+            expect(config.instance_variable_get(:@included_configs)).to eq([])
           end
         end
 
@@ -178,12 +259,13 @@ module SimplyGenius
             config.send(:load)
             expect(config.instance_variable_defined?(:@full_config)).to be true
             expect(config.instance_variable_defined?(:@config)).to be true
+            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos.yml"])
           end
         end
 
         it "loads additional configs" do
           within_construct do |c|
-            c.file('config/atmos.yml', YAML.dump(foo: "bar", hum: "not"))
+            c.file('config/atmos.yml', YAML.dump(foo: "bar", hum: "not", config_sources: "atmos/*.y{,a}ml"))
             c.file('config/atmos/foo.yml', YAML.dump(bar: "baz"))
             c.file('config/atmos/bar.yaml', YAML.dump(baz: "bum", hum: "yes"))
             config.send(:load)
@@ -234,7 +316,8 @@ module SimplyGenius
 
         it "merges additively env config" do
           within_construct do |c|
-            c.file('config/atmos.yml', YAML.dump(foo: [1]))
+
+            c.file('config/atmos.yml', YAML.dump(foo: [1], config_sources: "atmos/*.yml"))
             c.file('config/atmos/foo.yml', YAML.dump(foo: [2]))
             c.file('config/atmos/provider.yml', YAML.dump(provider: "aws", providers: {aws: {foo: [3]}}))
             c.file('config/atmos/env.yml', YAML.dump(environments: {dev: {foo: [4]}}))

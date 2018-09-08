@@ -41,6 +41,13 @@ environments:
 #
 is_dev: "#{ /dev|test|demo/.match?(atmos_env) }"
 
+# A list of glob patterns for finding atmos yml files
+# Patterns can be absolute (beginning with /), but if not are applied relative
+# to the directory containing atmos.yml
+#
+config_sources:
+  - atmos/*.y{,a}ml
+
 # Sources for atmos templates
 # To circumvent the version lock and get the latest git master recipes, use the git
 # location, e.g.:

@@ -14,15 +14,15 @@ module SimplyGenius
       include FileUtils
 
       attr_accessor :atmos_env, :root_dir,
-                    :config_file, :configs_dir,
+                    :config_file,
                     :tmp_root
 
       def initialize(atmos_env)
         @atmos_env = atmos_env
         @root_dir = File.expand_path(Dir.pwd)
         @config_file = File.join(root_dir, "config", "atmos.yml")
-        @configs_dir = File.join(root_dir, "config", "atmos")
         @tmp_root = File.join(root_dir, "tmp")
+        @included_configs = []
       end
 
       def is_atmos_repo?
@@ -132,31 +132,44 @@ module SimplyGenius
         return result
       end
 
+      def load_config_sources(relative_root, config, *patterns)
+        patterns.each do |pattern|
+          logger.debug("Loading atmos config files using pattern: #{pattern}")
+
+          # relative to main atmos config file unless qualified
+          if pattern !~ /^[\/~]/
+            pattern = File.join(relative_root, pattern)
+          end
+          # expand to handle tilde/etc
+          pattern = File.expand_path(pattern)
+          logger.debug("Expanded pattern: #{pattern}")
+
+          Dir[pattern].each do |f|
+            logger.debug("Loading atmos config file: #{f}")
+            h = SettingsHash.new(YAML.load_file(f))
+            config = config_merge(config, h)
+            @included_configs << f
+          end
+        end
+
+        config
+      end
+
       def load
         @config ||= begin
 
           logger.debug("Atmos env: #{atmos_env}")
 
+          @full_config = SettingsHash.new
           if ! File.exist?(config_file)
             logger.warn "Could not find an atmos config file at: #{config_file}"
-            # raise RuntimeError.new("Could not find an atmos config file at: #{config_file}")
-          end
-
-          logger.debug("Loading atmos config file #{config_file}")
-          @full_config = SettingsHash.new((YAML.load_file(config_file) rescue Hash.new))
-
-          if Dir.exist?(configs_dir)
-           logger.debug("Loading atmos config files from #{configs_dir}")
-           Find.find(configs_dir) do |f|
-             if f =~ /\.ya?ml/i
-               logger.debug("Loading atmos config file: #{f}")
-               h = SettingsHash.new(YAML.load_file(f))
-               @full_config = config_merge(@full_config, h)
-             end
-           end
           else
-           logger.debug("Atmos config dir doesn't exist: #{configs_dir}")
+            logger.debug("Loading atmos config file #{config_file}")
+            @full_config = SettingsHash.new(YAML.load_file(config_file))
+            @included_configs << config_file
           end
+
+          @full_config = load_config_sources(File.dirname(config_file), @full_config, *Array(@full_config[:config_sources]))
 
           @full_config['provider'] = provider_name = @full_config['provider'] || 'aws'
           global = SettingsHash.new(@full_config.reject {|k, v| ['environments', 'providers'].include?(k) })
@@ -228,17 +241,7 @@ module SimplyGenius
         filename = nil
         line = 0
 
-        configs = []
-        configs << config_file if File.exist?(config_file)
-        if Dir.exist?(configs_dir)
-          Find.find(configs_dir) do |f|
-            if f =~ /\.ya?ml/i
-              configs << f
-            end
-          end
-        end
-
-        configs.each do |c|
+        @included_configs.each do |c|
           current_line = 0
           File.foreach(c) do |f|
             current_line += 1
