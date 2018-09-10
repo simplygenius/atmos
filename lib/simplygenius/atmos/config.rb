@@ -98,6 +98,7 @@ module SimplyGenius
         result = nil
 
         return rhs if lhs.nil?
+        return lhs if rhs.nil?
 
         # Warn if user fat fingered config
         unless lhs.is_a?(rhs.class) || rhs.is_a?(lhs.class)
@@ -155,14 +156,34 @@ module SimplyGenius
         config
       end
 
+      def load_submap(relative_root, group, name, config)
+        submap_dir = File.join(relative_root, 'atmos', group)
+        submap_file = File.join(submap_dir, "#{name}.yml")
+        if File.exist?(submap_file)
+          logger.debug("Loading atmos #{group} config file: #{submap_file}")
+          h = SettingsHash.new({group => {name => YAML.load_file(submap_file)}})
+          config = config_merge(config, h)
+          @included_configs << submap_file
+        end
+
+        begin
+          submap = config.deep_fetch(group, name)
+          config = config_merge(config, submap)
+        rescue
+          logger.debug("No #{group} config found for '#{name}'")
+        end
+
+        config
+      end
+
       def load
         @config ||= begin
 
           logger.debug("Atmos env: #{atmos_env}")
 
-          @full_config = SettingsHash.new
           if ! File.exist?(config_file)
             logger.warn "Could not find an atmos config file at: #{config_file}"
+            @full_config = SettingsHash.new
           else
             logger.debug("Loading atmos config file #{config_file}")
             @full_config = SettingsHash.new(YAML.load_file(config_file))
@@ -172,24 +193,12 @@ module SimplyGenius
           @full_config = load_config_sources(File.dirname(config_file), @full_config, *Array(@full_config[:config_sources]))
 
           @full_config['provider'] = provider_name = @full_config['provider'] || 'aws'
-          global = SettingsHash.new(@full_config.reject {|k, v| ['environments', 'providers'].include?(k) })
-          begin
-            prov = @full_config.deep_fetch(:providers, provider_name)
-          rescue
-            logger.debug("No provider config found for '#{provider_name}'")
-            prov = {}
-          end
 
-          begin
-            env = @full_config.deep_fetch(:environments, atmos_env)
-          rescue
-            logger.debug("No environment config found for '#{atmos_env}'")
-            env = {}
-          end
+          @full_config = load_submap(File.dirname(config_file), 'providers', provider_name, @full_config)
+          @full_config = load_submap(File.dirname(config_file), 'environments', atmos_env, @full_config)
 
-          conf = config_merge(global, prov)
-          conf = config_merge(conf, env)
-          conf = config_merge(conf, {
+          global = SettingsHash.new(@full_config.reject {|k, v| ['providers', 'environments'].include?(k) })
+          conf = config_merge(global, {
               atmos_env: atmos_env,
               atmos_version: VERSION
           })

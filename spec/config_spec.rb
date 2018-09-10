@@ -241,6 +241,46 @@ module SimplyGenius
 
       end
 
+      describe "load_submap" do
+
+        it "does nothing if no submap" do
+          within_construct do |c|
+            conf = SettingsHash.new
+            result = config.send(:load_submap, "", "environments", "dev", conf)
+            expect(result).to be conf
+          end
+        end
+
+        it "loads from submap" do
+          within_construct do |c|
+            c.file('config/atmos/environments/dev.yml', YAML.dump(foo: "bar"))
+            conf = SettingsHash.new
+            result = config.send(:load_submap, "#{c}/config", "environments", "dev", conf)
+            expect(result).to_not be conf
+            expect(result["environments"]["dev"]["foo"]).to eq("bar")
+            expect(result["foo"]).to eq("bar")
+            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/environments/dev.yml"])
+          end
+        end
+
+        it "merges config additively" do
+          within_construct do |c|
+            c.file('config/atmos/environments/dev.yml', YAML.dump(foo: [1], bar: {baz: "boo"}))
+            conf = SettingsHash.new(environments: {dev: {foo: [2], bar: {bum: "hum"}}})
+            result = config.send(:load_submap, "#{c}/config", "environments", "dev", conf)
+            expect(result).to_not be conf
+            expect(result["environments"]["dev"]["foo"]).to eq([2, 1])
+            expect(result["foo"]).to eq([2, 1])
+            expect(result["environments"]["dev"]["bar"]["baz"]).to eq("boo")
+            expect(result["bar"]["baz"]).to eq("boo")
+            expect(result["environments"]["dev"]["bar"]["bum"]).to eq("hum")
+            expect(result["bar"]["bum"]).to eq("hum")
+            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/environments/dev.yml"])
+          end
+        end
+
+      end
+
       describe "load" do
 
         it "warns if main config file not present" do
@@ -427,9 +467,11 @@ module SimplyGenius
         end
 
         it "performs disjoint deep merge additively (handles nils)" do
-          lhs = {x: {y: 9}}
-          rhs = {a: {b: 8}}
-          expect(config.send(:config_merge, lhs, rhs)).to eq({x: {y: 9}, a: {b: 8}})
+          lhs = {x: {y: 9}, b: [{c: 7}], l: ['foo'], n: nil}
+          rhs = {a: {b: 8}, y: [6], l: nil, o: nil}
+          expect(config.send(:config_merge, lhs, rhs)).to eq({x: {y: 9}, y: [6], a: {b: 8}, b: [{c: 7}], l: ['foo'], n: nil, o: nil})
+          expect(config.send(:config_merge, rhs, lhs)).to eq({x: {y: 9}, y: [6], a: {b: 8}, b: [{c: 7}], l: ['foo'], n: nil, o: nil})
+          expect(Logging.contents).to_not match(/Different types in deep merge/)
         end
 
         it "allows array override" do

@@ -31,7 +31,7 @@ describe "Initial Setup" do
         expect(File.exist?('config/atmos.yml')).to be true
         output = atmos "generate", "--force", *recipes_sourcepath, "aws/scaffold",
                        stdin_data: "acme\n123456789012\n"
-        expect(File.exist?('config/atmos/aws.yml')).to be true
+        expect(File.exist?('config/atmos/atmos-aws.yml')).to be true
         conf = SimplyGenius::Atmos::SettingsHash.new(YAML.load_file('config/atmos.yml'))
         expect(conf['org']).to eq("acme")
         expect(conf.notation_get('environments.ops.account_id')).to eq("123456789012")
