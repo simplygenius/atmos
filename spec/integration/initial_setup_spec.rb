@@ -7,9 +7,9 @@ describe "Initial Setup" do
 
   let(:recipes_sourcepath) {
     if ENV['CI'].present?
-      ["--sourcepath", 'https://github.com/simplygenius/atmos-recipes.git']
+      ["--no-sourcepaths", "--sourcepath", 'https://github.com/simplygenius/atmos-recipes.git']
     else
-      ["--sourcepath", File.expand_path('../../../../atmos-recipes', __FILE__)]
+      ["--no-sourcepaths", "--sourcepath", File.expand_path('../../../../atmos-recipes', __FILE__)]
     end
   }
 

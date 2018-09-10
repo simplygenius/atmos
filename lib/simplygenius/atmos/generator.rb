@@ -45,7 +45,6 @@ module SimplyGenius
             seen_tmpl = [dep_tmpl.name, dep_tmpl.scoped_context]
             unless seen.include?(seen_tmpl)
               apply_template(dep_tmpl)
-              visited_templates << dep_tmpl
             end
             seen <<  seen_tmpl
           end
@@ -55,8 +54,6 @@ module SimplyGenius
         return visited_templates
       end
 
-      protected
-
       def apply_template(tmpl)
         @thor_generators[tmpl.source] ||= Class.new(ThorGenerator) do
           source_root tmpl.source.directory
@@ -64,9 +61,12 @@ module SimplyGenius
 
         gen = @thor_generators[tmpl.source].new(tmpl, self, **@thor_opts)
         gen.apply
+        visited_templates << tmpl
 
         gen # makes testing easier by giving a handle to thor generator instance
       end
+
+      protected
 
       class ThorGenerator < Thor
 

@@ -158,6 +158,115 @@ module SimplyGenius
 
         end
 
+        describe "--update" do
+
+          before(:each) do
+            @gen = double(generate: nil, visited_templates: [])
+            allow(Generator).to receive(:new).
+                with(any_args, hash_including(dependencies: true)).
+                and_return(@gen)
+          end
+
+          def with_sourcepaths
+            within_construct do |sp_dir|
+              sp_dir.file('sp1/template1/templates.yml')
+              sp_dir.file('sp2/template2/templates.yml')
+              sp_dir.file('sp2/template3/templates.yml')
+              @sp1 = SourcePath.register("sp1", "#{sp_dir}/sp1")
+              @sp2 = SourcePath.register("sp2", "#{sp_dir}/sp2")
+
+              within_construct do |app_dir|
+                # cwd at this point for tests using this is app_dir
+                yield sp_dir, app_dir
+              end
+            end
+          end
+
+          def state(data)
+            cli.instance_variable_set(:@state, SettingsHash.new(data))
+          end
+
+          it "registers unique sourcepaths from state" do
+            allow(@gen).to receive(:apply_template)
+            with_sourcepaths do |sp_dir, app_dir|
+              state(visited_templates: [
+                  {name: 'template1', source: @sp1.to_h},
+                  {name: 'template2', source: @sp2.to_h},
+                  {name: 'template3', source: @sp2.to_h}
+              ])
+              cli.run(["--no-sourcepaths", "--update"])
+              expect(SourcePath.registry.size).to eq(2)
+              expect(SourcePath.registry['sp1']).to be(@sp1)
+              expect(SourcePath.registry['sp2']).to be(@sp2)
+              expect(Logging.contents).to_not match(/location differs/)
+              expect(Logging.contents).to_not match(/source path missing from configuration/)
+            end
+          end
+
+          it "warns about mismatched sourcepaths" do
+            allow(@gen).to receive(:apply_template)
+            with_sourcepaths do |sp_dir, app_dir|
+              state(visited_templates: [
+                  {name: 'template1', source: @sp1.to_h.merge(location: '/tmp')}
+              ])
+              cli.run(["--no-sourcepaths", "--update"])
+              expect(SourcePath.registry['sp1']).to be(@sp1)
+              expect(Logging.contents).to match(/location differs/)
+              expect(Logging.contents).to_not match(/source path missing from configuration/)
+            end
+          end
+
+          it "warns about missing sourcepaths" do
+            allow(@gen).to receive(:apply_template)
+            with_sourcepaths do |sp_dir, app_dir|
+              sp_dir.file('sp3/template4/templates.yml')
+
+              state(visited_templates: [
+                  {name: 'template4', source: {name: 'sp3', location: "#{sp_dir}/sp3"}}
+              ])
+              cli.run(["--no-sourcepaths", "--update"])
+              expect(SourcePath.registry['sp3'].location).to eq("#{sp_dir}/sp3")
+              expect(Logging.contents).to_not match(/location differs/)
+              expect(Logging.contents).to match(/source path missing from configuration/)
+            end
+          end
+
+          it "allows filtering of templates (with only their sourcepaths) applied" do
+            with_sourcepaths do |sp_dir, app_dir|
+              sp_dir.file('sp3/template4/templates.yml')
+              sp_dir.file('sp4/template5/templates.yml')
+
+              state(visited_templates: [
+                  {name: 'template1', source: @sp1.to_h},
+                  {name: 'template2', source: @sp2.to_h},
+                  {name: 'template3', source: @sp2.to_h},
+                  {name: 'template4', source: {name: 'sp3', location: "#{sp_dir}/sp3"}},
+                  {name: 'template5', source: {name: 'sp4', location: "#{sp_dir}/sp4"}}
+              ])
+
+              expect(@gen).to receive(:apply_template) {|tmpl| expect(tmpl.name).to eq('template4') }
+              expect(SourcePath).to_not receive(:register).with('sp4', "#{sp_dir}/sp4")
+              expect(SourcePath).to receive(:register).with('sp3', "#{sp_dir}/sp3").and_call_original
+              cli.run(["--no-sourcepaths", "--update", "template4"])
+            end
+          end
+
+          it "calls apply_template with context for each in state" do
+            with_sourcepaths do |sp_dir, app_dir|
+              state(visited_templates: [
+                  {name: 'template1', source: @sp1.to_h, context: {foo: "bar"}}
+              ])
+
+              expect(@gen).to receive(:apply_template) do |tmpl|
+                expect(tmpl.name).to eq('template1')
+                expect(tmpl.scoped_context).to eq({"foo" => "bar"})
+              end
+              cli.run(["--no-sourcepaths", "--update"])
+            end
+          end
+
+        end
+
         describe "state_file" do
 
           it "reads state file from config" do

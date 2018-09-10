@@ -14,7 +14,7 @@ module SimplyGenius
     class SourcePath
       include GemLogger::LoggerSupport
 
-      class_attribute :registry, default: []
+      class_attribute :registry, default: {}
       attr_reader :name, :location
 
       def self.clear_registry
@@ -23,13 +23,15 @@ module SimplyGenius
       end
 
       def self.register(name, location)
-        registry << SourcePath.new(name, location)
+        sp = SourcePath.new(name, location)
+        raise ArgumentError.new("Source paths must be uniquely named: #{sp}") if registry[name]
+        registry[name] = sp
       end
 
       def self.find_template(template_name)
         @resolved_templates ||= {}
         @resolved_templates[template_name] ||= begin
-          tmpls = registry.collect {|sp| sp.template(template_name) }.compact
+          tmpls = registry.collect {|name, sp| sp.template(template_name) }.compact
 
           if tmpls.size == 0
             raise ArgumentError.new("Could not find the template: #{template_name}")

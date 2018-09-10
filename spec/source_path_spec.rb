@@ -196,15 +196,21 @@ module SimplyGenius
         before(:each) { SourcePath.clear_registry }
 
         it "provides a registry" do
-          expect(SourcePath.registry).to eq([])
+          expect(SourcePath.registry).to eq({})
         end
 
         it "adds to registry" do
           SourcePath.register("registeredsp", "registeredlocation")
           expect(SourcePath.registry.size).to eq(1)
-          expect(SourcePath.registry[0]).to match instance_of(SourcePath)
-          expect(SourcePath.registry[0].name).to eq("registeredsp")
-          expect(SourcePath.registry[0].location).to eq("registeredlocation")
+          expect(SourcePath.registry.keys.first).to eq("registeredsp")
+          expect(SourcePath.registry.values.first).to match instance_of(SourcePath)
+          expect(SourcePath.registry.values.first.name).to eq("registeredsp")
+          expect(SourcePath.registry.values.first.location).to eq("registeredlocation")
+        end
+
+        it "requires unique names in registry" do
+          SourcePath.register("registeredsp", "registeredlocation")
+          expect { SourcePath.register("registeredsp", "otherlocation") }.to raise_error(ArgumentError, /uniquely named/)
         end
 
         it "finds template in registry" do
@@ -213,9 +219,8 @@ module SimplyGenius
             c.file('sp1/templatedupe/templates.yml')
             c.file('sp2/template2/templates.yml')
             c.file('sp2/templatedupe/templates.yml')
-            sp1 = SourcePath.new("sp1", "#{c}/sp1")
-            sp2 = SourcePath.new("sp2", "#{c}/sp2")
-            SourcePath.registry << sp1 << sp2
+            sp1 = SourcePath.register("sp1", "#{c}/sp1")
+            sp2 = SourcePath.register("sp2", "#{c}/sp2")
             tmpl = SourcePath.find_template('template1')
             expect(tmpl.name).to eq('template1')
             expect(tmpl.source).to eq(sp1)

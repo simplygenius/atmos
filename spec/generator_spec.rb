@@ -18,9 +18,8 @@ module SimplyGenius
         within_construct do |sp_dir|
           sp_dir.file('sp1/template1/templates.yml')
           sp_dir.file('sp2/template2/templates.yml')
-          sp1 = SourcePath.new("sp1", "#{sp_dir}/sp1")
-          sp2 = SourcePath.new("sp2", "#{sp_dir}/sp2")
-          SourcePath.registry << sp1 << sp2
+          sp1 = SourcePath.register("sp1", "#{sp_dir}/sp1")
+          sp2 = SourcePath.register("sp2", "#{sp_dir}/sp2")
 
           within_construct do |app_dir|
             # cwd at this point for tests using this is app_dir
@@ -34,7 +33,7 @@ module SimplyGenius
         it "handles simple template" do
           with_sourcepaths do |sp_dir, app_dir|
             sp_dir.file('sp1/template1/foo.txt', "hello")
-            gen.send(:apply_template, SourcePath.find_template('template1'))
+            gen.apply_template(SourcePath.find_template('template1'))
             expect(File.exist?("#{app_dir}/foo.txt")).to be true
             expect(open("foo.txt").read).to eq("hello")
             expect(Dir["*"]).to eq(["foo.txt"])
@@ -45,7 +44,7 @@ module SimplyGenius
           with_sourcepaths do |sp_dir, app_dir|
             sp_dir.file('sp1/subdir/template3/templates.yml')
             sp_dir.file('sp1/subdir/template3/foo.txt', "hello")
-            gen.send(:apply_template, SourcePath.find_template('subdir/template3'))
+            gen.apply_template(SourcePath.find_template('subdir/template3'))
             expect(File.exist?('foo.txt')).to be true
             expect(open("foo.txt").read).to eq("hello")
           end
@@ -55,7 +54,7 @@ module SimplyGenius
           with_sourcepaths do |sp_dir, app_dir|
             sp_dir.file('sp1/template1/templates.yml')
             sp_dir.file('sp1/template1/templates.rb')
-            gen.send(:apply_template, SourcePath.find_template('template1'))
+            gen.apply_template(SourcePath.find_template('template1'))
             expect(File.exist?('templates.yml')).to be false
             expect(File.exist?('templates.rb')).to be false
           end
@@ -64,7 +63,7 @@ module SimplyGenius
         it "preserves directory structure" do
           with_sourcepaths do |sp_dir, app_dir|
             sp_dir.file('sp1/template1/subdir/foo.txt', "hello")
-            gen.send(:apply_template, SourcePath.find_template('template1'))
+            gen.apply_template(SourcePath.find_template('template1'))
             expect(File.exist?('subdir/foo.txt')).to be true
             expect(open("#{app_dir}/subdir/foo.txt").read).to eq("hello")
           end
@@ -75,7 +74,7 @@ module SimplyGenius
             sp_dir.file('sp1/template1/templates.yml', YAML.dump('optional' => {'sub/bar.txt' => 'false'}))
             sp_dir.file('sp1/template1/foo.txt', "hello")
             sp_dir.file('sp1/template1/sub/bar.txt', "there")
-            gen.send(:apply_template, SourcePath.find_template('template1'))
+            gen.apply_template(SourcePath.find_template('template1'))
             expect(File.exist?('foo.txt')).to be true
             expect(File.exist?('sub/bar.txt')).to be false
           end
@@ -90,7 +89,7 @@ module SimplyGenius
             sp_dir.file('sp1/template1/foo.yml', YAML.dump("foo" => "bar"))
             sp_dir.file('sp1/template1/sub/foo.txt', "hello")
             sp_dir.file('sp1/template1/sub/bar.txt', "there")
-            gen.send(:apply_template, SourcePath.find_template('template1'))
+            gen.apply_template(SourcePath.find_template('template1'))
             expect(File.exist?('sub/foo.txt')).to be false
             expect(File.exist?('sub/bar.txt')).to be true
           end
@@ -101,7 +100,7 @@ module SimplyGenius
             sp_dir.file('sp1/template1/templates.yml', YAML.dump('optional' => {'sub/bar.txt' => 'false'}))
             sp_dir.file('sp1/template1/templates.rb', 'append_to_file "foo.txt", "there"')
             sp_dir.file('sp1/template1/foo.txt', "hello")
-            gen.send(:apply_template, SourcePath.find_template('template1'))
+            gen.apply_template(SourcePath.find_template('template1'))
             expect(File.exist?('foo.txt')).to be true
             expect(open("#{app_dir}/foo.txt").read).to eq("hellothere")
           end
@@ -214,7 +213,7 @@ module SimplyGenius
 
           it "passes through to UI" do
             with_sourcepaths do |sp_dir, app_dir|
-              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+              thor = gen.apply_template(SourcePath.find_template('template1'))
 
               expect{thor.say('foo')}.to output("foo\n").to_stdout
               expect{thor.error.say('foo')}.to output("foo\n").to_stdout
@@ -231,7 +230,7 @@ module SimplyGenius
             with_sourcepaths do |sp_dir, app_dir|
               tmpl = SourcePath.find_template('template1')
               tmpl.scoped_context.merge!({foo: "answer", bar: "yes"})
-              thor = gen.send(:apply_template, tmpl)
+              thor = gen.apply_template(tmpl)
 
               result = nil
               expect { simulate_stdin("other") { result = thor.ask("question ", varname: :askfoo) } }.to output("question ").to_stdout
@@ -248,7 +247,7 @@ module SimplyGenius
           it "populates context with answer" do
             with_sourcepaths do |sp_dir, app_dir|
               tmpl = SourcePath.find_template('template1')
-              thor = gen.send(:apply_template, tmpl)
+              thor = gen.apply_template(tmpl)
 
               result = nil
               expect { simulate_stdin("other") { result = thor.ask("question ", varname: :askfoo) } }.to output("question ").to_stdout
@@ -268,7 +267,7 @@ module SimplyGenius
               tmpl = SourcePath.find_template('subdir/template-3')
               tmpl.context.merge!(subdir: {template_3: {foo: "answer"}})
               expect(tmpl.scoped_context).to eq({"foo" => "answer"})
-              thor = gen.send(:apply_template, tmpl)
+              thor = gen.apply_template(tmpl)
 
               expect(thor.ask("question ", varname: :foo)).to eq("answer")
             end
@@ -295,7 +294,7 @@ module SimplyGenius
 
               expect(YAML).to receive(:load_file).once.with('foo.yml').and_call_original
 
-              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+              thor = gen.apply_template(SourcePath.find_template('template1'))
               config = thor.raw_config('foo.yml')
               expect(config).to be_a_kind_of(SettingsHash)
               expect(config['foo']).to eq('bar')
@@ -312,7 +311,7 @@ module SimplyGenius
 
           it "gets config from yml" do
             with_sourcepaths do |sp_dir, app_dir|
-              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+              thor = gen.apply_template(SourcePath.find_template('template1'))
 
               app_dir.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}))
 
@@ -326,7 +325,7 @@ module SimplyGenius
 
           it "checks for presence" do
             with_sourcepaths do |sp_dir, app_dir|
-              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+              thor = gen.apply_template(SourcePath.find_template('template1'))
 
               app_dir.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}, 'list' => ['one']))
 
@@ -338,7 +337,7 @@ module SimplyGenius
 
           it "checks for simple value" do
             with_sourcepaths do |sp_dir, app_dir|
-              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+              thor = gen.apply_template(SourcePath.find_template('template1'))
 
               app_dir.file('foo.yml', YAML.dump('foo' => {'bar' => 'baz'}))
 
@@ -349,7 +348,7 @@ module SimplyGenius
 
           it "checks for list contents" do
             with_sourcepaths do |sp_dir, app_dir|
-              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+              thor = gen.apply_template(SourcePath.find_template('template1'))
 
               app_dir.file('foo.yml', YAML.dump('foo' => {'bar' => ['hum', 'baz']}))
 
@@ -361,7 +360,7 @@ module SimplyGenius
 
           it "checks for all of list to be present" do
             with_sourcepaths do |sp_dir, app_dir|
-              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+              thor = gen.apply_template(SourcePath.find_template('template1'))
 
               app_dir.file('foo.yml', YAML.dump('foo' => ['hum', 'baz']))
 
@@ -396,7 +395,7 @@ module SimplyGenius
                 hum: hi
               EOF
               app_dir.file("config/atmos.yml", data)
-              gen.send(:apply_template, SourcePath.find_template('template1'))
+              gen.apply_template(SourcePath.find_template('template1'))
 
               new_data = File.read("config/atmos.yml")
               expect(new_data.lines.grep(/comment/).length).to eq(2)
@@ -413,7 +412,7 @@ module SimplyGenius
           it "checks if config has more keys" do
             with_sourcepaths do |sp_dir, app_dir|
 
-              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+              thor = gen.apply_template(SourcePath.find_template('template1'))
 
               data = {"foo" => 'bar', "hum" => 'hi'}
               sp_dir.file("foo.yml", YAML.dump(data))
@@ -447,7 +446,7 @@ module SimplyGenius
           it "can generate another template" do
             with_sourcepaths do |sp_dir, app_dir|
               sp_dir.file('sp2/template2/foo.txt', "hello")
-              thor = gen.send(:apply_template, SourcePath.find_template('template1'))
+              thor = gen.apply_template(SourcePath.find_template('template1'))
 
               expect(File.exist?('foo.txt')).to be false
               thor.generate('template2')
