@@ -136,7 +136,7 @@ module SimplyGenius
             state[:entrypoint_templates].concat(entrypoint_template_names)
             state[:entrypoint_templates].sort!.uniq!
 
-            File.write(state_file, YAML.dump(state))
+            File.write(state_file, YAML.dump(state.to_hash))
           end
         end
 

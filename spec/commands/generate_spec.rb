@@ -249,6 +249,24 @@ module SimplyGenius
             end
           end
 
+          it "saves plain ruby hashes and lists to state" do
+            within_construct do |c|
+              @config.notation_put("generate.state_file", file)
+              cli.save_state([t1], [t1.name])
+              cli.instance_variable_set(:@config, nil)
+              cli.save_state([t2], [t2.name])
+              expect(File.exist?(file)).to be true
+              expect(File.read(file)).to_not match(/::/) # plain ruby hashes and lists
+              expect(YAML.load_file(file)).to eq({"visited_templates"=>[
+                  # FIXME shallow_merge cuz scoped_context adds a hash, and Hashie::Mash aliases merge to deep_merge
+                  t1.to_h.shallow_merge("context" => t1.scoped_context),
+                  t2.to_h.shallow_merge("context" => t1.scoped_context)
+              ], "entrypoint_templates" => [t1.name, t2.name]})
+            end
+          end
+
+
+
         end
 
         describe "execute" do
