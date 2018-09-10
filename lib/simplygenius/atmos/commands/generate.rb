@@ -32,12 +32,14 @@ module SimplyGenius
         option ["-d", "--[no-]dependencies"],
                :flag, "Walk dependencies, or not", default: true
         option ["-l", "--list"],
-               :flag, "list available templates\n"
+               :flag, "list available templates"
         option ["-p", "--sourcepath"],
-               "PATH", "find templates at given path or github url\n",
+               "PATH", "search for templates using given sourcepath",
                multivalued: true
+        option ["-r", "--[no-]sourcepaths"],
+               :flag, "clear sourcepaths from template search\n", default: true
         option ["-c", "--context"],
-               "CONTEXT", "provide context variables (dot notation)\n",
+               "CONTEXT", "provide context variables (dot notation)",
                multivalued: true
 
         parameter "TEMPLATE ...", "atmos template(s)", required: false
@@ -49,15 +51,19 @@ module SimplyGenius
             SourcePath.register(File.basename(sp), sp)
           end
 
-          # don't want to fail for new repo
-          if  Atmos.config && Atmos.config.is_atmos_repo?
-            Atmos.config['template_sources'].try(:each) do |item|
-              SourcePath.register(item.name, item.location)
-            end
-          end
+          if sourcepaths?
 
-          # Always search for templates against the bundled templates directory
-          SourcePath.register('bundled', File.expand_path('../../../../../templates', __FILE__))
+            # don't want to fail for new repo
+            if  Atmos.config && Atmos.config.is_atmos_repo?
+              Atmos.config['template_sources'].try(:each) do |item|
+                SourcePath.register(item.name, item.location)
+              end
+            end
+
+            # Always search for templates against the bundled templates directory
+            SourcePath.register('bundled', File.expand_path('../../../../../templates', __FILE__))
+
+          end
 
           if list?
             logger.info "Valid templates are:"

@@ -24,6 +24,48 @@ module SimplyGenius
 
         end
 
+        describe "--no-sourcepaths" do
+
+          it "does not skip built in and configured sourcepaths by default" do
+            within_construct do |c|
+              c.file('sp1/foo/templates.yml')
+
+              within_construct do |d|
+                d.file("config/atmos.yml", YAML.dump(template_sources: [
+                    {
+                        name: "local",
+                        location: c.to_s
+                    }
+                ]))
+                Atmos.config = Config.new("ops")
+
+                expect(SourcePath).to receive(:register).exactly(3).times
+                cli.run(["--sourcepath", "#{c.to_s}/sp1", "--list"])
+              end
+            end
+          end
+
+          it "skips built in and configured sourcepaths" do
+            within_construct do |c|
+              c.file('sp1/foo/templates.yml')
+
+              within_construct do |d|
+                d.file("config/atmos.yml", YAML.dump(template_sources: [
+                    {
+                        name: "local",
+                        location: c.to_s
+                    }
+                ]))
+                Atmos.config = Config.new("ops")
+
+                expect(SourcePath).to receive(:register).once.with("sp1", "#{c.to_s}/sp1")
+                cli.run(["--no-sourcepaths", "--sourcepath", "#{c.to_s}/sp1", "--list"])
+              end
+            end
+          end
+
+        end
+
         describe "--sourcepath" do
 
           it "adds given sourcepaths to default in correct order" do
