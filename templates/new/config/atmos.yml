@@ -16,20 +16,10 @@ global_name_prefix: "#{org}-#{atmos_env}-"
 #
 local_name_prefix:
 
-# The recipes to use for all environments, override at environment level if
-# need be.  The recipes to use when bootstrapping each environment will be
-# under the bootstrap key.  These are kept separate to make it easy to tear
-# down an environment without breaking terraform mid-destroy.  Most new
-# deployments will have all recipes under a single key (Default), but the use
-# of multiple keys to segment your infrastructure is useful as it grows larger
-#
-recipes:
-  bootstrap:
-  default:
-
 # Environment specific overrides.  When adding new environments place them
 # after the existing ones so that you don't end up with permission issues when
-# bootstrapping the new account
+# bootstrapping the new account.  You can also add overrides for each
+# environment in their corresponding yml file in config/atmos/environments/<env_name>.yml
 #
 environments:
   ops:
