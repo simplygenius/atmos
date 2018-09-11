@@ -135,6 +135,15 @@ module SimplyGenius
           def track_context(varname, value)
             varname.blank? || value.nil? ? nil: tmpl.scoped_context[varname] = value
           end
+
+          def respond_to_missing?(method_name, *args)
+            scoped_context.respond_to_missing?(method_name, *args)
+          end
+
+          def method_missing(method_name, *args, &blk)
+            scoped_context.method_missing(method_name, *args, &blk)
+          end
+
         end
 
         desc "ask <question string> [varname: name]", "Asks a question, allowing context to provide answer using varname"

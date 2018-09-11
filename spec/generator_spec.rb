@@ -302,6 +302,21 @@ module SimplyGenius
             end
           end
 
+          it "uses context for varname lookups" do
+            with_sourcepaths do |sp_dir, app_dir|
+              tmpl = SourcePath.find_template('template1')
+              tmpl.scoped_context.merge!({foo: "answer"})
+              thor = gen.apply_template(tmpl)
+
+              result = nil
+              expect { simulate_stdin("other") { result = thor.ask("question ", varname: :askfoo) } }.to output("question ").to_stdout
+              expect(result).to eq("other")
+              expect(tmpl.scoped_context[:askfoo]).to eq("other")
+              expect(thor.askfoo).to eq("other")
+              expect(thor.foo).to eq("answer")
+            end
+          end
+
         end
 
         describe "raw_configs" do
