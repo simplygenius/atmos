@@ -158,7 +158,7 @@ module SimplyGenius
           result
         end
 
-        desc "agree <question string> [varname: name]", "Asks a Y/N question, allowing context to provide answer using varname"
+        desc "choose menu_block [varname: name]", "Provides a menu with choices, allowing context to provide answer using varname"
         def choose(*items, varname: nil, &details)
           result = lookup_context(varname)
           if result.nil?
