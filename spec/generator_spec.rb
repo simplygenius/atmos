@@ -223,13 +223,18 @@ module SimplyGenius
               result = nil
               expect { simulate_stdin("y") { result = thor.ask("foo ") } }.to output("foo ").to_stdout
               expect(result).to eq("y")
+              result = nil
+              expect { simulate_stdin("foo") {
+                result = thor.choose {|m| m.prompt = "foo "; m.choices(:foo, :bar); m.default = :bar}
+              }}.to output("1. foo\n2. bar\n(bar) foo ").to_stdout
+              expect(result).to eq(:foo)
             end
           end
 
           it "skips UI by looking up from context" do
             with_sourcepaths do |sp_dir, app_dir|
               tmpl = SourcePath.find_template('template1')
-              tmpl.scoped_context.merge!({foo: "answer", bar: "yes"})
+              tmpl.scoped_context.merge!({foo: "answer", bar: "yes", baz: :bar})
               thor = gen.apply_template(tmpl)
 
               result = nil
@@ -241,6 +246,11 @@ module SimplyGenius
               expect { simulate_stdin("n") { result = thor.agree("question ", varname: :agreefoo) } }.to output("question ").to_stdout
               expect(result).to eq(false)
               expect(thor.agree("question ", varname: :foo)).to eq(true)
+
+              result = nil
+              expect { simulate_stdin("foo") { result = thor.choose(varname: :choosefoo) {|m| m.prompt = "foo "; m.choices(:foo, :bar); m.default = :bar}}}.to output("1. foo\n2. bar\n(bar) foo ").to_stdout
+              expect(result).to eq(:foo)
+              expect(thor.choose(varname: :baz) {|m| m.prompt = "foo "; m.choices(:foo, :bar); m.default = :bar}).to eq(:bar)
             end
           end
 
@@ -258,6 +268,14 @@ module SimplyGenius
               expect { simulate_stdin("n") { result = thor.agree("question ", varname: :agreefoo) } }.to output("question ").to_stdout
               expect(result).to eq(false)
               expect(tmpl.scoped_context[:agreefoo]).to eq(false)
+
+              result = nil
+              expect { simulate_stdin("foo") {
+                result = thor.choose(varname: :choosefoo) {|m| m.prompt = "foo "; m.choices(:foo, :bar); m.default = :bar}
+              }}.to output("1. foo\n2. bar\n(bar) foo ").to_stdout
+              expect(result).to eq(:foo)
+              expect(tmpl.scoped_context[:choosefoo]).to eq(:foo)
+
             end
           end
 

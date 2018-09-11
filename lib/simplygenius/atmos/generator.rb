@@ -158,6 +158,16 @@ module SimplyGenius
           result
         end
 
+        desc "agree <question string> [varname: name]", "Asks a Y/N question, allowing context to provide answer using varname"
+        def choose(*items, varname: nil, &details)
+          result = lookup_context(varname)
+          if result.nil?
+            result = super(*items, &details)
+          end
+          track_context(varname, result)
+          result
+        end
+
         desc "generate <tmpl_name> [context_hash]", "Generates the given template with optional context"
         def generate(name, ctx: context)
           parent.generate(name, context: ctx.clone)
