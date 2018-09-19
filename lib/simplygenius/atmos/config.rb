@@ -94,6 +94,7 @@ module SimplyGenius
         load_path = paths + Array(self[:load_path])
         if load_path.present?
           load_path = load_path.collect { |path| File.expand_path(path) }
+          logger.debug("Adding to load path: #{load_path.inspect}")
           $LOAD_PATH.insert(0, *load_path)
         end
       end
