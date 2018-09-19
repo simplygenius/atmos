@@ -6,6 +6,10 @@ var_prefix:
 # Disable module fetch from convenience plan/apply commandss
 disable_auto_modules: false
 
+# Allows one to add a custom ruby load path list for extending atmos without
+# having to publish a gem
+load_path:
+
 # Configure the mechanism that allows terraform to callback into atmos
 ipc:
   # Disables all IPC callbacks into atmos from terraform

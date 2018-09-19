@@ -90,6 +90,14 @@ module SimplyGenius
         end
       end
 
+      def add_user_load_path(*paths)
+        load_path = paths + Array(self[:load_path])
+        if load_path.present?
+          load_path = load_path.collect { |path| File.expand_path(path) }
+          $LOAD_PATH.insert(0, *load_path)
+        end
+      end
+
       private
 
       INTERP_PATTERN = /(\#\{([^\}]+)\})/

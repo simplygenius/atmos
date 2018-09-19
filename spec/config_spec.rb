@@ -7,6 +7,7 @@ module SimplyGenius
     describe Config do
 
       let(:config) { described_class.new("ops") }
+      let(:config_hash) { config.send(:load); config.instance_variable_get(:@config) }
 
       describe "initialize" do
 
@@ -504,6 +505,62 @@ module SimplyGenius
           lhs = {y: {1 => 2}}
           rhs = {"^y": {3 => 4}}
           expect(config.send(:config_merge, lhs, rhs)).to eq({y: {3 => 4}})
+        end
+
+      end
+
+      describe "add_user_load_path" do
+
+        it "does nothing if no paths" do
+          lp = $LOAD_PATH.dup
+          config.add_user_load_path
+          expect($LOAD_PATH).to eq(lp)
+        end
+
+        it "loads from single relative path" do
+          lp = $LOAD_PATH.dup
+          config_hash[:load_path] = "foo"
+          config.add_user_load_path
+          expect($LOAD_PATH.length).to eq(lp.length + 1)
+          expect($LOAD_PATH.first).to eq("#{config.root_dir}/foo")
+        end
+
+        it "loads from single absolute path" do
+          lp = $LOAD_PATH.dup
+          config_hash[:load_path] = "/foo"
+          config.add_user_load_path
+          expect($LOAD_PATH.length).to eq(lp.length + 1)
+          expect($LOAD_PATH.first).to eq("/foo")
+        end
+
+        it "loads from expandable path" do
+          lp = $LOAD_PATH.dup
+          config_hash[:load_path] = "~/lib"
+          ClimateControl.modify("HOME" => "/tmp") do
+            config.add_user_load_path
+          end
+          expect($LOAD_PATH.length).to eq(lp.length + 1)
+          expect($LOAD_PATH.first).to eq("/tmp/lib")
+        end
+
+        it "loads from multiple paths" do
+          lp = $LOAD_PATH.dup
+          config_hash[:load_path] = ["foo", "bar"]
+          config.add_user_load_path
+          expect($LOAD_PATH.length).to eq(lp.length + 2)
+          expect($LOAD_PATH[0]).to eq("#{config.root_dir}/foo")
+          expect($LOAD_PATH[1]).to eq("#{config.root_dir}/bar")
+        end
+
+        it "loads from args path" do
+          lp = $LOAD_PATH.dup
+          config_hash[:load_path] = ["foo", "bar"]
+          config.add_user_load_path("baz", "boo")
+          expect($LOAD_PATH.length).to eq(lp.length + 4)
+          expect($LOAD_PATH[0]).to eq("#{config.root_dir}/baz")
+          expect($LOAD_PATH[1]).to eq("#{config.root_dir}/boo")
+          expect($LOAD_PATH[2]).to eq("#{config.root_dir}/foo")
+          expect($LOAD_PATH[3]).to eq("#{config.root_dir}/bar")
         end
 
       end

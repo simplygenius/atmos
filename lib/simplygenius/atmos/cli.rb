@@ -40,6 +40,10 @@ module SimplyGenius
              'ENV', "The atmos environment\n",
              environment_variable: 'ATMOS_ENV', default: 'ops'
 
+      option ["-l", "--load-path"],
+             "PATH", "adds additional paths to ruby load path",
+             multivalued: true
+
       def default_color?
          $stdout.tty?
       end
@@ -99,6 +103,8 @@ module SimplyGenius
           log = Atmos.config.is_atmos_repo? && log? ? "atmos.log" : nil
           Logging.setup_logging(debug?, color?, log)
           UI.color_enabled = color?
+
+          Atmos.config.add_user_load_path(*load_path_list)
           Atmos.config.plugin_manager.register_output_filter(:stdout, Plugins::PromptNotify)
           Atmos.config.plugin_manager.load_plugins
         end

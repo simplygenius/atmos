@@ -123,6 +123,24 @@ module SimplyGenius
 
       end
 
+      describe "--load-path" do
+
+        it "defaults to none" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          expect(conf).to receive(:add_user_load_path).with(no_args)
+          cli.run(['version'])
+        end
+
+        it "passes paths to config" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          expect(conf).to receive(:add_user_load_path).with("foo", "bar")
+          cli.run(['--load-path', 'foo', '--load-path', 'bar', 'version'])
+        end
+
+      end
+
       describe "executable" do
 
         it "runs the cli" do
