@@ -1,52 +1,59 @@
 # Optional configuration for controlling the behavior of the atmos runtime
+atmos:
+  # Allows one to add a custom ruby load path list for extending atmos without
+  # having to publish a gem
+  load_path:
 
-# Sets a prefix on the root keys when passed into terraform as a var value
-var_prefix:
+  # To get the atmos-pro gem, add the gem source like:
+  #   gem sources -a https://YOUR_API_KEY@releases.simplygenius.com/gems/
+  # then install the gem:
+  #   gem install simplygenius-atmos-pro
+  # then add simplygenius-atmos-pro to the plugins key below
+  #
+  # The list of plugin gems to load when running atmos
+  #
+  plugins:
+    #   - simplygenius-atmos-pro
 
-# Disable module fetch from convenience plan/apply commandss
-disable_auto_modules: false
-
-# Allows one to add a custom ruby load path list for extending atmos without
-# having to publish a gem
-load_path:
-
-# Configure the mechanism that allows terraform to callback into atmos
-ipc:
-  # Disables all IPC callbacks into atmos from terraform
-  disable: false
-  # Configures the notify IP callback
-  notify:
-    # Disable notify callbacks
+  # Configure the mechanism that allows terraform to callback into atmos
+  ipc:
+    # Disables all IPC callbacks into atmos from terraform
     disable: false
+    # Configures the notify IP callback
+    notify:
+      # Disable notify callbacks
+      disable: false
 
-# Configure the integrated otp mechanism
-otp:
-  # The file where otp secrets are stored
-  secret_file: ~/.atmos.yml
+  # Configure the integrated otp mechanism
+  otp:
+    # The file where otp secrets are stored
+    secret_file: ~/.atmos.yml
 
-# Configure the template generator
-generate:
-  # The file storing the record of each generated template
-  state_file: .atmos-templates.yml
+  # Configure the template generator
+  generate:
+    # The file storing the record of each generated template
+    state_file: .atmos-templates.yml
 
-# Configure the UI components
-ui:
-  # Configures UI notifications
-  notify:
-    # Disable notifications
-    disable: false
-    # Force notifications to never be modal
-    disable_modal: false
-    # Set a custom command for notifications, embedded {{title|message|modal}}
-    # will be replaced with the value passed from terraform
-    command:
-    # Force notifications inline in atmos' stdout output rather than launching
-    # a GUI notification
-    force_inline: false
+  # Configure the UI components
+  ui:
+    # Configures UI notifications
+    notify:
+      # Disable notifications
+      disable: false
+      # Force notifications to never be modal
+      disable_modal: false
+      # Set a custom command for notifications, embedded {{title|message|modal}}
+      # will be replaced with the value passed from terraform
+      command:
+      # Force notifications inline in atmos' stdout output rather than launching
+      # a GUI notification
+      force_inline: false
 
-# Configure terraform execution details
-terraform:
-  # By default, all terraform plugins are placed in a directory so they can be
-  # reused across all envs/groups.  This can be disabled here (you can also
-  # override using the terraform cli options for plugins)
-  disable_shared_plugins: false
+  # Configure terraform execution details
+  terraform:
+    # Disable module fetch from convenience plan/apply commands
+    disable_auto_modules: false
+    # By default, all terraform plugins are placed in a directory so they can be
+    # reused across all envs/groups.  This can be disabled here (you can also
+    # override using the terraform cli options for plugins)
+    disable_shared_plugins: false

@@ -306,7 +306,7 @@ module SimplyGenius
 
         it "loads additional configs" do
           within_construct do |c|
-            c.file('config/atmos.yml', YAML.dump(foo: "bar", hum: "not", config_sources: "atmos/*.y{,a}ml"))
+            c.file('config/atmos.yml', YAML.dump(foo: "bar", hum: "not", atmos: {config_sources: "atmos/*.y{,a}ml"}))
             c.file('config/atmos/foo.yml', YAML.dump(bar: "baz"))
             c.file('config/atmos/bar.yaml', YAML.dump(baz: "bum", hum: "yes"))
             config.send(:load)
@@ -358,7 +358,7 @@ module SimplyGenius
         it "merges additively env config" do
           within_construct do |c|
 
-            c.file('config/atmos.yml', YAML.dump(foo: [1], config_sources: "atmos/*.yml"))
+            c.file('config/atmos.yml', YAML.dump(foo: [1], atmos: {config_sources: "atmos/*.yml"}))
             c.file('config/atmos/foo.yml', YAML.dump(foo: [2]))
             c.file('config/atmos/provider.yml', YAML.dump(provider: "aws", providers: {aws: {foo: [3]}}))
             c.file('config/atmos/env.yml', YAML.dump(environments: {dev: {foo: [4]}}))
@@ -519,7 +519,7 @@ module SimplyGenius
 
         it "loads from single relative path" do
           lp = $LOAD_PATH.dup
-          config_hash[:load_path] = "foo"
+          config_hash.notation_put("atmos.load_path", "foo")
           config.add_user_load_path
           expect($LOAD_PATH.length).to eq(lp.length + 1)
           expect($LOAD_PATH.first).to eq("#{config.root_dir}/foo")
@@ -527,7 +527,7 @@ module SimplyGenius
 
         it "loads from single absolute path" do
           lp = $LOAD_PATH.dup
-          config_hash[:load_path] = "/foo"
+          config_hash.notation_put("atmos.load_path", "/foo")
           config.add_user_load_path
           expect($LOAD_PATH.length).to eq(lp.length + 1)
           expect($LOAD_PATH.first).to eq("/foo")
@@ -535,7 +535,7 @@ module SimplyGenius
 
         it "loads from expandable path" do
           lp = $LOAD_PATH.dup
-          config_hash[:load_path] = "~/lib"
+          config_hash.notation_put("atmos.load_path", "~/lib")
           ClimateControl.modify("HOME" => "/tmp") do
             config.add_user_load_path
           end
@@ -545,7 +545,7 @@ module SimplyGenius
 
         it "loads from multiple paths" do
           lp = $LOAD_PATH.dup
-          config_hash[:load_path] = ["foo", "bar"]
+          config_hash.notation_put("atmos.load_path", ["foo", "bar"])
           config.add_user_load_path
           expect($LOAD_PATH.length).to eq(lp.length + 2)
           expect($LOAD_PATH[0]).to eq("#{config.root_dir}/foo")
@@ -554,7 +554,7 @@ module SimplyGenius
 
         it "loads from args path" do
           lp = $LOAD_PATH.dup
-          config_hash[:load_path] = ["foo", "bar"]
+          config_hash.notation_put("atmos.load_path", ["foo", "bar"])
           config.add_user_load_path("baz", "boo")
           expect($LOAD_PATH.length).to eq(lp.length + 4)
           expect($LOAD_PATH[0]).to eq("#{config.root_dir}/baz")

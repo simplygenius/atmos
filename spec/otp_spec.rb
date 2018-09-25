@@ -20,12 +20,12 @@ module SimplyGenius
       describe "initialize" do
 
         it "has a default secret file" do
-          @config.notation_put("otp.secret_file", nil)
+          @config.notation_put("atmos.otp.secret_file", nil)
           expect(otp.instance_variable_get(:@secret_file)).to eq(File.expand_path("~/.atmos.yml"))
         end
 
         it "can override secret file" do
-          @config.notation_put("otp.secret_file", "~/.foo.yml")
+          @config.notation_put("atmos.otp.secret_file", "~/.foo.yml")
           expect(otp.instance_variable_get(:@secret_file)).to eq(File.expand_path("~/.foo.yml"))
         end
 
@@ -60,7 +60,7 @@ module SimplyGenius
         it "saves secret file" do
           within_construct do |c|
             secret_file = "#{c}/foo.yml"
-            @config.notation_put("otp.secret_file", secret_file)
+            @config.notation_put("atmos.otp.secret_file", secret_file)
             otp.add("foo", "sekret")
 
             expect(File.exist?(secret_file)).to be false
@@ -74,7 +74,7 @@ module SimplyGenius
         it "loads secret file" do
           within_construct do |c|
             secret_file = "#{c}/foo.yml"
-            @config.notation_put("otp.secret_file", secret_file)
+            @config.notation_put("atmos.otp.secret_file", secret_file)
             otp.add("foo", "sekret")
             otp.save
             expect(File.exist?(secret_file)).to be true

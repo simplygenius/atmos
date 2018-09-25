@@ -45,7 +45,7 @@ module SimplyGenius
       end
 
       def plugin_manager
-        @plugin_manager ||= PluginManager.new(self[:plugins])
+        @plugin_manager ||= PluginManager.new(self["atmos.plugins"])
       end
 
       def all_env_names
@@ -91,7 +91,7 @@ module SimplyGenius
       end
 
       def add_user_load_path(*paths)
-        load_path = paths + Array(self[:load_path])
+        load_path = paths + Array(self["atmos.load_path"])
         if load_path.present?
           load_path = load_path.collect { |path| File.expand_path(path) }
           logger.debug("Adding to load path: #{load_path.inspect}")
@@ -199,7 +199,7 @@ module SimplyGenius
             @included_configs << config_file
           end
 
-          @full_config = load_config_sources(File.dirname(config_file), @full_config, *Array(@full_config[:config_sources]))
+          @full_config = load_config_sources(File.dirname(config_file), @full_config, *Array(@full_config.notation_get("atmos.config_sources")))
 
           @full_config['provider'] = provider_name = @full_config['provider'] || 'aws'
 

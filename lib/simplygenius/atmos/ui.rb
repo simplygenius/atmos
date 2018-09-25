@@ -99,13 +99,13 @@ module SimplyGenius
         message = message.to_s
         title = title.present? ? title.to_s : "Atmos Notification"
         modal = ["true", "1"].include?(modal.to_s)
-        modal = false if Atmos.config["ui.notify.disable_modal"]
+        modal = false if Atmos.config["atmos.ui.notify.disable_modal"]
 
-        return result if Atmos.config["ui.notify.disable"].to_s == "true"
+        return result if Atmos.config["atmos.ui.notify.disable"].to_s == "true"
 
-        force_inline = opts[:inline].to_s == "true" || Atmos.config["ui.notify.force_inline"].to_s == "true"
+        force_inline = opts[:inline].to_s == "true" || Atmos.config["atmos.ui.notify.force_inline"].to_s == "true"
 
-        command = Atmos.config["ui.notify.command"]
+        command = Atmos.config["atmos.ui.notify.command"]
 
         if command.present? && ! force_inline
 

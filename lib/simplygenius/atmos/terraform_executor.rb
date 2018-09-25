@@ -78,7 +78,7 @@ module SimplyGenius
 
             ipc.listen do |sock_path|
 
-              if Atmos.config['ipc.disable']
+              if Atmos.config['atmos.ipc.disable']
                 # Using : as the command makes execution of ipc from the
                 # terraform side a no-op in both cases of how we call it.  This
                 # way, terraform execution continues to work when IPC is disabled
@@ -259,7 +259,7 @@ module SimplyGenius
       end
 
       def link_shared_plugin_dir
-        if ! Atmos.config["terraform.disable_shared_plugins"]
+        if ! Atmos.config["atmos.terraform.disable_shared_plugins"]
           shared_plugins_dir = File.join(Atmos.config.tmp_root, "terraform_plugins")
           mkdir_p(shared_plugins_dir)
           terraform_state_dir = File.join(tf_recipes_dir, '.terraform')

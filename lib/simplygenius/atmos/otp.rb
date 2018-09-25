@@ -10,7 +10,7 @@ module SimplyGenius
       include GemLogger::LoggerSupport
 
       def initialize
-        @secret_file = Atmos.config["otp.secret_file"] || "~/.atmos.yml"
+        @secret_file = Atmos.config["atmos.otp.secret_file"] || "~/.atmos.yml"
         @secret_file = File.expand_path(@secret_file)
         yml_hash = YAML.load_file(@secret_file) rescue Hash.new
         @secret_store = SettingsHash.new(yml_hash)

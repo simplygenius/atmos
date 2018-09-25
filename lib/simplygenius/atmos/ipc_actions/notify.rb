@@ -19,7 +19,7 @@ module SimplyGenius
               'success' => ''
           }
 
-          return result if Atmos.config["ipc.notify.disable"].to_s == "true"
+          return result if Atmos.config["atmos.ipc.notify.disable"].to_s == "true"
           return notify(**opts)
 
         end

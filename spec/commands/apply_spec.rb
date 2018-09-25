@@ -35,7 +35,7 @@ module SimplyGenius
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(TerraformExecutor).to receive(:new).
                 with(process_env: env, working_group: 'default').and_return(te)
-            Atmos.config.instance_variable_get(:@config)["disable_auto_modules"] = true
+            Atmos.config.instance_variable_get(:@config).notation_put("atmos.terraform.disable_auto_modules", true)
             expect(te).to receive(:run).with("apply", get_modules: false)
             cli.run([])
           end

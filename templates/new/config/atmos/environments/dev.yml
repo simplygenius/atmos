@@ -1,0 +1,8 @@
+# Environment specific overrides for the ops environment
+#
+# You can add overrides for other environments by creating a <env>.yml file in
+# this directory where <env> is the environment name.
+#
+# Overrides in this file should NOT be scoped under a "environments ->
+# <env>" hash like they need to be in atmos.yml
+#

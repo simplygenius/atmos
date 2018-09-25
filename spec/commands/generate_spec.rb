@@ -31,12 +31,12 @@ module SimplyGenius
               c.file('sp1/foo/templates.yml')
 
               within_construct do |d|
-                d.file("config/atmos.yml", YAML.dump(template_sources: [
+                d.file("config/atmos.yml", YAML.dump(atmos: {template_sources: [
                     {
                         name: "local",
                         location: c.to_s
                     }
-                ]))
+                ]}))
                 Atmos.config = Config.new("ops")
 
                 expect(SourcePath).to receive(:register).exactly(3).times
@@ -50,12 +50,12 @@ module SimplyGenius
               c.file('sp1/foo/templates.yml')
 
               within_construct do |d|
-                d.file("config/atmos.yml", YAML.dump(template_sources: [
+                d.file("config/atmos.yml", YAML.dump(atmos: {template_sources: [
                     {
                         name: "local",
                         location: c.to_s
                     }
-                ]))
+                ]}))
                 Atmos.config = Config.new("ops")
 
                 expect(SourcePath).to receive(:register).once.with("sp1", "#{c.to_s}/sp1")
@@ -82,12 +82,12 @@ module SimplyGenius
               within_construct do |c|
                 c.file('foo/templates.yml')
                 within_construct do |d|
-                  d.file("config/atmos.yml", YAML.dump(template_sources: [
+                  d.file("config/atmos.yml", YAML.dump(atmos: {template_sources: [
                       {
                           name: "local",
                           location: c.to_s
                       }
-                  ]))
+                  ]}))
                   Atmos.config = Config.new("ops")
 
                   cli.run(["--list"])
@@ -271,9 +271,9 @@ module SimplyGenius
 
           it "reads state file from config" do
             within_construct do |c|
-              @config.notation_put("generate.state_file", nil)
+              @config.notation_put("atmos.generate.state_file", nil)
               expect(cli.state_file).to be nil
-              @config.notation_put("generate.state_file", ".atmos-templates.yml")
+              @config.notation_put("atmos.generate.state_file", ".atmos-templates.yml")
               expect(cli.state_file).to eq(".atmos-templates.yml")
             end
           end
@@ -284,14 +284,14 @@ module SimplyGenius
 
           it "has empty state when no state file" do
             within_construct do |c|
-              @config.notation_put("generate.state_file", nil)
+              @config.notation_put("atmos.generate.state_file", nil)
               expect(cli.state).to eq({})
             end
           end
 
           it "has empty state when state file not there" do
             within_construct do |c|
-              @config.notation_put("generate.state_file", ".atmos-templates.yml")
+              @config.notation_put("atmos.generate.state_file", ".atmos-templates.yml")
               expect(cli.state).to eq({})
             end
           end
@@ -299,7 +299,7 @@ module SimplyGenius
           it "reads state from state file" do
             within_construct do |c|
               c.file(".atmos-templates.yml", YAML.dump({foo: "bar"}))
-              @config.notation_put("generate.state_file", ".atmos-templates.yml")
+              @config.notation_put("atmos.generate.state_file", ".atmos-templates.yml")
               expect(cli.state).to eq({"foo" => "bar"})
             end
           end
@@ -315,7 +315,7 @@ module SimplyGenius
 
           it "does nothing if no state file" do
             within_construct do |c|
-              @config.notation_put("generate.state_file", nil)
+              @config.notation_put("atmos.generate.state_file", nil)
               cli.save_state([t1, t2], [])
               expect(Dir["#{c}/*"]).to eq([])
             end
@@ -323,7 +323,7 @@ module SimplyGenius
 
           it "saves list of templates" do
             within_construct do |c|
-              @config.notation_put("generate.state_file", file)
+              @config.notation_put("atmos.generate.state_file", file)
               cli.save_state([t1], [])
               expect(File.exist?(file)).to be true
               expect(YAML.load_file(file)).to eq({"visited_templates"=>[
@@ -335,7 +335,7 @@ module SimplyGenius
 
           it "updates and sorts existing list of templates" do
             within_construct do |c|
-              @config.notation_put("generate.state_file", file)
+              @config.notation_put("atmos.generate.state_file", file)
               cli.save_state([t2], [])
               cli.save_state([t1], [])
               expect(File.exist?(file)).to be true
@@ -348,7 +348,7 @@ module SimplyGenius
 
           it "updates and sorts entrypoint templates" do
             within_construct do |c|
-              @config.notation_put("generate.state_file", file)
+              @config.notation_put("atmos.generate.state_file", file)
               cli.save_state([], ["tmpl3", "tmpl2"])
               cli.save_state([], ["tmpl1"])
               expect(File.exist?(file)).to be true
@@ -360,7 +360,7 @@ module SimplyGenius
 
           it "saves plain ruby hashes and lists to state" do
             within_construct do |c|
-              @config.notation_put("generate.state_file", file)
+              @config.notation_put("atmos.generate.state_file", file)
               cli.save_state([t1], [t1.name])
               cli.instance_variable_set(:@config, nil)
               cli.save_state([t2], [t2.name])

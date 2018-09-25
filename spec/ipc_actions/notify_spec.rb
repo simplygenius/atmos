@@ -24,7 +24,7 @@ module SimplyGenius
         end
 
         it "disables notifications when desired" do
-          @config.notation_put('ipc.notify.disable', true)
+          @config.notation_put('atmos.ipc.notify.disable', true)
 
           expect(action).to_not receive(:notify)
           action.execute(message: "foo")

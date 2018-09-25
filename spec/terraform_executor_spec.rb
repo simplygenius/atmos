@@ -169,7 +169,7 @@ module SimplyGenius
 
         it "doesn't link if config disabled" do
           within_construct do |c|
-            c.file('config/atmos.yml', YAML.dump("terraform" => {"disable_shared_plugins" => true}))
+            c.file('config/atmos.yml', YAML.dump("atmos" => {"terraform" => {"disable_shared_plugins" => true}}))
 
             Atmos.config = Config.new("ops")
             te.send(:link_shared_plugin_dir)
@@ -603,7 +603,7 @@ module SimplyGenius
             c.file('config/atmos.yml')
             Atmos.config = Config.new("ops")
             Atmos.config.send(:load)
-            Atmos.config.instance_variable_get(:@config).notation_put('ipc.disable', true)
+            Atmos.config.instance_variable_get(:@config).notation_put('atmos.ipc.disable', true)
 
             expect(te).to receive(:spawn).
                 with(hash_including('ATMOS_IPC_CLIENT' => ':'), any_args)

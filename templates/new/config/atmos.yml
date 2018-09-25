@@ -1,3 +1,24 @@
+# The atmos configuration system merges together all the yml files into one
+# giant hash, starting with this atmos.yml, then adding in all the files
+# matching the patterns in atmos.config_sources
+#
+# Hashes and arrays are merged in an additive fashion, and scalars are replaced
+# based on the merge order (last wins).  e.g.
+#   "foo: {bar: 1}, hum: [1]" + "foo: {baz: 2}, hum: [2]" => "foo: {bar: 1, baz: 2}, , hum: [1, 2]"
+# You can force an override (vs merge) of a hash or array by prefixing the key
+# with a caret (^)
+#   "foo: {bar: 1}" + "^foo: {baz: 2}" => "foo: {baz: 2}"
+#
+# Providers and environment overrides get merged in on top of the hash based on
+# the selected provider (aws) and environment (ops/dev/prod/etc).
+# The providers and environments key/hash are excluded from the final merged
+# configuration hash
+#
+# The merged configuration hash is provided to terraform at execution time via a
+# generated tfvars.json  To access those variables you still need to declare the
+# variables you use with a terraform variable declaration in a tf file
+#
+
 # The short name of your organization
 #
 org:
@@ -31,31 +52,33 @@ environments:
 #
 is_dev: "#{ !! /dev|test|demo/.match(atmos_env) }"
 
-# A list of glob patterns for finding atmos yml files
-# Patterns can be absolute (beginning with /), but if not are applied relative
-# to the directory containing atmos.yml
-#
-config_sources:
-  - atmos/*.y{,a}ml
+# Configuration for the most common settings for the atmos runtime.  See also config/atmos/runtime.yml
+atmos:
+  # A list of glob patterns for finding atmos yml files
+  # Patterns can be absolute (beginning with /), but if not are applied relative
+  # to the directory containing atmos.yml
+  #
+  config_sources:
+    - atmos/*.y{,a}ml
 
-# Sources for atmos templates
-# To circumvent the version lock and get the latest git master recipes, use the git
-# location, e.g.:
-# location: https://github.com/simplygenius/atmos-recipes.git
-#
-template_sources:
-- name: atmos-recipes
-  location: https://github.com/simplygenius/atmos-recipes/archive/v#{atmos_version}.zip#atmos-recipes-#{atmos_version}
-#- name: atmos-pro-recipes
-#  location: https://YOUR_API_KEY@releases.simplygenius.com/recipes/v#{atmos_version}#atmos-pro-recipes-#{atmos_version}
+  # Sources for atmos templates
+  # To circumvent the version lock and get the latest git master recipes, use the git
+  # location, e.g.:
+  # location: https://github.com/simplygenius/atmos-recipes.git
+  #
+  template_sources:
+  - name: atmos-recipes
+    location: https://github.com/simplygenius/atmos-recipes/archive/v#{atmos_version}.zip#atmos-recipes-#{atmos_version}
+  #- name: atmos-pro-recipes
+  #  location: https://YOUR_API_KEY@releases.simplygenius.com/recipes/v#{atmos_version}#atmos-pro-recipes-#{atmos_version}
 
-# To get the atmos-pro gem, add the gem source like:
-#   gem sources -a https://YOUR_API_KEY@releases.simplygenius.com/gems/
-# then install the gem:
-#   gem install simplygenius-atmos-pro
-# then add simplygenius-atmos-pro to the plugins key below
-#
-# The list of plugin gems to load when running atmos
-#
-plugins:
-#   - simplygenius-atmos-pro
+  # To get the atmos-pro gem, add the gem source like:
+  #   gem sources -a https://YOUR_API_KEY@releases.simplygenius.com/gems/
+  # then install the gem:
+  #   gem install simplygenius-atmos-pro
+  # then add simplygenius-atmos-pro to the plugins key below
+  #
+  # The list of plugin gems to load when running atmos
+  #
+  plugins:
+  #   - simplygenius-atmos-pro

@@ -57,7 +57,7 @@ module SimplyGenius
 
             # don't want to fail for new repo
             if  Atmos.config && Atmos.config.is_atmos_repo?
-              Atmos.config['template_sources'].try(:each) do |item|
+              Atmos.config['atmos.template_sources'].try(:each) do |item|
                 SourcePath.register(item.name, item.location)
               end
             end
@@ -141,7 +141,7 @@ module SimplyGenius
         end
 
         def state_file
-          @state_file ||= Atmos.config["generate.state_file"]
+          @state_file ||= Atmos.config["atmos.generate.state_file"]
         end
 
         def state
