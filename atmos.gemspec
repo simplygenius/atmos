@@ -42,7 +42,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rainbow"
   spec.add_dependency "git"
   spec.add_dependency "rubyzip"
-  spec.add_dependency "hashie"
+  spec.add_dependency "hashie", "~> 3.6.0"
   spec.add_dependency "climate_control"
   spec.add_dependency "aws-sdk-core"
   spec.add_dependency "aws-sdk-iam"
