@@ -29,7 +29,7 @@ environments:
 # running in a development environment, for example:
 # {is_dev ? 'dev val' : 'prod val'}
 #
-is_dev: "#{ /dev|test|demo/.match?(atmos_env) }"
+is_dev: "#{ !! /dev|test|demo/.match(atmos_env) }"
 
 # A list of glob patterns for finding atmos yml files
 # Patterns can be absolute (beginning with /), but if not are applied relative
