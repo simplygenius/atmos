@@ -25,17 +25,18 @@ task :docker_dev do
   sh "docker build -t simplygenius/atmos-dev -f Dockerfile.dev ."
 end
 
-def tag(repo_dir)
+def tag(repo_dir, version)
+  version_tag = "v#{version}"
+
   puts "Tagging #{File.basename(repo_dir)}"
   Dir.chdir(repo_dir)
   system("git tag -m \"Version #{version}\" #{version_tag}") || raise("tag failed")
   system("git push --tags") || raise("push failed")
 end
 
-task :coordinated_release => :release do
-  version = Bundler::GemHelper.gemspec.version
-  version_tag = "v#{version}"
-
-  tag("../atmos-recipes")
-  tag("../atmos-pro-recipes")
+task :coordinated_release do
+  require 'simplygenius/atmos/version'
+  version = SimplyGenius::Atmos::VERSION
+  tag("../atmos-recipes", version)
+  tag("../atmos-pro-recipes", version)
 end
