@@ -281,6 +281,7 @@ module SimplyGenius
             expect(vars['atmos_env']).to eq('ops')
             expect(vars['all_env_names']).to eq(["ops"])
             expect(vars['account_ids']).to eq("ops" => 123)
+            expect(vars['atmos_working_group']).to eq("default")
             expect(vars['atmos_config']['foo']).to eq('bar')
             expect(vars['atmos_config']['baz_boo']).to eq('bum')
             expect(vars['foo']).to eq('bar')
@@ -361,31 +362,6 @@ module SimplyGenius
             vars = JSON.parse(File.read(file))
             expect(vars['terraform']['backend']['mytype']).
                 to match(hash_including('foo' => 'bar', 'baz' => 'boo'))
-          end
-        end
-
-        it "changes backend key to reflect working group" do
-          within_construct do |c|
-            c.file('config/atmos.yml', YAML.dump(
-                'foo' => 'bar',
-                'providers' => {
-                    'aws' => {
-                      'backend' => {
-                          'type' => "mytype",
-                          'key' => 'foo'
-                      }
-                    }
-                }
-            ))
-            Atmos.config = Config.new("ops")
-            te = described_class.new(process_env: Hash.new, working_group: "bootstrap")
-            te.send(:setup_backend)
-
-            file = File.join(te.send(:tf_recipes_dir), 'atmos-backend.tf.json')
-            expect(File.exist?(file)).to be true
-            vars = JSON.parse(File.read(file))
-            expect(vars['terraform']['backend']['mytype']).
-                to eq('key' => 'bootstrap-foo')
           end
         end
 

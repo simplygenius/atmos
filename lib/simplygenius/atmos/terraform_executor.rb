@@ -149,11 +149,6 @@ module SimplyGenius
         if backend_config.present? && ! skip_backend
           logger.debug("Writing out terraform state backend config")
 
-          # Use a different state file per group
-          if @working_group
-            backend_config['key'] = "#{@working_group}-#{backend_config['key']}"
-          end
-
           backend_type = backend_config.delete("type")
 
           backend = {
@@ -226,6 +221,7 @@ module SimplyGenius
               atmos_env: Atmos.config.atmos_env,
               all_env_names: Atmos.config.all_env_names,
               account_ids: Atmos.config.account_hash,
+              atmos_working_group: @working_group,
               atmos_config: atmos_config
           }
           var_hash = var_hash.merge(Atmos.config.to_h)
