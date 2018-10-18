@@ -133,7 +133,6 @@ module SimplyGenius
 
       def setup_working_dir(skip_backend: false)
         clean_links
-        link_shared_plugin_dir
         link_support_dirs
         link_recipes
         write_atmos_vars
@@ -247,17 +246,6 @@ module SimplyGenius
       def link_support_dirs
         ['modules', 'templates'].each do |subdir|
           ln_sf(File.join(Atmos.config.root_dir, subdir), Atmos.config.tf_working_dir)
-        end
-      end
-
-      def link_shared_plugin_dir
-        if ! Atmos.config["atmos.terraform.disable_shared_plugins"]
-          shared_plugins_dir = File.join(Atmos.config.tmp_root, "terraform_plugins")
-          mkdir_p(shared_plugins_dir)
-          terraform_state_dir = File.join(tf_recipes_dir, '.terraform')
-          mkdir_p(terraform_state_dir)
-          terraform_plugins_dir = File.join(terraform_state_dir, 'plugins')
-          ln_sf(shared_plugins_dir, terraform_plugins_dir)
         end
       end
 
