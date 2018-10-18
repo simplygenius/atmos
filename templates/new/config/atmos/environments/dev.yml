@@ -1,4 +1,4 @@
-# Environment specific overrides for the ops environment
+# Environment specific overrides for the dev environment
 #
 # You can add overrides for other environments by creating a <env>.yml file in
 # this directory where <env> is the environment name.
