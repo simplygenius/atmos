@@ -91,8 +91,8 @@ module SimplyGenius
             c.file('recipes/bar.tf')
             c.file('recipes/baz.tf')
             c.file('recipes/hum.tf')
-            Atmos.config = Config.new("ops")
-            te = described_class.new(process_env: Hash.new, working_group: "bootstrap")
+            Atmos.config = Config.new("ops", 'bootstrap')
+            te = described_class.new(process_env: Hash.new)
             expect(te.send(:tf_recipes_dir)).to match(/\/bootstrap\/recipes$/)
             te.send(:link_recipes)
             ['foo', 'bar'].each do |f|
@@ -135,12 +135,12 @@ module SimplyGenius
             c.directory('templates')
             c.file('recipes/foo.tf')
 
-            Atmos.config = Config.new("ops")
-            te = described_class.new(process_env: Hash.new, working_group: "bootstrap")
+            Atmos.config = Config.new("ops", 'bootstrap')
+            te = described_class.new(process_env: Hash.new)
             expect(te.send(:tf_recipes_dir)).to match(/\/bootstrap\/recipes$/)
             te.send(:link_support_dirs)
             ['modules', 'templates'].each do |f|
-              link = File.join(Atmos.config.tf_working_dir("bootstrap"), "#{f}")
+              link = File.join(Atmos.config.tf_working_dir, "#{f}")
               expect(File.symlink?(link)).to be true
               expect(File.readlink(link)).to eq(File.join(Atmos.config.root_dir, "#{f}"))
             end
@@ -221,15 +221,15 @@ module SimplyGenius
             c.file('config/atmos.yml', YAML.dump('recipes' => {'bootstrap' => ['foo']}))
             c.directory('modules')
             c.directory('templates')
-            Atmos.config = Config.new("ops")
-            te = described_class.new(process_env: Hash.new, working_group: "bootstrap")
+            Atmos.config = Config.new("ops", "bootstrap")
+            te = described_class.new(process_env: Hash.new)
             expect(te.send(:tf_recipes_dir)).to match(/\/bootstrap\/recipes$/)
 
             te.send(:link_support_dirs)
             te.send(:link_recipes)
 
             count = 0
-            Find.find(Atmos.config.tf_working_dir("bootstrap")) {|f|  count += 1 if File.symlink?(f) }
+            Find.find(Atmos.config.tf_working_dir) {|f|  count += 1 if File.symlink?(f) }
             expect(count).to eq(3)
 
             te.send(:clean_links)

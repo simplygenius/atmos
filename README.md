@@ -165,8 +165,8 @@ atmos -e dev destroy
 
 # Destroys the bootstrap resources (state, secret, lock storage and
 # cross-account access role)
-TF_VAR_force_destroy_buckets=true atmos -e dev apply --group bootstrap
-atmos -e dev destroy --group bootstrap
+TF_VAR_force_destroy_buckets=true atmos -e dev -g bootstrap apply
+atmos -e dev -g bootstrap destroy
 
 # For normal usage you should rarely need to cleanup the ops account, but
 # included here in case you want to completely purge the atmos resources after
@@ -177,8 +177,8 @@ AWS_PROFILE=<root_profile_name> TF_VAR_force_destroy_buckets=true atmos -e ops a
 AWS_PROFILE=<root_profile_name> atmos -e ops destroy
 
 # Cleanup ops bootstrap
-AWS_PROFILE=<root_profile_name> TF_VAR_force_destroy_buckets=true atmos -e ops apply --group bootstrap
-AWS_PROFILE=<root_profile_name> atmos -e ops destroy --group bootstrap
+AWS_PROFILE=<root_profile_name> TF_VAR_force_destroy_buckets=true atmos -e ops -g bootstrap apply
+AWS_PROFILE=<root_profile_name> atmos -e ops -g bootstrap destroy
 
 ```
 

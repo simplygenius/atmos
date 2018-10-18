@@ -13,7 +13,7 @@ module SimplyGenius
           within_construct do |c|
             @c = c
             c.file('config/atmos.yml')
-            Atmos.config = Config.new("ops")
+            Atmos.config = Config.new("ops", "bootstrap")
             ex.run
             Atmos.config = nil
           end
@@ -36,7 +36,7 @@ module SimplyGenius
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).
                 with(ENV, bootstrap: true).and_yield(env)
             expect(TerraformExecutor).to receive(:new).
-                with(process_env: env, working_group: 'bootstrap').and_return(te)
+                with(process_env: env).and_return(te)
 
             expect(te).to receive(:run).with("init", "-input=false", "-lock=false",
                               skip_backend: true, skip_secrets: true)
@@ -56,7 +56,8 @@ module SimplyGenius
           end
 
           it "aborts if already initialized" do
-            @c.directory(File.join(Atmos.config.tf_working_dir('bootstrap'), '.terraform'))
+            expect(Atmos.config.tf_working_dir).to match(/\/bootstrap$/)
+            @c.directory(File.join(Atmos.config.tf_working_dir, '.terraform'))
             expect { cli.run([]) }.to raise_error(Clamp::UsageError, /first/)
           end
 

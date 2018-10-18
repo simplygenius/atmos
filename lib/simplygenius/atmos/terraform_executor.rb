@@ -16,11 +16,9 @@ module SimplyGenius
 
       class ProcessFailed < RuntimeError; end
 
-      def initialize(process_env: ENV, working_group: 'default')
+      def initialize(process_env: ENV)
         @process_env = process_env
-        @working_group = working_group
-        @working_dir = Atmos.config.tf_working_dir(@working_group)
-        @recipes = Atmos.config["recipes.#{@working_group}"]
+        @recipes = Atmos.config["recipes.#{Atmos.config.working_group}"]
       end
 
       def run(*terraform_args, skip_backend: false, skip_secrets: false, get_modules: false, output_io: nil)
@@ -70,8 +68,8 @@ module SimplyGenius
 
             stdout_writer.sync = stderr_writer.sync = true
 
-            stdout_filters = Atmos.config.plugin_manager.output_filters(:stdout, {process_env: @process_env, working_group: @working_group})
-            stderr_filters = Atmos.config.plugin_manager.output_filters(:stderr, {process_env: @process_env, working_group: @working_group})
+            stdout_filters = Atmos.config.plugin_manager.output_filters(:stdout, {process_env: @process_env, working_group: Atmos.config.working_group})
+            stderr_filters = Atmos.config.plugin_manager.output_filters(:stderr, {process_env: @process_env, working_group: Atmos.config.working_group})
 
             stdout_thr = pipe_stream(stdout, output_io.nil? ? $stdout : output_io, &stdout_filters.filter_block)
             stderr_thr = pipe_stream(stderr, output_io.nil? ? $stderr : output_io, &stderr_filters.filter_block)
@@ -201,7 +199,7 @@ module SimplyGenius
 
       def tf_recipes_dir
         @tf_recipes_dir ||= begin
-          dir = File.join(@working_dir, 'recipes')
+          dir = File.join(Atmos.config.tf_working_dir, 'recipes')
           logger.debug("Tf recipes dir: #{dir}")
           mkdir_p(dir)
           dir
@@ -216,13 +214,11 @@ module SimplyGenius
           # declared, we also merge in atmos config with only the values homogenized (vs the entire map) so that hash
           # variables if declared in terraform can be managed from yml, set here and accessed from terraform
           #
-          atmos_config = homogenize_for_terraform(Atmos.config.to_h)
+          homogenized_config = homogenize_for_terraform(Atmos.config.to_h)
           var_hash = {
-              atmos_env: Atmos.config.atmos_env,
               all_env_names: Atmos.config.all_env_names,
               account_ids: Atmos.config.account_hash,
-              atmos_working_group: @working_group,
-              atmos_config: atmos_config
+              atmos_config: homogenized_config
           }
           var_hash = var_hash.merge(Atmos.config.to_h)
           f.puts(JSON.pretty_generate(var_hash))
@@ -242,7 +238,7 @@ module SimplyGenius
       end
 
       def clean_links
-        Find.find(@working_dir) do |f|
+        Find.find(Atmos.config.tf_working_dir) do |f|
           Find.prune if f =~ /\/.terraform\/modules\//
           File.delete(f) if File.symlink?(f)
         end
@@ -250,7 +246,7 @@ module SimplyGenius
 
       def link_support_dirs
         ['modules', 'templates'].each do |subdir|
-          ln_sf(File.join(Atmos.config.root_dir, subdir), @working_dir)
+          ln_sf(File.join(Atmos.config.root_dir, subdir), Atmos.config.tf_working_dir)
         end
       end
 

@@ -56,6 +56,34 @@ module SimplyGenius
 
       end
 
+      describe "--atmos-env" do
+
+        it "defaults atmos env" do
+          cli.run(['config'])
+          expect(Atmos.config.atmos_env).to eq('ops')
+        end
+
+        it "allows setting atmos env" do
+          cli.run(['--atmos-env', 'dev', 'config'])
+          expect(Atmos.config.atmos_env).to eq('dev')
+        end
+
+      end
+
+      describe "--atmos-group" do
+
+        it "defaults working group" do
+          cli.run(['config'])
+          expect(Atmos.config.working_group).to eq('default')
+        end
+
+        it "allows setting atmos working group" do
+          cli.run(['--atmos-group', 'foo', 'config'])
+          expect(Atmos.config.working_group).to eq('foo')
+        end
+
+      end
+
       describe "--debug" do
 
         it "defaults to info log level" do

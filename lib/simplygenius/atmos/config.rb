@@ -13,12 +13,14 @@ module SimplyGenius
       include GemLogger::LoggerSupport
       include FileUtils
 
-      attr_accessor :atmos_env, :root_dir,
+      attr_accessor :atmos_env, :working_group,
+                    :root_dir,
                     :config_file,
                     :tmp_root
 
-      def initialize(atmos_env)
+      def initialize(atmos_env, working_group = 'default')
         @atmos_env = atmos_env
+        @working_group = working_group
         @root_dir = File.expand_path(Dir.pwd)
         @config_file = File.join(root_dir, "config", "atmos.yml")
         @tmp_root = File.join(root_dir, "tmp")
@@ -80,10 +82,9 @@ module SimplyGenius
         end
       end
 
-      def tf_working_dir(group='default')
-        @tf_working_dir ||= {}
-        @tf_working_dir[group] ||= begin
-          dir = File.join(tmp_dir, 'tf', group)
+      def tf_working_dir
+        @tf_working_dir ||= begin
+          dir = File.join(tmp_dir, 'tf', working_group)
           logger.debug("Terraform working dir: #{dir}")
           mkdir_p(dir)
           dir
@@ -209,6 +210,7 @@ module SimplyGenius
           global = SettingsHash.new(@full_config.reject {|k, v| ['providers', 'environments'].include?(k) })
           conf = config_merge(global, {
               atmos_env: atmos_env,
+              atmos_working_group: working_group,
               atmos_version: VERSION
           })
           expand(conf, conf)
@@ -273,6 +275,7 @@ module SimplyGenius
 
         return filename, line
       end
+
     end
 
   end

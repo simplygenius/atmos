@@ -14,8 +14,10 @@ module SimplyGenius
                :flag, "forces bootstrap\n"
 
         def execute
+          orig_config = Atmos.config
+          Atmos.config = Config.new(Atmos.config.atmos_env, 'bootstrap')
 
-          tf_init_dir = File.join(Atmos.config.tf_working_dir('bootstrap'), '.terraform')
+          tf_init_dir = File.join(Atmos.config.tf_working_dir, '.terraform')
           tf_initialized = File.exist?(tf_init_dir)
           backend_initialized = File.exist?(File.join(tf_init_dir, 'terraform.tfstate'))
 
@@ -30,7 +32,7 @@ module SimplyGenius
 
           Atmos.config.provider.auth_manager.authenticate(ENV, bootstrap: true) do |auth_env|
             begin
-              exe = TerraformExecutor.new(process_env: auth_env, working_group: 'bootstrap')
+              exe = TerraformExecutor.new(process_env: auth_env)
 
               skip_backend = true
               skip_secrets = true
@@ -59,6 +61,7 @@ module SimplyGenius
 
               # Might as well init the non-bootstrap case as well once the state
               # storage has been setup in bootstrap
+              Atmos.config = orig_config
               exe = TerraformExecutor.new(process_env: auth_env)
               exe.run("init", "-input=false", skip_secrets: true)
 

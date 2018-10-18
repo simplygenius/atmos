@@ -28,19 +28,7 @@ module SimplyGenius
 
           Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
             begin
-
-              # TODO: hack to allow apply/etc for bootstrap group
-              # Fix this once we allow more extensive recipe grouping
-              working_group = 'default'
-              @terraform_arguments.each_with_index do |a, i|
-                if a == "--group"
-                  @terraform_arguments.delete_at(i)
-                  working_group = @terraform_arguments.delete_at(i)
-                  break
-                end
-              end
-
-              exe = TerraformExecutor.new(process_env: auth_env, working_group: working_group)
+              exe = TerraformExecutor.new(process_env: auth_env)
               get_modules = @terraform_arguments.delete("--get-modules")
               exe.run(*@terraform_arguments, get_modules: get_modules.present?)
             rescue TerraformExecutor::ProcessFailed => e

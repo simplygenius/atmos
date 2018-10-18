@@ -15,6 +15,7 @@ module SimplyGenius
           env = "ops"
           config = described_class.new(env)
           expect(config.atmos_env).to eq(env)
+          expect(config.working_group).to eq('default')
           expect(config.root_dir).to eq(Dir.pwd)
           expect(config.config_file).to eq("#{Dir.pwd}/config/atmos.yml")
           expect(config.tmp_root).to eq("#{Dir.pwd}/tmp")
@@ -55,10 +56,11 @@ module SimplyGenius
         end
 
         it "creates the dir with a group" do
+          config = described_class.new('ops', 'bootstrap')
           within_construct do |c|
-            expect(config.tf_working_dir('bootstrap')).
+            expect(config.tf_working_dir).
                 to eq("#{config.tmp_root}/#{config.atmos_env}/tf/bootstrap")
-            expect(Dir.exist?(config.tf_working_dir('bootstrap'))).to be true
+            expect(Dir.exist?(config.tf_working_dir)).to be true
           end
         end
 

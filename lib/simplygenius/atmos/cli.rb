@@ -40,6 +40,10 @@ module SimplyGenius
              'ENV', "The atmos environment\n",
              environment_variable: 'ATMOS_ENV', default: 'ops'
 
+      option ["-g", "--atmos-group"],
+             'GROUP', "The atmos working group\n for selecting recipe groups\n",
+             default: 'default'
+
       option ["-l", "--load-path"],
              "PATH", "adds additional paths to ruby load path",
              multivalued: true
@@ -99,7 +103,7 @@ module SimplyGenius
       def parse(arguments)
         super
         if Atmos.config.nil?
-          Atmos.config = Config.new(atmos_env)
+          Atmos.config = Config.new(atmos_env, atmos_group)
           log = Atmos.config.is_atmos_repo? && log? ? "atmos.log" : nil
           Logging.setup_logging(debug?, color?, log)
           UI.color_enabled = color?

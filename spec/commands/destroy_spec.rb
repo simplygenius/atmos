@@ -24,7 +24,7 @@ module SimplyGenius
             te = TerraformExecutor.new(env)
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(TerraformExecutor).to receive(:new).
-                with(process_env: env, working_group: 'default').and_return(te)
+                with(process_env: env).and_return(te)
             expect(te).to receive(:run).with("destroy", get_modules: false)
             cli.run([])
           end
