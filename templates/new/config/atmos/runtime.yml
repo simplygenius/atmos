@@ -1,8 +1,16 @@
-# Optional configuration for controlling the behavior of the atmos runtime
+# Configuration for controlling the behavior of the atmos runtime
 atmos:
-  # Allows one to add a custom ruby load path list for extending atmos without
-  # having to publish a gem
-  load_path:
+
+  # Sources for atmos templates
+  # To circumvent the version lock and get the latest git master recipes, use the git
+  # location, e.g.:
+  # location: https://github.com/simplygenius/atmos-recipes.git
+  #
+  template_sources:
+  - name: atmos-recipes
+    location: https://github.com/simplygenius/atmos-recipes/archive/v#{atmos_version}.zip#atmos-recipes-#{atmos_version}
+  #- name: atmos-pro-recipes
+  #  location: https://YOUR_API_KEY@releases.simplygenius.com/recipes/v#{atmos_version}#atmos-pro-recipes-#{atmos_version}
 
   # To get the atmos-pro gem, add the gem source like:
   #   gem sources -a https://YOUR_API_KEY@releases.simplygenius.com/gems/
@@ -14,6 +22,10 @@ atmos:
   #
   plugins:
     #   - simplygenius-atmos-pro
+
+  # Allows one to add a custom ruby load path list for extending atmos without
+  # having to publish a gem
+  load_path:
 
   # Configure the mechanism that allows terraform to callback into atmos
   ipc:

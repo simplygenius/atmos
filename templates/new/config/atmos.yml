@@ -52,7 +52,8 @@ environments:
 #
 is_dev: "#{ !! /dev|test|demo/.match(atmos_env) }"
 
-# Configuration for the most common settings for the atmos runtime.  See also config/atmos/runtime.yml
+# Configuration required in this file for finding other atmos config.  See
+# config/atmos/runtime.yml for atmos runtime configuration settings
 atmos:
   # A list of glob patterns for finding atmos yml files
   # Patterns can be absolute (beginning with /), but if not are applied relative
@@ -60,25 +61,3 @@ atmos:
   #
   config_sources:
     - atmos/*.y{,a}ml
-
-  # Sources for atmos templates
-  # To circumvent the version lock and get the latest git master recipes, use the git
-  # location, e.g.:
-  # location: https://github.com/simplygenius/atmos-recipes.git
-  #
-  template_sources:
-  - name: atmos-recipes
-    location: https://github.com/simplygenius/atmos-recipes/archive/v#{atmos_version}.zip#atmos-recipes-#{atmos_version}
-  #- name: atmos-pro-recipes
-  #  location: https://YOUR_API_KEY@releases.simplygenius.com/recipes/v#{atmos_version}#atmos-pro-recipes-#{atmos_version}
-
-  # To get the atmos-pro gem, add the gem source like:
-  #   gem sources -a https://YOUR_API_KEY@releases.simplygenius.com/gems/
-  # then install the gem:
-  #   gem install simplygenius-atmos-pro
-  # then add simplygenius-atmos-pro to the plugins key below
-  #
-  # The list of plugin gems to load when running atmos
-  #
-  plugins:
-  #   - simplygenius-atmos-pro
