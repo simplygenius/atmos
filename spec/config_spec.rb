@@ -229,6 +229,19 @@ module SimplyGenius
           end
         end
 
+        it "skips empty files" do
+          within_construct do |c|
+            c.file('config/atmos/foo.yml', YAML.dump(foo: "baz"))
+            c.file('config/atmos/bar.yml', "")
+            conf = SettingsHash.new
+            result = config.send(:load_config_sources, "#{c}/config", conf, "atmos/*.yml")
+            expect(result).to_not be conf
+            expect(result["foo"]).to eq("baz")
+            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/foo.yml"])
+            expect(Logging.contents).to match(/Skipping empty config file: .*bar.yml/)
+          end
+        end
+
         it "merges config additively" do
           within_construct do |c|
             c.file('config/atmos/foo.yml', YAML.dump(foo: [1], bar: {baz: "boo"}))
@@ -263,6 +276,16 @@ module SimplyGenius
             expect(result["environments"]["dev"]["foo"]).to eq("bar")
             expect(result["foo"]).to eq("bar")
             expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/environments/dev.yml"])
+          end
+        end
+
+        it "skips empty files" do
+          within_construct do |c|
+            c.file('config/atmos/environments/dev.yml', "")
+            conf = SettingsHash.new
+            result = config.send(:load_submap, "#{c}/config", "environments", "dev", conf)
+            expect(result).to be conf
+            expect(Logging.contents).to match(/Skipping empty config file: .*dev.yml/)
           end
         end
 

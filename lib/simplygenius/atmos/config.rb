@@ -157,9 +157,14 @@ module SimplyGenius
 
           Dir[pattern].each do |f|
             logger.debug("Loading atmos config file: #{f}")
-            h = SettingsHash.new(YAML.load_file(f))
-            config = config_merge(config, h)
-            @included_configs << f
+            data = YAML.load_file(f)
+            if data == false
+              logger.debug("Skipping empty config file: #{f}")
+            else
+              h = SettingsHash.new(data)
+              config = config_merge(config, h)
+              @included_configs << f
+            end
           end
         end
 
@@ -171,9 +176,14 @@ module SimplyGenius
         submap_file = File.join(submap_dir, "#{name}.yml")
         if File.exist?(submap_file)
           logger.debug("Loading atmos #{group} config file: #{submap_file}")
-          h = SettingsHash.new({group => {name => YAML.load_file(submap_file)}})
-          config = config_merge(config, h)
-          @included_configs << submap_file
+          data  = YAML.load_file(submap_file)
+          if data == false
+            logger.debug("Skipping empty config file: #{submap_file}")
+          else
+            h = SettingsHash.new({group => {name => data}})
+            config = config_merge(config, h)
+            @included_configs << submap_file
+          end
         end
 
         begin
