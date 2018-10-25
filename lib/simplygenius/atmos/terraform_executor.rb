@@ -18,7 +18,11 @@ module SimplyGenius
 
       def initialize(process_env: ENV)
         @process_env = process_env
-        @recipes = Atmos.config["recipes.#{Atmos.config.working_group}"]
+        recipe_config_path = "recipes.#{Atmos.config.working_group}"
+        @recipes = Array(Atmos.config[recipe_config_path])
+        if @recipes.blank?
+          logger.warn("Check your configuration, there are no recipes in '#{recipe_config_path}'")
+        end
       end
 
       def run(*terraform_args, skip_backend: false, skip_secrets: false, get_modules: false, output_io: nil)
