@@ -4,6 +4,7 @@
 set -e
 
 APP_VOLUME=${IMAGE_APP_VOLUME:-/app}
+ATMOS_IMAGE=${ATMOS_IMAGE:-simplygenius/atmos}
 
 home_mounts=".aws .terraform.d .atmos.yml"
 mounts=""
@@ -19,4 +20,4 @@ docker run \
   --volume /var/run/docker.sock:/var/run/docker.sock \
   $mounts \
   --env-file <(env | grep "^AWS\|^ATMOS\|^TF") \
-  simplygenius/atmos "$@"
+  $ATMOS_IMAGE "$@"

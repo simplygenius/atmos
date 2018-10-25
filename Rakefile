@@ -22,7 +22,7 @@ task :docker do
 end
 
 task :docker_dev do
-  sh "docker build -t simplygenius/atmos-dev -f Dockerfile.dev ."
+  sh "docker build -t simplygenius/atmos:dev -f Dockerfile.dev ."
 end
 
 def tag(repo_dir, version)
