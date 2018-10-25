@@ -7,13 +7,13 @@ ENV BUNDLE_PATH /srv/bundler
 ENV BUNDLE_BIN=${BUNDLE_PATH}/bin
 ENV GEM_HOME=${BUNDLE_PATH}
 ENV PATH="${BUNDLE_BIN}:${PATH}"
-ENV TF_PKG=https://releases.hashicorp.com/terraform/0.11.7/terraform_0.11.7_linux_amd64.zip
+ENV TF_PKG=https://releases.hashicorp.com/terraform/0.11.10/terraform_0.11.10_linux_amd64.zip
 
 RUN mkdir -p $APP_DIR $RUN_DIR
 WORKDIR $APP_DIR
 
 COPY Gemfile Gemfile.lock *.gemspec $APP_DIR/
-COPY lib/atmos/version.rb $APP_DIR/lib/atmos/
+COPY lib/simplygenius/atmos/version.rb $APP_DIR/lib/simplygenius/atmos/
 
 ENV BUILD_PACKAGES=""
 ENV APP_PACKAGES="bash curl git docker"
