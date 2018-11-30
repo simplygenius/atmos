@@ -2,6 +2,7 @@ require_relative '../atmos'
 require 'highline'
 require 'rainbow'
 require 'yaml'
+require 'json'
 require 'open3'
 require 'os'
 require 'hashie'
@@ -121,12 +122,13 @@ module SimplyGenius
         elsif OS.mac? && ! force_inline
           display_method = modal ? "displayDialog" : "displayNotification"
 
+          # Usse to_json as JSON.generate doesn't work for strings on ruby 2.3
           dialogScript = <<~EOF
             var app = Application.currentApplication();
             app.includeStandardAdditions = true;
             app.#{display_method}(
-              #{JSON.generate(message)}, {
-                withTitle: #{JSON.generate(title)},
+              #{message.to_json}, {
+                withTitle: #{title.to_json},
                 buttons: ['OK'],
                 defaultButton: 1
             })
