@@ -1,3 +1,11 @@
+0.9.1 (11/30/2018)
+------------------
+
+* fix some json weirdness with ruby v2.3 vs 2.5 and active support [82c02d1](https://github.com/simplygenius/atmos/commit/82c02d1)
+* docker tweaks [f44c9b1](https://github.com/simplygenius/atmos/commit/f44c9b1)
+* warn instead of trace for empty recipe config [7c83238](https://github.com/simplygenius/atmos/commit/7c83238)
+* fix docker based runtime, pass through more mounts and skip aws cli based auth lookup as it slowed things down too much [f9844e9](https://github.com/simplygenius/atmos/commit/f9844e9)
+
 0.9.0 (10/18/2018)
 ------------------
 
