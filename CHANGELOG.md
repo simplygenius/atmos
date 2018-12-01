@@ -1,3 +1,9 @@
+0.9.2 (12/01/2018)
+------------------
+
+* add more useful display of type mismatches during config merges [b751a82](https://github.com/simplygenius/atmos/commit/b751a82)
+* ensure all config files are hash like [5ad14fb](https://github.com/simplygenius/atmos/commit/5ad14fb)
+
 0.9.1 (11/30/2018)
 ------------------
 
