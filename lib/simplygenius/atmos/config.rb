@@ -104,40 +104,48 @@ module SimplyGenius
 
       INTERP_PATTERN = /(\#\{([^\}]+)\})/
 
-      def config_merge(lhs, rhs)
+      def config_merge(lhs, rhs, debug_state=[])
         result = nil
 
         return rhs if lhs.nil?
         return lhs if rhs.nil?
 
         # Warn if user fat fingered config
-        unless lhs.is_a?(rhs.class) || rhs.is_a?(lhs.class)
-          logger.warn("Different types in deep merge: #{lhs.class}, #{rhs.class}")
-        end
+        if lhs.is_a?(rhs.class) || rhs.is_a?(lhs.class)
 
-        case rhs
-        when Hash
-          result = lhs.deep_dup
+          case rhs
+          when Hash
+            result = lhs.deep_dup
 
-          lhs.each do |k, v|
-            if k =~ /^\^(.*)/
-              key = k.is_a?(Symbol) ? $1.to_sym : $1
-              result[key] = result.delete(k)
+            lhs.each do |k, v|
+              if k =~ /^\^(.*)/
+                key = k.is_a?(Symbol) ? $1.to_sym : $1
+                result[key] = result.delete(k)
+              end
             end
+
+            rhs.each do |k, v|
+              if k =~ /^\^(.*)/
+                key = k.is_a?(Symbol) ? $1.to_sym : $1
+                result[key] = v
+              else
+                result[k] = config_merge(result[k], v, debug_state + [k])
+              end
+            end
+          when Enumerable
+            result = lhs + rhs
+          else
+            result = rhs
           end
 
-          rhs.each do |k, v|
-            if k =~ /^\^(.*)/
-              key = k.is_a?(Symbol) ? $1.to_sym : $1
-              result[key] = v
-            else
-              result[k] = config_merge(result[k], v)
-            end
-          end
-        when Enumerable
-          result = lhs + rhs
         else
+
+          logger.warn("Type mismatch while merging in: #{debug_state.delete_at(0)}")
+          logger.warn("Deep merge path: #{debug_state.join(" -> ")}")
+          logger.warn("Deep merge LHS (#{lhs.class}): #{lhs.inspect}")
+          logger.warn("Deep merge RHS (#{rhs.class}): #{rhs.inspect}")
           result = rhs
+
         end
 
         return result
@@ -162,7 +170,7 @@ module SimplyGenius
               logger.debug("Skipping non-hash config file: #{f}")
             else
               h = SettingsHash.new(data)
-              config = config_merge(config, h)
+              config = config_merge(config, h, [f])
               @included_configs << f
             end
           end
@@ -181,14 +189,14 @@ module SimplyGenius
             logger.debug("Skipping non-hash config file: #{submap_file}")
           else
             h = SettingsHash.new({group => {name => data}})
-            config = config_merge(config, h)
+            config = config_merge(config, h, [submap_file])
             @included_configs << submap_file
           end
         end
 
         begin
           submap = config.deep_fetch(group, name)
-          config = config_merge(config, submap)
+          config = config_merge(config, submap, ["#{submap_file} submap(#{group}.#{name})"])
         rescue
           logger.debug("No #{group} config found for '#{name}'")
         end
@@ -224,7 +232,7 @@ module SimplyGenius
               atmos_env: atmos_env,
               atmos_working_group: working_group,
               atmos_version: VERSION
-          })
+          }, ["builtins"])
           expand(conf, conf)
         end
       end

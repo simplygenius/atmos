@@ -557,6 +557,16 @@ module SimplyGenius
           expect(config.send(:config_merge, lhs, rhs)).to eq({y: {3 => 4}})
         end
 
+        it "warns on type mismatch" do
+          lhs = {h: {a: {b: "foo"}}}
+          rhs = {h: {a: {b: ["bar"]}}}
+          expect(config.send(:config_merge, lhs, rhs, ["filename"])).to eq({h: {a: {b: ["bar"]}}})
+          expect(Logging.contents).to match(/Type mismatch.*filename/)
+          expect(Logging.contents).to match(/Deep merge LHS \(String\): "foo"/)
+          expect(Logging.contents).to match(/Deep merge RHS \(Array\): \["bar"\]/)
+          expect(Logging.contents).to match(/Deep merge path: h -> a -> b/)
+        end
+
       end
 
       describe "add_user_load_path" do
