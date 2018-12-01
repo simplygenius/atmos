@@ -158,8 +158,8 @@ module SimplyGenius
           Dir[pattern].each do |f|
             logger.debug("Loading atmos config file: #{f}")
             data = YAML.load_file(f)
-            if data == false
-              logger.debug("Skipping empty config file: #{f}")
+            if ! data.is_a?(Hash)
+              logger.debug("Skipping non-hash config file: #{f}")
             else
               h = SettingsHash.new(data)
               config = config_merge(config, h)
@@ -177,8 +177,8 @@ module SimplyGenius
         if File.exist?(submap_file)
           logger.debug("Loading atmos #{group} config file: #{submap_file}")
           data  = YAML.load_file(submap_file)
-          if data == false
-            logger.debug("Skipping empty config file: #{submap_file}")
+          if ! data.is_a?(Hash)
+            logger.debug("Skipping non-hash config file: #{submap_file}")
           else
             h = SettingsHash.new({group => {name => data}})
             config = config_merge(config, h)
@@ -206,7 +206,9 @@ module SimplyGenius
             @full_config = SettingsHash.new
           else
             logger.debug("Loading atmos config file #{config_file}")
-            @full_config = SettingsHash.new(YAML.load_file(config_file))
+            data = YAML.load_file(config_file)
+            raise ArgumentError.new("Invalid main config file (not hash-like): #{config_file}") if ! data.is_a?(Hash)
+            @full_config = SettingsHash.new(data)
             @included_configs << config_file
           end
 

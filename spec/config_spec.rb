@@ -111,7 +111,7 @@ module SimplyGenius
 
         it "returns the plugin manager" do
           within_construct do |c|
-            c.file('config/atmos.yml', "")
+            c.file('config/atmos.yml', "foo: bar")
             expect(config.plugin_manager).to be_instance_of(PluginManager)
           end
         end
@@ -229,16 +229,19 @@ module SimplyGenius
           end
         end
 
-        it "skips empty files" do
+        it "skips bad files" do
           within_construct do |c|
             c.file('config/atmos/foo.yml', YAML.dump(foo: "baz"))
             c.file('config/atmos/bar.yml', "")
+            c.file('config/atmos/baz.yml', "true")
             conf = SettingsHash.new
             result = config.send(:load_config_sources, "#{c}/config", conf, "atmos/*.yml")
             expect(result).to_not be conf
             expect(result["foo"]).to eq("baz")
             expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/foo.yml"])
-            expect(Logging.contents).to match(/Skipping empty config file: .*bar.yml/)
+            expect(Logging.contents).to_not match(/Skipping.*foo.yml/)
+            expect(Logging.contents).to match(/Skipping.*bar.yml/)
+            expect(Logging.contents).to match(/Skipping.*baz.yml/)
           end
         end
 
@@ -285,7 +288,17 @@ module SimplyGenius
             conf = SettingsHash.new
             result = config.send(:load_submap, "#{c}/config", "environments", "dev", conf)
             expect(result).to be conf
-            expect(Logging.contents).to match(/Skipping empty config file: .*dev.yml/)
+            expect(Logging.contents).to match(/Skipping.*dev.yml/)
+          end
+        end
+
+        it "skips bad files" do
+          within_construct do |c|
+            c.file('config/atmos/environments/dev.yml', "true")
+            conf = SettingsHash.new
+            result = config.send(:load_submap, "#{c}/config", "environments", "dev", conf)
+            expect(result).to be conf
+            expect(Logging.contents).to match(/Skipping.*dev.yml/)
           end
         end
 
@@ -313,6 +326,18 @@ module SimplyGenius
           within_construct do |c|
             config.send(:load)
             expect(Logging.contents).to match(/Could not find an atmos config file/)
+            expect(config.instance_variable_get(:@included_configs)).to eq([])
+          end
+        end
+
+        it "warns if bad file" do
+          within_construct do |c|
+            c.file('config/atmos.yml', "true")
+            expect(config.instance_variable_defined?(:@full_config)).to be false
+            expect(config.instance_variable_defined?(:@config)).to be false
+            expect { config.send(:load) }.to raise_error(ArgumentError, /Invalid main config file/)
+            expect(config.instance_variable_defined?(:@full_config)).to be false
+            expect(config.instance_variable_defined?(:@config)).to be false
             expect(config.instance_variable_get(:@included_configs)).to eq([])
           end
         end

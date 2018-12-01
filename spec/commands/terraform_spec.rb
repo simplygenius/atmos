@@ -10,7 +10,7 @@ module SimplyGenius
 
         around(:each) do |ex|
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
             ex.run
             Atmos.config = nil

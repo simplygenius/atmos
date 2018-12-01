@@ -112,7 +112,7 @@ module SimplyGenius
 
         it "links dirs into working dir" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             c.directory('modules')
             c.directory('templates')
             c.file('recipes/foo.tf')
@@ -130,7 +130,7 @@ module SimplyGenius
 
         it "links dirs into working group dir" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             c.directory('modules')
             c.directory('templates')
             c.file('recipes/foo.tf')
@@ -334,7 +334,7 @@ module SimplyGenius
 
         it "skips the terraform backend" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
             te.send(:setup_backend, true)
 
@@ -345,7 +345,7 @@ module SimplyGenius
 
         it "deletes the terraform backend when skipping" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             file = File.join(te.send(:tf_recipes_dir), 'atmos-backend.tf.json')
@@ -359,7 +359,7 @@ module SimplyGenius
 
         it "deletes the terraform backend when not skipping but no config" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             file = File.join(te.send(:tf_recipes_dir), 'atmos-backend.tf.json')
@@ -377,7 +377,7 @@ module SimplyGenius
 
         it "performs the setup steps" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             expect(te).to receive(:clean_links)
@@ -396,7 +396,7 @@ module SimplyGenius
 
         it "performs the setup and execution steps" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             expect(te).to receive(:setup_working_dir)
@@ -408,7 +408,7 @@ module SimplyGenius
 
         it "runs get before the command when desired" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             expect(te).to receive(:setup_working_dir)
@@ -425,7 +425,7 @@ module SimplyGenius
 
         it "passes secrets via env terraform" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             expect(te).to receive(:secrets_env).and_return({'foo' => 'bar'})
@@ -439,7 +439,7 @@ module SimplyGenius
 
         it "skips secrets when desired" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             expect(te).to_not receive(:secrets_env)
@@ -453,7 +453,7 @@ module SimplyGenius
 
         it "runs terraform" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             expect { te.send(:execute, "init", skip_secrets: true) }.
@@ -463,7 +463,7 @@ module SimplyGenius
 
         it "runs terraform with stderr" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             expect { te.send(:execute, "init", "1", "2", skip_secrets: true) rescue TerraformExecutor::ProcessFailed }.
@@ -473,7 +473,7 @@ module SimplyGenius
 
         it "runs terraform with output_io" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             io = StringIO.new
@@ -485,7 +485,7 @@ module SimplyGenius
 
         it "runs terraform with stdin" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             c.file(File.join(te.send(:tf_recipes_dir), 'stdin.tf.json'), JSON.dump(
@@ -515,7 +515,7 @@ module SimplyGenius
 
         it "sets TMPDIR in env" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             expect(te).to receive(:spawn).
@@ -529,7 +529,7 @@ module SimplyGenius
 
         it "passes ipc env to terraform" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             expect(te).to receive(:spawn).
@@ -543,7 +543,7 @@ module SimplyGenius
 
         it "allows disabling ipc" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
             Atmos.config.send(:load)
             Atmos.config.instance_variable_get(:@config).notation_put('atmos.ipc.disable', true)
@@ -591,7 +591,7 @@ module SimplyGenius
 
         it "provides stdout to output filter plugin" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             filter = Class.new do
@@ -614,7 +614,7 @@ module SimplyGenius
 
         it "provides stderr to output filter plugin" do
           within_construct do |c|
-            c.file('config/atmos.yml')
+            c.file('config/atmos.yml', "foo: bar")
             Atmos.config = Config.new("ops")
 
             filter = Class.new do

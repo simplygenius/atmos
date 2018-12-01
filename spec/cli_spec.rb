@@ -172,7 +172,7 @@ module SimplyGenius
       describe "executable" do
 
         it "runs the cli" do
-          @c.file('config/atmos.yml')
+          @c.file('config/atmos.yml', "foo: bar")
           exe = File.expand_path('../../exe/atmos', __FILE__)
           gemfile = File.expand_path('../../Gemfile', __FILE__)
           Bundler.with_original_env do
