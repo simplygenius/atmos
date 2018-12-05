@@ -1,4 +1,5 @@
 require 'simplygenius/atmos/providers/aws/auth_manager'
+require 'climate_control'
 
 module SimplyGenius
   module Atmos
@@ -160,9 +161,54 @@ module SimplyGenius
 
           describe "authenticate" do
 
-            it "warns if environment doesn't contain auth" do
-              manager.authenticate({}) {}
-              expect(Logging.contents).to match(/should be supplied/)
+            describe "environment warning" do
+
+              around(:each) do |ex|
+                ClimateControl.modify('AWS_PROFILE' => nil, 'AWS_ACCESS_KEY_ID' => nil, 'AWS_SECRET_ACCESS_KEY' => nil) do
+                  ex.run
+                end
+                ::Aws.shared_config.fresh
+              end
+
+              it "doesn't warn if environment contains profile" do
+                manager.authenticate({'AWS_PROFILE' => "foo"}) {}
+                expect(Logging.contents).to_not match(/No AWS credentials are active/)
+              end
+
+              it "doesn't warn if environment contains access key" do
+                manager.authenticate({'AWS_ACCESS_KEY_ID' => "foo", 'AWS_SECRET_ACCESS_KEY' => 'bar'}) {}
+                expect(Logging.contents).to_not match(/No AWS credentials are active/)
+              end
+
+              it "doesn't warn if a default profile is active" do
+                within_construct do |c|
+                  c.file("credentials", <<~EOF
+                    [default]
+                    aws_access_key_id = abc123
+                    aws_secret_access_key = abc123
+                  EOF
+                  )
+                  ClimateControl.modify("AWS_SHARED_CREDENTIALS_FILE" => "#{c}/credentials") do
+                    ::Aws.shared_config.fresh
+                    manager.authenticate({}) {}
+                    expect(Logging.contents).to_not match(/No AWS credentials are active/)
+                  end
+                end
+              end
+
+              it "warns if environment doesn't contain auth" do
+                ClimateControl.modify("AWS_SHARED_CREDENTIALS_FILE" => "/no/creds") do
+                  ::Aws.shared_config.fresh
+                  manager.authenticate({}) {}
+                  expect(Logging.contents).to match(/No AWS credentials are active/)
+                end
+              end
+
+              it "warns if environment contains profile and key" do
+                manager.authenticate({'AWS_PROFILE' => "foo", 'AWS_ACCESS_KEY_ID' => "foo"}) {}
+                expect(Logging.contents).to match(/Ignoring AWS_PROFILE/)
+              end
+
             end
 
             it "fails if STS can't do anything" do
@@ -227,6 +273,13 @@ module SimplyGenius
 
               expect { |b| manager.authenticate({}, &b) }.to yield_with_args
               expect(Logging.contents).to match(/Using aws root credentials/)
+            end
+
+            it "uses simple path for bypass option" do
+              expect(::Aws::STS::Client).to receive(:new).never
+              Atmos.config["auth"]["bypass"] = true
+              expect { |b| manager.authenticate({}, &b) }.to yield_with_args
+              expect(Logging.contents).to match(/Bypassing atmos aws authentication/)
             end
 
             it "authenticates" do

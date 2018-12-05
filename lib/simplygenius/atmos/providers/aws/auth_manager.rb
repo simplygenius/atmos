@@ -25,8 +25,20 @@ module SimplyGenius
             profile = system_env['AWS_PROFILE']
             key = system_env['AWS_ACCESS_KEY_ID']
             secret = system_env['AWS_SECRET_ACCESS_KEY']
-            if profile.blank? && (key.blank? || secret.blank?)
-              logger.warn("An aws profile or key/secret should be supplied via the environment")
+            # dont warn if default profile
+            no_creds = ::Aws::SharedCredentials.new.credentials.nil? rescue true
+
+            if profile.blank? && (key.blank? || secret.blank?) && no_creds
+              logger.warn("No AWS credentials are active in the environment nor shared credential store")
+              logger.warn("Run 'aws configure' to add some to the shared credential store")
+            end
+            if profile.present? && key.present?
+              logger.warn("Ignoring AWS_PROFILE because AWS_ACCESS_KEY_ID is set in the environment")
+            end
+
+            if Atmos.config["auth.bypass"]
+              logger.warn("Bypassing atmos aws authentication")
+              return block.call(Hash[system_env])
             end
 
             # Handle bootstrapping a new env account.  Newly created organization
