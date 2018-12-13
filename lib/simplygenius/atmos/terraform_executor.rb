@@ -259,18 +259,30 @@ module SimplyGenius
         end
       end
 
-      def pipe_stream(src, dest)
+      def pipe_stream(src, dest, &block)
          Thread.new do
            block_size = 1024
            begin
              while data = src.readpartial(block_size)
-               data = yield data if block_given?
+               data = block.call(data, flushing: false) if block
                dest.write(data)
              end
            rescue IOError, EOFError => e
              logger.log_exception(e, "Stream failure", level: :debug)
            rescue Exception => e
              logger.log_exception(e, "Stream failure")
+           ensure
+             begin
+               if block
+                 data = block.call('', flushing: true)
+                 dest.write(data)
+               end
+               dest.flush
+             rescue IOError, EOFError => e
+               logger.log_exception(e, "Stream failure while flushing", level: :debug)
+             rescue Exception => e
+               logger.log_exception(e, "Stream failure while flushing")
+             end
            end
          end
       end

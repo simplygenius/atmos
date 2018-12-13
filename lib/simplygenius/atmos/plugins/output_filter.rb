@@ -15,7 +15,7 @@ module SimplyGenius
           @context = context
         end
 
-        def filter(data)
+        def filter(data, flushing: false)
           raise "not implemented"
         end
 

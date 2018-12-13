@@ -50,8 +50,8 @@ module SimplyGenius
           r, w = IO.pipe
           dest = StringIO.new
 
-          t = te.send(:pipe_stream, r, dest) do |data|
-            "1#{data}2"
+          t = te.send(:pipe_stream, r, dest) do |data, flushing: false|
+            flushing ? data : "1#{data}2"
           end
           w.write("foo")
           w.close
@@ -597,7 +597,7 @@ module SimplyGenius
             filter = Class.new do
               def self.data; @data ||= {output: ""}; end
               def initialize(c); self.class.data[:context] = c; end
-              def filter(data); self.class.data[:filter_called] = true; self.class.data[:output] += data; ""; end
+              def filter(data, flushing: false); self.class.data[:filter_called] = true; self.class.data[:output] += data; ""; end
               def close; self.class.data[:close_called] = true; end
             end
 
@@ -620,7 +620,7 @@ module SimplyGenius
             filter = Class.new do
               def self.data; @data ||= {output: ""}; end
               def initialize(c); self.class.data[:context] = c; end
-              def filter(data); self.class.data[:filter_called] = true; self.class.data[:output] += data; ""; end
+              def filter(data, flushing: false); self.class.data[:filter_called] = true; self.class.data[:output] += data; ""; end
               def close; self.class.data[:close_called] = true; end
             end
 

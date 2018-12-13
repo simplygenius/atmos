@@ -7,7 +7,7 @@ module SimplyGenius
 
       class PromptNotify < OutputFilter
 
-        def filter(data)
+        def filter(data, flushing: false)
           if data =~ /^[\e\[\dm\s]*Enter a value:[\e\[\dm\s]*$/
             notify(message: "Terraform is waiting for user input")
           end

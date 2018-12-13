@@ -91,10 +91,10 @@ module SimplyGenius
         end
 
         def filter_block
-          return Proc.new do |data|
+          return Proc.new do |data, flushing: false|
             @filters.inject(data) do |memo, obj|
               begin
-                obj.filter(memo)
+                obj.filter(memo, flushing: flushing)
               rescue StandardError => e
                 logger.log_exception e, "Output filter failed during filter: #{obj.class}"
                 memo
