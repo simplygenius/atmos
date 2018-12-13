@@ -17,7 +17,7 @@ atmos:
   # To access the Atmos Pro recipes, add your atmos pro auth token to
   # ~/.atmos.yml and uncomment below
   #- name: atmos-pro-recipes
-  #  location: https://#{atmos.pro_auth_token}@releases.simplygenius.com/recipes/v#{atmos_version}#atmos-pro-recipes-#{atmos_version}
+  #  location: https://#{atmos.pro_auth_token}@releases.simplygenius.com/recipes/v#{atmos_version}.zip#atmos-pro-recipes-#{atmos_version}
 
   # To get the atmos-pro gem, add the gem source like:
   #   gem sources -a https://ATMOS_PRO_AUTH_TOKEN@releases.simplygenius.com/gems/
