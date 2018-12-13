@@ -16,6 +16,7 @@ module SimplyGenius
       attr_accessor :atmos_env, :working_group,
                     :root_dir,
                     :config_file,
+                    :user_config_file,
                     :tmp_root
 
       def initialize(atmos_env, working_group = 'default')
@@ -23,6 +24,7 @@ module SimplyGenius
         @working_group = working_group
         @root_dir = File.expand_path(Dir.pwd)
         @config_file = File.join(root_dir, "config", "atmos.yml")
+        @user_config_file = "~/.atmos.yml"
         @tmp_root = File.join(root_dir, "tmp")
         @included_configs = []
       end
@@ -34,6 +36,12 @@ module SimplyGenius
       def [](key)
         load
         result = @config.notation_get(key)
+        return result
+      end
+
+      def []=(key, value)
+        load
+        result = @config.notation_put(key, value)
         return result
       end
 
@@ -100,6 +108,17 @@ module SimplyGenius
         end
       end
 
+      def save_user_config_file(data, merge_to_existing: true)
+        logger.debug("Saving to user config file (merging=#{merge_to_existing}): #{user_config_file}")
+
+        if merge_to_existing
+          existing = load_file(user_config_file, SettingsHash.new)
+          data = config_merge(existing, data, ["saving #{user_config_file}"])
+        end
+        File.write(user_config_file, YAML.dump(data.to_hash))
+        File.chmod(0600, user_config_file)
+      end
+
       private
 
       INTERP_PATTERN = /(\#\{([^\}]+)\})/
@@ -164,15 +183,7 @@ module SimplyGenius
           logger.debug("Expanded pattern: #{pattern}")
 
           Dir[pattern].each do |f|
-            logger.debug("Loading atmos config file: #{f}")
-            data = YAML.load_file(f)
-            if ! data.is_a?(Hash)
-              logger.debug("Skipping non-hash config file: #{f}")
-            else
-              h = SettingsHash.new(data)
-              config = config_merge(config, h, [f])
-              @included_configs << f
-            end
+            config = load_file(f, config)
           end
         end
 
@@ -182,16 +193,8 @@ module SimplyGenius
       def load_submap(relative_root, group, name, config)
         submap_dir = File.join(relative_root, 'atmos', group)
         submap_file = File.join(submap_dir, "#{name}.yml")
-        if File.exist?(submap_file)
-          logger.debug("Loading atmos #{group} config file: #{submap_file}")
-          data  = YAML.load_file(submap_file)
-          if ! data.is_a?(Hash)
-            logger.debug("Skipping non-hash config file: #{submap_file}")
-          else
-            h = SettingsHash.new({group => {name => data}})
-            config = config_merge(config, h, [submap_file])
-            @included_configs << submap_file
-          end
+        config = load_file(submap_file, config) do |d|
+          SettingsHash.new({group => {name => d}})
         end
 
         begin
@@ -209,15 +212,12 @@ module SimplyGenius
 
           logger.debug("Atmos env: #{atmos_env}")
 
+
           if ! File.exist?(config_file)
             logger.warn "Could not find an atmos config file at: #{config_file}"
             @full_config = SettingsHash.new
           else
-            logger.debug("Loading atmos config file #{config_file}")
-            data = YAML.load_file(config_file)
-            raise ArgumentError.new("Invalid main config file (not hash-like): #{config_file}") if ! data.is_a?(Hash)
-            @full_config = SettingsHash.new(data)
-            @included_configs << config_file
+            @full_config = load_file(config_file, SettingsHash.new)
           end
 
           @full_config = load_config_sources(File.dirname(config_file), @full_config, *Array(@full_config.notation_get("atmos.config_sources")))
@@ -227,6 +227,10 @@ module SimplyGenius
           @full_config = load_submap(File.dirname(config_file), 'providers', provider_name, @full_config)
           @full_config = load_submap(File.dirname(config_file), 'environments', atmos_env, @full_config)
 
+          @user_config_file = @full_config.notation_get("atmos.user_config") || @user_config_file
+          @user_config_file = File.expand_path(@user_config_file)
+          @full_config = load_file(user_config_file, @full_config)
+
           global = SettingsHash.new(@full_config.reject {|k, v| ['providers', 'environments'].include?(k) })
           conf = config_merge(global, {
               atmos_env: atmos_env,
@@ -235,6 +239,25 @@ module SimplyGenius
           }, ["builtins"])
           expand(conf, conf)
         end
+      end
+
+      def load_file(file, config=SettingsHash.new, &block)
+        if File.exist?(file)
+          logger.debug("Loading atmos config file #{file}")
+          data = YAML.load_file(file)
+          if ! data.is_a?(Hash)
+            logger.debug("Skipping invalid atmos config file (not hash-like): #{file}")
+          else
+            data = SettingsHash.new(data)
+            data = block.call(data) if block
+            config = config_merge(config, data, [file])
+            @included_configs << file
+          end
+        else
+          logger.debug   "Could not find an atmos config file at: #{file}"
+        end
+
+        config
       end
 
       def expand(config, obj)

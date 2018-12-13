@@ -320,13 +320,98 @@ module SimplyGenius
 
       end
 
+      describe "load_file" do
+
+        it "logs if config file not present" do
+          within_construct do |c|
+            config.send(:load_file, "#{c}/foo.yml")
+            expect(Logging.contents).to include("Could not find an atmos config file at: #{c}/foo.yml")
+            expect(config.instance_variable_get(:@included_configs)).to_not include("#{c}/foo.yml")
+          end
+        end
+
+        it "logs if bad file" do
+          within_construct do |c|
+            c.file('foo.yml', "true")
+            config.send(:load_file, "#{c}/foo.yml")
+            expect(Logging.contents).to include("Skipping invalid atmos config file (not hash-like): #{c}/foo.yml")
+            expect(config.instance_variable_get(:@included_configs)).to_not include("#{c}/foo.yml")
+          end
+        end
+
+        it "loads config" do
+          within_construct do |c|
+            c.file('foo.yml', YAML.dump(foo: "bar"))
+            result = config.send(:load_file, "#{c}/foo.yml")
+            expect(result[:foo]).to eq("bar")
+            expect(config.instance_variable_get(:@included_configs)).to include("#{c}/foo.yml")
+          end
+        end
+
+        it "merges loaded config" do
+          within_construct do |c|
+            c.file('foo.yml', YAML.dump(foo: "bar"))
+            result = config.send(:load_file, "#{c}/foo.yml", SettingsHash.new({bar: "baz"}))
+            expect(result[:foo]).to eq("bar")
+            expect(result[:bar]).to eq("baz")
+            expect(config.instance_variable_get(:@included_configs)).to include("#{c}/foo.yml")
+          end
+        end
+
+        it "applies block to loaded config" do
+          within_construct do |c|
+            c.file('foo.yml', YAML.dump(foo: "bar"))
+            result = config.send(:load_file, "#{c}/foo.yml") do |d|
+              d[:hum] = "dum"
+              d
+            end
+            expect(result[:foo]).to eq("bar")
+            expect(result[:hum]).to eq("dum")
+            expect(config.instance_variable_get(:@included_configs)).to include("#{c}/foo.yml")
+          end
+        end
+
+      end
+
+      describe "save_user_config_file" do
+
+        it "saves to user file" do
+          within_construct do |c|
+            allow(config).to receive(:user_config_file).and_return("#{c}/home.yml")
+            config.send(:save_user_config_file, {"foo" => "bar"})
+            expect(YAML.load_file("#{c}/home.yml")).to eq({"foo" => "bar"})
+            mode = File.stat("#{c}/home.yml").mode
+            expect(sprintf("%o", mode)).to match(/0600$/)
+          end
+        end
+
+        it "merges when saving to user file" do
+          within_construct do |c|
+            c.file("home.yml", YAML.dump(baz: "bum"))
+            allow(config).to receive(:user_config_file).and_return("#{c}/home.yml")
+            config.send(:save_user_config_file, {"foo" => "bar"}, merge_to_existing: true)
+            expect(YAML.load_file("#{c}/home.yml")).to eq({"foo" => "bar", "baz" => "bum"})
+          end
+        end
+
+        it "can skip merges when saving to user file" do
+          within_construct do |c|
+            c.file("home.yml", YAML.dump(baz: "bum"))
+            allow(config).to receive(:user_config_file).and_return("#{c}/home.yml")
+            config.send(:save_user_config_file, {"foo" => "bar"}, merge_to_existing: false)
+            expect(YAML.load_file("#{c}/home.yml")).to eq({"foo" => "bar"})
+          end
+        end
+
+      end
+
       describe "load" do
 
         it "warns if main config file not present" do
           within_construct do |c|
             config.send(:load)
             expect(Logging.contents).to match(/Could not find an atmos config file/)
-            expect(config.instance_variable_get(:@included_configs)).to eq([])
+            expect(config.instance_variable_get(:@included_configs)).to_not include(config.config_file)
           end
         end
 
@@ -335,10 +420,9 @@ module SimplyGenius
             c.file('config/atmos.yml', "true")
             expect(config.instance_variable_defined?(:@full_config)).to be false
             expect(config.instance_variable_defined?(:@config)).to be false
-            expect { config.send(:load) }.to raise_error(ArgumentError, /Invalid main config file/)
-            expect(config.instance_variable_defined?(:@full_config)).to be false
-            expect(config.instance_variable_defined?(:@config)).to be false
-            expect(config.instance_variable_get(:@included_configs)).to eq([])
+            config.send(:load)
+            expect(Logging.contents).to include("Skipping invalid atmos config file (not hash-like): #{config.config_file}")
+            expect(config.instance_variable_get(:@included_configs)).to_not include(config.config_file)
           end
         end
 
@@ -350,7 +434,7 @@ module SimplyGenius
             config.send(:load)
             expect(config.instance_variable_defined?(:@full_config)).to be true
             expect(config.instance_variable_defined?(:@config)).to be true
-            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos.yml"])
+            expect(config.instance_variable_get(:@included_configs)).to include("#{c}/config/atmos.yml")
           end
         end
 
@@ -364,6 +448,22 @@ module SimplyGenius
             expect(config["bar"]).to eq("baz")
             expect(config["baz"]).to eq("bum")
             expect(config["hum"]).to eq("yes")
+          end
+        end
+
+        it "loads user config" do
+          allow(config).to receive(:load_file).and_call_original
+          expect(config).to receive(:load_file).with(File.expand_path("~/.atmos.yml"), any_args)
+          config.send(:load)
+        end
+
+        it "loads custom user config" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump(foo: "bar", hum: "not", atmos: {user_config: "#{c}/home"}))
+            c.file('home', YAML.dump(bar: "baz"))
+            config.send(:load)
+            expect(config["foo"]).to eq("bar")
+            expect(config["bar"]).to eq("baz")
           end
         end
 

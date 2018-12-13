@@ -10,13 +10,9 @@ module SimplyGenius
       include GemLogger::LoggerSupport
 
       def initialize
-        @secret_file = Atmos.config["atmos.otp.secret_file"] || "~/.atmos.yml"
-        @secret_file = File.expand_path(@secret_file)
-        yml_hash = YAML.load_file(@secret_file) rescue Hash.new
-        @secret_store = SettingsHash.new(yml_hash)
-        @secret_store[Atmos.config[:org]] ||= {}
-        @secret_store[Atmos.config[:org]][:otp] ||= {}
-        @scoped_secret_store = @secret_store[Atmos.config[:org]][:otp]
+        @scoped_path = "atmos.otp.#{Atmos.config[:org]}"
+        Atmos.config[@scoped_path] ||= {}
+        @scoped_secret_store = Atmos.config[@scoped_path]
       end
 
       def add(name, secret)
@@ -32,8 +28,9 @@ module SimplyGenius
       end
 
       def save
-        File.write(@secret_file, YAML.dump(@secret_store.to_hash))
-        File.chmod(0600, @secret_file)
+        data = SettingsHash.new
+        data.notation_put(@scoped_path, @scoped_secret_store)
+        Atmos.config.save_user_config_file(data)
       end
 
       def generate(name)

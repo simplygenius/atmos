@@ -19,18 +19,18 @@ module SimplyGenius
 
       describe "initialize" do
 
-        it "has a default secret file" do
-          @config.notation_put("atmos.otp.secret_file", nil)
-          expect(otp.instance_variable_get(:@secret_file)).to eq(File.expand_path("~/.atmos.yml"))
-        end
-
-        it "can override secret file" do
-          @config.notation_put("atmos.otp.secret_file", "~/.foo.yml")
-          expect(otp.instance_variable_get(:@secret_file)).to eq(File.expand_path("~/.foo.yml"))
-        end
-
         it "is a singleton" do
           expect(described_class.instance).to eq(described_class.instance)
+        end
+
+        it "handles empty secrets" do
+          expect(otp.instance_variable_get(:@scoped_secret_store)).to eq({})
+        end
+
+        it "sees scoped existing secrets" do
+          @config.notation_put("atmos.otp.myorg.foo", "bar")
+          @config.notation_put("atmos.otp.otherorg.bar", "bum")
+          expect(otp.instance_variable_get(:@scoped_secret_store)).to eq({"foo" => "bar"})
         end
 
       end
@@ -60,26 +60,15 @@ module SimplyGenius
         it "saves secret file" do
           within_construct do |c|
             secret_file = "#{c}/foo.yml"
-            @config.notation_put("atmos.otp.secret_file", secret_file)
+            allow(Atmos.config).to receive(:user_config_file).and_return(secret_file)
+
             otp.add("foo", "sekret")
 
             expect(File.exist?(secret_file)).to be false
             otp.save
             expect(File.exist?(secret_file)).to be true
             data = YAML.load_file(secret_file)
-            expect(data["myorg"]["otp"]["foo"]).to eq("sekret")
-          end
-        end
-
-        it "loads secret file" do
-          within_construct do |c|
-            secret_file = "#{c}/foo.yml"
-            @config.notation_put("atmos.otp.secret_file", secret_file)
-            otp.add("foo", "sekret")
-            otp.save
-            expect(File.exist?(secret_file)).to be true
-            otp = described_class.send(:new)
-            expect(otp.generate("foo")).to match(/[0-9]{6}/)
+            expect(data["atmos"]["otp"]["myorg"]["foo"]).to eq("sekret")
           end
         end
 
