@@ -66,12 +66,25 @@ module SimplyGenius
               stub = client.stub_data(:get_object)
               stub = SymbolizedMash.new(stub.to_h).deep_merge(body: 'bar')
               ::Aws.config[:s3] = {
-                stub_responses: {
-                  get_object: stub
-                }
+                  stub_responses: {
+                      get_object: stub
+                  }
               }
 
+              # TODO: not sure why this breaks stubbed response
+              # expect(::Aws::S3::Client).to receive(:new).and_return(client)
+              # expect(client).to receive(:get_object).with(hash_including(key: "foo")).and_call_original
+
               expect(manager.get("foo")).to eq("bar")
+            end
+
+            it "uses prefix to get a secret" do
+              Atmos.config[:secret][:prefix] = "path/"
+              client = ::Aws::S3::Client.new
+              expect(::Aws::S3::Client).to receive(:new).and_return(client)
+              expect(client).to receive(:get_object).with(hash_including(key: "path/foo")).and_call_original
+
+              expect(manager.get("foo"))
             end
 
           end
@@ -81,7 +94,16 @@ module SimplyGenius
             it "sets a secret" do
               client = ::Aws::S3::Client.new
               expect(::Aws::S3::Client).to receive(:new).and_return(client)
-              expect(client).to receive(:put_object).and_call_original
+              expect(client).to receive(:put_object).with(hash_including(key: "foo")).and_call_original
+
+              manager.set("foo", "bar")
+            end
+
+            it "uses prefix to set a secret" do
+              Atmos.config[:secret][:prefix] = "path/"
+              client = ::Aws::S3::Client.new
+              expect(::Aws::S3::Client).to receive(:new).and_return(client)
+              expect(client).to receive(:put_object).with(hash_including(key: "path/foo")).and_call_original
 
               manager.set("foo", "bar")
             end
@@ -95,16 +117,47 @@ module SimplyGenius
               stub = client.stub_data(:get_object)
               stub = SymbolizedMash.new(stub.to_h).deep_merge(body: 'bar')
               ::Aws.config[:s3] = {
-                stub_responses: {
-                    list_objects: { contents: [
-                        {key: 'foo', storage_class: "STANDARD"},
-                        {key: 'baz', storage_class: "STANDARD"}
-                    ]},
-                    get_object: [stub.deep_merge(body: 'bar'), stub.deep_merge(body: 'boo')]
-                }
+                  stub_responses: {
+                      list_objects: { contents: [
+                          {key: 'foo', storage_class: "STANDARD"},
+                          {key: 'baz', storage_class: "STANDARD"}
+                      ]},
+                      get_object: [stub.deep_merge(body: 'bar'), stub.deep_merge(body: 'boo')]
+                  }
               }
 
+              # TODO: not sure why this breaks stubbed response
+              # expect(::Aws::S3::Client).to receive(:new).and_return(client)
+              # expect(client).to receive(:list_objects).with(hash_including(prefix: "")).and_call_original
+
               expect(manager.to_h).to eq("foo" => "bar", "baz" => "boo")
+            end
+
+            it "uses prefix to restrict all secrets" do
+              Atmos.config[:secret][:prefix] = "path/"
+              client = ::Aws::S3::Client.new
+              expect(::Aws::S3::Client).to receive(:new).and_return(client)
+              expect(client).to receive(:list_objects).with(hash_including(prefix: "path/")).and_call_original
+
+              manager.to_h
+            end
+
+            it "removes prefix from keys when set" do
+              Atmos.config[:secret][:prefix] = "path/"
+              client = ::Aws::S3::Client.new
+              stub = client.stub_data(:get_object)
+              stub = SymbolizedMash.new(stub.to_h).deep_merge(body: 'bar')
+              ::Aws.config[:s3] = {
+                  stub_responses: {
+                      list_objects: { contents: [
+                          {key: 'path/foo', storage_class: "STANDARD"},
+                          {key: 'path/baz', storage_class: "STANDARD"}
+                      ]},
+                      get_object: [stub.deep_merge(body: 'bar'), stub.deep_merge(body: 'boo')]
+                  }
+              }
+
+              expect(manager.to_h.keys).to eq(["foo", "baz"])
             end
 
           end
@@ -114,7 +167,17 @@ module SimplyGenius
             it "deletes a secret" do
               client = ::Aws::S3::Client.new
               expect(::Aws::S3::Client).to receive(:new).and_return(client)
-              expect(client).to receive(:delete_object).and_call_original
+              expect(client).to receive(:delete_object).with(hash_including(key: "foo")).and_call_original
+
+              manager.delete("foo")
+            end
+
+            it "uses prefix to delete a secret" do
+              Atmos.config[:secret][:prefix] = "path/"
+
+              client = ::Aws::S3::Client.new
+              expect(::Aws::S3::Client).to receive(:new).and_return(client)
+              expect(client).to receive(:delete_object).with(hash_including(key: "path/foo")).and_call_original
 
               manager.delete("foo")
             end
