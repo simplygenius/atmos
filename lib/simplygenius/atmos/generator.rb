@@ -51,6 +51,9 @@ module SimplyGenius
 
         end
 
+        # TODO: return all context so the calling template can see answers to
+        # template questions to use in customizing its output (e.g. service
+        # needs cluster name and ec2 backed state)
         return visited_templates
       end
 
