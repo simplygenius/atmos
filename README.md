@@ -62,7 +62,7 @@ The [terraform docs](https://www.terraform.io/docs/index.html) are excellent.
 
 ## Quickstart
 
-See the [screencast](https://simplygenius.wistia.com/projects/h595iz9tbq) for a detailed walkthrough (~1 hour) of the quickstart.  Or try the [condensed screencast](https://simplygenius.wistia.com/medias/2syql5mnud) if you just want to take a quick look (~7m)
+See the [screencast](https://simplygenius.wistia.com/medias/zamoxtlqe0) for a detailed walkthrough (~1 hour) of the quickstart.  Or try the [condensed screencast](https://simplygenius.wistia.com/medias/2syql5mnud) if you just want to take a quick look (~7m)
 
 [Create an AWS account](https://portal.aws.amazon.com/billing/signup)
 Setup root account access keys, make note of the numeric account id
