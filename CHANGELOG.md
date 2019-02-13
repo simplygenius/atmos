@@ -1,3 +1,13 @@
+0.9.3 (02/12/2019)
+------------------
+
+* add the ability to use a prefix for scoping secrets [470556a](https://github.com/simplygenius/atmos/commit/470556a)
+* add comment [b0592d5](https://github.com/simplygenius/atmos/commit/b0592d5)
+* fix pro recipe source url [9ddb8a8](https://github.com/simplygenius/atmos/commit/9ddb8a8)
+* handle flushing of data in plugin output handlers when streaming completes [e1e4707](https://github.com/simplygenius/atmos/commit/e1e4707)
+* refactor secrets config into a more general user config file in users home directory [06875b7](https://github.com/simplygenius/atmos/commit/06875b7)
+* expand warnings for missing aws auth [3ad6ec0](https://github.com/simplygenius/atmos/commit/3ad6ec0)
+
 0.9.2 (12/01/2018)
 ------------------
 
