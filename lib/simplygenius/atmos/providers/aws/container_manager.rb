@@ -40,23 +40,23 @@ module SimplyGenius
             logger.info "Tagging local image '#{local_image}' with #{tags}"
             tags.each {|t| run("docker", "tag", local_image, "#{ecs_image}:#{t}") }
 
-            logger.info "Pushing tagged image to ECR repo"
+            logger.info "Pushing tagged image to ECR repo #{ecs_image}"
             tags.each {|t| run("docker", "push", "#{ecs_image}:#{t}") }
 
             result[:remote_image] = "#{ecs_image}:#{revision}"
             return result
           end
 
-          def deploy_task(task, remote_image)
+          def deploy_task(name, remote_image)
             result = {}
 
             ecs = ::Aws::ECS::Client.new
             resp = nil
 
-            resp = ecs.list_task_definitions(family_prefix: task, sort: 'DESC')
+            resp = ecs.list_task_definitions(family_prefix: name, sort: 'DESC')
             latest_defn_arn = resp.task_definition_arns.first
 
-            logger.info "Latest task definition: #{latest_defn_arn}"
+            logger.info "Current task definition for #{name}: #{latest_defn_arn}"
 
             resp = ecs.describe_task_definition(task_definition: latest_defn_arn)
             latest_defn = resp.task_definition
@@ -71,31 +71,28 @@ module SimplyGenius
             resp = ecs.register_task_definition(**new_defn)
             result[:task_definition] = resp.task_definition.task_definition_arn
 
-            logger.info "Updated task=#{task} to #{result[:task_definition]} with image #{remote_image}"
+            logger.info "Updated task=#{name} to #{result[:task_definition]} with image #{remote_image}"
 
             return result
           end
 
-          def deploy_service(cluster, service, remote_image)
-             result = {}
-
-             ecs = ::Aws::ECS::Client.new
-             resp = nil
-
-             # Get current task definition name from service
-             resp = ecs.describe_services(cluster: cluster, services: [service])
-             current_defn_arn = resp.services.first.task_definition
-             defn_name = current_defn_arn.split("/").last.split(":").first
-
-             logger.info "Current task definition (name=#{defn_name}): #{current_defn_arn}"
-             result = deploy_task(defn_name, remote_image)
+          def deploy(cluster, name, remote_image)
+             result = deploy_task(name, remote_image)
              new_taskdef = result[:task_definition]
 
-             logger.info "Updating service with new task definition: #{new_taskdef}"
+             # Only trigger restart if name is a service
+             ecs = ::Aws::ECS::Client.new
+             resp = ecs.describe_services(cluster: cluster, services: [name])
 
-             resp = ecs.update_service(cluster: cluster, service: service, task_definition: new_taskdef)
+             if resp.services.size > 0
+               logger.info "Updating service with new task definition: #{new_taskdef}"
 
-             logger.info "Updated service=#{service} on cluster=#{cluster} to #{new_taskdef} with image #{remote_image}"
+               resp = ecs.update_service(cluster: cluster, service: name, task_definition: new_taskdef)
+
+               logger.info "Updated service=#{name} on cluster=#{cluster} to #{new_taskdef} with image #{remote_image}"
+             else
+               logger.info "#{name} is not a service"
+             end
 
              return result
           end

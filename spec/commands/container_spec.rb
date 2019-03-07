@@ -50,8 +50,21 @@ module SimplyGenius
             expect(Atmos.config.provider.container_manager).
                 to receive(:push).with("bar", "bar", revision: nil).and_return(remote_image: "baz")
             expect(Atmos.config.provider.container_manager).
-                to receive(:deploy_service).with("foo", "bar", "baz").and_return({})
+                to receive(:deploy).with("foo", "bar", "baz").and_return({})
             cli.run(["deploy", "-c", "foo", "bar"])
+          end
+
+          it "deploys multiple services with the first's image" do
+            env = Hash.new
+            expect(Atmos.config.provider.auth_manager).
+                to receive(:authenticate).with(ENV, role: nil).and_yield(env)
+            expect(Atmos.config.provider.container_manager).
+                to receive(:push).with("bar", "bar", revision: nil).and_return(remote_image: "baz").once
+            expect(Atmos.config.provider.container_manager).
+                to receive(:deploy).with("foo", "bar", "baz").and_return({})
+            expect(Atmos.config.provider.container_manager).
+                to receive(:deploy).with("foo", "bum", "baz").and_return({})
+            cli.run(["deploy", "-c", "foo", "bar", "bum"])
           end
 
           it "uses role when deploying a service" do
@@ -61,7 +74,7 @@ module SimplyGenius
             expect(Atmos.config.provider.container_manager).
                 to receive(:push).with("bar", "bar", revision: nil).and_return(remote_image: "baz")
             expect(Atmos.config.provider.container_manager).
-                to receive(:deploy_service).with("foo", "bar", "baz").and_return({})
+                to receive(:deploy).with("foo", "bar", "baz").and_return({})
             cli.run(["deploy", "-r", "myrole", "-c", "foo", "bar"])
           end
 
@@ -72,7 +85,7 @@ module SimplyGenius
             expect(Atmos.config.provider.container_manager).
                 to receive(:push).with("bar", "myimage", revision: nil).and_return(remote_image: "baz")
             expect(Atmos.config.provider.container_manager).
-                to receive(:deploy_service).with("foo", "bar", "baz").and_return({})
+                to receive(:deploy).with("foo", "bar", "baz").and_return({})
             cli.run(["deploy", "-i", "myimage", "-c", "foo", "bar"])
           end
 
@@ -83,19 +96,8 @@ module SimplyGenius
             expect(Atmos.config.provider.container_manager).
                 to receive(:push).with("bar", "bar", revision: 'v123').and_return(remote_image: "baz")
             expect(Atmos.config.provider.container_manager).
-                to receive(:deploy_service).with("foo", "bar", "baz").and_return({})
+                to receive(:deploy).with("foo", "bar", "baz").and_return({})
             cli.run(["deploy", "-v", "v123", "-c", "foo", "bar"])
-          end
-
-          it "deploys a task" do
-            env = Hash.new
-            expect(Atmos.config.provider.auth_manager).
-                to receive(:authenticate).with(ENV, role: nil).and_yield(env)
-            expect(Atmos.config.provider.container_manager).
-                to receive(:push).with("bar", "bar", revision: nil).and_return(remote_image: "baz")
-            expect(Atmos.config.provider.container_manager).
-                to receive(:deploy_task).with("bar", "baz").and_return({})
-            cli.run(["deploy", "-t", "-c", "foo", "bar"])
           end
 
         end

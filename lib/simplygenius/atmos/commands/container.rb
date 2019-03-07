@@ -24,17 +24,14 @@ module SimplyGenius
           option ["-i", "--image"],
                  "IMAGE", "The local container image to deploy\nDefaults to service/task name"
 
-          option ["-t", "--task"],
-                 :flag, "Deploy as a task, not a service\n"
-
           option ["-v", "--revision"],
                  "REVISION", "Use as the remote image revision\n"
 
-          parameter "NAME",
-                    "The name of the service (or task) to deploy"
+          parameter "NAME ...",
+                    "The name of the service (or task) to deploy\nWhen multiple, the first is the primary, and\nthe rest get deployed with its image"
 
           def default_image
-            name
+            name_list.first
           end
 
           def execute
@@ -42,11 +39,14 @@ module SimplyGenius
               ClimateControl.modify(auth_env) do
                 mgr = Atmos.config.provider.container_manager
 
-                result = mgr.push(name, image, revision: revision)
-                if task?
-                  result = result.merge(mgr.deploy_task(name, result[:remote_image]))
-                else
-                  result = result.merge(mgr.deploy_service(cluster, name, result[:remote_image]))
+                primary_name = name_list.first
+
+                result = mgr.push(primary_name, image, revision: revision)
+
+                name_list.each do |name|
+                  resp = mgr.deploy(cluster, name, result[:remote_image])
+                  result[:task_definitions] ||= []
+                  result[:task_definitions] << resp[:task_definition]
                 end
 
                 logger.info "Container deployed:\n #{display result}"

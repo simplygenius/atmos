@@ -84,7 +84,7 @@ module SimplyGenius
                   arn
               ])
               #ecs.stub_responses(:describe_task_definition, task_definition: ecs.stub_data(:task_definition))
-              #ecs.stub_responses(:register_task_definition, task_definition: )
+              #ecs.stub_responses(:register_task_definition, task_definition: ecs.stub_data(:task_definition))
 
               result = manager.deploy_task(name, repo)
               expect(result[:task_definition]).to eq("String")
@@ -92,7 +92,7 @@ module SimplyGenius
 
           end
 
-          describe "deploy_service" do
+          describe "deploy" do
 
             it "deploys the service" do
               ecs = ::Aws::ECS::Client.new
@@ -109,10 +109,28 @@ module SimplyGenius
               ecs.stub_responses(:describe_services, services: [
                   {task_definition: arn}
               ])
-              #ecs.stub_responses(:describe_task_definition, task_definition: ecs.stub_data(:task_definition))
-              #ecs.stub_responses(:register_task_definition, task_definition: )
 
-              result = manager.deploy_service(cluster, name, repo)
+              expect(ecs).to receive(:update_service).and_call_original
+              result = manager.deploy(cluster, name, repo)
+              expect(result[:task_definition]).to eq("String")
+            end
+
+            it "deploys task (not service)" do
+              ecs = ::Aws::ECS::Client.new
+              allow(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+
+              cluster = "mycluster"
+              name = "myname"
+              repo = "repo.amazon.com/#{name}"
+              ver = 11
+              arn = "arn:aws:ecs:us-east-1:123456789012:task-definition/#{name}:#{ver}"
+              ecs.stub_responses(:list_task_definitions, task_definition_arns: [
+                  arn
+              ])
+              ecs.stub_responses(:describe_services, services: [])
+
+              expect(ecs).to_not receive(:update_service)
+              result = manager.deploy(cluster, name, repo)
               expect(result[:task_definition]).to eq("String")
             end
 
