@@ -1,3 +1,9 @@
+0.9.4 (03/20/2019)
+------------------
+
+* allow deploying the same image to multiple services and make task vs service auto detected [9f841d7](https://github.com/simplygenius/atmos/commit/9f841d7)
+* fix link [deba98f](https://github.com/simplygenius/atmos/commit/deba98f)
+
 0.9.3 (02/12/2019)
 ------------------
 
