@@ -127,6 +127,10 @@ Use the 'aws/service' template to setup an ECS Fargate based service, then apply
 
 ```
 atmos generate --force aws/service
+# If you setup a db for your service, add its password to the secret store
+# Otherwise the service container will fail to start if it is using the
+# ATMOS_SECRET_KEYS mechanism like the example app is using.
+# atmos -e dev secret set service_<service_name>_db_password sekret!
 atmos -e dev apply
 
 ```
