@@ -124,12 +124,12 @@ module SimplyGenius
 
       describe "plugins" do
 
-        it "adds the default plugins" do
+        it "loads plugins" do
           conf = Config.new("ops")
           expect(Config).to receive(:new).and_return(conf)
           expect(conf).to receive(:is_atmos_repo?).and_return(false)
+          expect(conf.plugin_manager).to receive(:load_plugins).once
           cli.run(['version'])
-          expect(conf.plugin_manager.output_filters(:stdout, {}).filters.first).to be_a_kind_of(Plugins::PromptNotify)
         end
 
       end
@@ -165,23 +165,6 @@ module SimplyGenius
           expect(Config).to receive(:new).and_return(conf)
           expect(conf).to receive(:add_user_load_path).with("foo", "bar")
           cli.run(['--load-path', 'foo', '--load-path', 'bar', 'version'])
-        end
-
-      end
-
-      describe "executable" do
-
-        it "runs the cli" do
-          @c.file('config/atmos.yml', "foo: bar")
-          exe = File.expand_path('../../exe/atmos', __FILE__)
-          gemfile = File.expand_path('../../Gemfile', __FILE__)
-          Bundler.with_original_env do
-            output, status = Open3.capture2e(ENV.to_h.merge("BUNDLE_GEMFILE" => gemfile), "bundle exec #{exe} version 2>&1")
-            expect(status.exitstatus).to eq(0), "exe failed: #{output}"
-            expect(output).to include(VERSION)
-            expect(File.exist?('atmos.log')).to be true
-            expect(File.read('atmos.log')).to include(VERSION)
-          end
         end
 
       end

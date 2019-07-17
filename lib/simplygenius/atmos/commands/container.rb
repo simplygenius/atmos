@@ -35,6 +35,7 @@ module SimplyGenius
           end
 
           def execute
+            # TODO: use local_name_prefix for cluster name and repo/service name?
             Atmos.config.provider.auth_manager.authenticate(ENV, role: role) do |auth_env|
               ClimateControl.modify(auth_env) do
                 mgr = Atmos.config.provider.container_manager

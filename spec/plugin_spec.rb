@@ -1,4 +1,5 @@
 require 'simplygenius/atmos/plugin'
+require 'simplygenius/atmos/plugin_manager'
 
 module SimplyGenius
   module Atmos
@@ -8,7 +9,7 @@ module SimplyGenius
       describe "config" do
 
         it "exposes config" do
-          plugin = described_class.new({name: 'mine'})
+          plugin = described_class.new(nil, {name: 'mine'})
           expect(plugin.config).to eq({name: 'mine'})
         end
 
@@ -20,8 +21,9 @@ module SimplyGenius
           config = Config.new("ops")
           allow(Atmos).to receive(:config).and_return(config)
 
-          plugin = described_class.new({})
-          expect(Atmos.config.plugin_manager).to receive(:register_output_filter).with(:stdout, Object)
+          pm = instance_double("SimplyGenius::Atmos::PluginManager")
+          plugin = described_class.new(pm, {})
+          expect(pm).to receive(:register_output_filter).with(:stdout, Object)
           plugin.register_output_filter(:stdout, Object)
         end
 

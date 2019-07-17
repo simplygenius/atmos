@@ -6,7 +6,7 @@
 
 Atmos(phere) - Breathe easier with terraform
 
-Atmos provides a layer of organization on top of terraform for creating cloud system architectures with Amazon Web Services.  It handles the plumbing so you can focus on your application.  The core atmos runtime is free and open-source, with a business friendly license (Apache).  It provides some basic recipes to help get you going with a service oriented architecture implemented with AWS Elastic Container Services.  For more in-depth recipes, please check out the [Atmos Pro](https://simplygenius.com/atmos-pro) offering.
+Atmos provides a layer of organization on top of terraform for creating cloud system architectures with Amazon Web Services.  It handles the plumbing so you can focus on your application.  The core atmos runtime is free and open-source, with a business friendly license (Apache).  It provides some basic recipes to help get you going with a service oriented architecture implemented with AWS Elastic Container Services.
 
 In a nutshell, you provide the green, atmos delivers the rest:
 
@@ -217,7 +217,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/simply
 ## License
 
 The gem is available as open source under the terms of the [Apache 2.0 License](https://opensource.org/licenses/apache-2.0).
-
-# About Us
-
-[Simply Genius LLC](https://simplygenius.com) is an independently run organization in Boston, MA USA.  Its Chief Everything is Matt Conway, a software engineer and executive with more than 20 years of experience in the Boston Tech Startup scene.  Atmos is his attempt at providing the world with the same tools, techniques, mindset and philosophy that he strives for when building a system architecture for a new startup.

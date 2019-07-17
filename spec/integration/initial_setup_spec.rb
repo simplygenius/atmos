@@ -4,6 +4,7 @@ require 'simplygenius/atmos/settings_hash'
 describe "Initial Setup" do
 
   let(:exe) { File.expand_path('../../../exe/atmos', __FILE__) }
+  let(:gemfile) { File.expand_path('../../../Gemfile', __FILE__) }
 
   let(:recipes_sourcepath) {
     if ENV['CI'].present?
@@ -15,12 +16,30 @@ describe "Initial Setup" do
 
   def atmos(*args, output_on_fail: true, allow_fail: false, stdin_data: nil)
     args = args.compact
-    output, status = Open3.capture2e("bundle", "exec", exe, *args, stdin_data: stdin_data)
-    puts output if output_on_fail && status.exitstatus != 0
-    if ! allow_fail
-      expect(status.exitstatus).to eq(0), "atmos #{args.join(' ')} failed: #{output}"
+    require 'bundler'
+    ::Bundler.with_original_env do
+      output, status = Open3.capture2e(ENV.to_h.merge("BUNDLE_GEMFILE" => gemfile), "bundle", "exec", exe, *args, stdin_data: stdin_data)
+      puts output if output_on_fail && status.exitstatus != 0
+      if ! allow_fail
+        expect(status.exitstatus).to eq(0), "atmos #{args.join(' ')} failed: #{output}"
+      end
+      return output
     end
-    return output
+  end
+
+  describe "executable" do
+
+    it "runs the cli" do
+      within_construct do |c|
+        c.file('config/atmos.yml', "foo: bar")
+
+        output = atmos "version"
+        expect(output).to include(SimplyGenius::Atmos::VERSION)
+        expect(File.exist?('atmos.log')).to be true
+        expect(File.read('atmos.log')).to include(SimplyGenius::Atmos::VERSION)
+      end
+    end
+
   end
 
   describe "new repo" do

@@ -38,5 +38,4 @@ task :coordinated_release do
   require 'simplygenius/atmos/version'
   version = SimplyGenius::Atmos::VERSION
   tag("../atmos-recipes", version)
-  tag("../atmos-pro-recipes", version)
 end

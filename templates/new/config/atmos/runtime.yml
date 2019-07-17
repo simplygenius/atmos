@@ -2,7 +2,7 @@
 atmos:
 
   # Configure the location of a user config file.  This is where secrets are
-  # stored, e.g. OTP secrets and atmos pro auth token
+  # stored, e.g. OTP secrets
   #
   user_config_file: ~/.atmos.yml
 
@@ -14,24 +14,25 @@ atmos:
   template_sources:
   - name: atmos-recipes
     location: https://github.com/simplygenius/atmos-recipes/archive/v#{atmos_version}.zip#atmos-recipes-#{atmos_version}
-  # To access the Atmos Pro recipes, add your atmos pro auth token to
-  # ~/.atmos.yml and uncomment below
-  #- name: atmos-pro-recipes
-  #  location: https://#{atmos.pro_auth_token}@releases.simplygenius.com/recipes/v#{atmos_version}.zip#atmos-pro-recipes-#{atmos_version}
 
-  # To get the atmos-pro gem, add the gem source like:
-  #   gem sources -a https://ATMOS_PRO_AUTH_TOKEN@releases.simplygenius.com/gems/
-  # then install the gem:
-  #   gem install simplygenius-atmos-pro
-  # then add simplygenius-atmos-pro to the plugins key below
+  # The list of plugins to load when running atmos
   #
-  # The list of plugin gems to load when running atmos
+  # The core atmos plugin is named "simplygenius-atmos-plugins" and is enabled
+  # by default below.  Remove/comment to disable it completely, or disable parts
+  # of it by editing its config.  You can also add to the list for custom
+  # plugins, and can have plugins inline in your repo by adding a relative path
+  # to load_path
   #
   plugins:
-    #   - simplygenius-atmos-pro
+  - name: simplygenius-atmos-plugins
+    disable_prompt_notify: false
+    disable_lock_detection: false
+    disable_plan_summary: false
+    disable_json_diff: false
 
   # Allows one to add a custom ruby load path list for extending atmos without
-  # having to publish a gem
+  # having to publish a gem.  This can be a relative or shell (~) path as it
+  # gets expanded at runtime
   load_path:
 
   # Configure the mechanism that allows terraform to callback into atmos

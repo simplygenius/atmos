@@ -1,9 +1,7 @@
 require_relative '../atmos'
 require 'active_support/core_ext/class'
 
-Dir.glob(File.join(File.join(__dir__, 'plugins'), '*.rb')) do |f|
-  require_relative "plugins/#{File.basename(f).sub(/\.rb$/, "")}"
-end
+require_relative "plugins/output_filter"
 
 module SimplyGenius
   module Atmos
@@ -11,14 +9,15 @@ module SimplyGenius
     class Plugin
       include GemLogger::LoggerSupport
 
-      attr_reader :config
+      attr_reader :plugin_manager, :config
 
-      def initialize(config)
+      def initialize(plugin_manager, config)
+        @plugin_manager = plugin_manager
         @config = config
       end
 
       def register_output_filter(type, clazz)
-        Atmos.config.plugin_manager.register_output_filter(type, clazz)
+        plugin_manager.register_output_filter(type, clazz)
       end
 
     end

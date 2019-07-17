@@ -45,7 +45,7 @@ module SimplyGenius
             begin
               if ! @plugin_classes.include?(plugin_class)
                 @plugin_classes << plugin_class
-                @plugin_instances << plugin_class.new(plugin)
+                @plugin_instances << plugin_class.new(self, plugin)
               end
             rescue StandardError => e
               logger.log_exception e, "Failed to initialize plugin: #{plugin_class}"

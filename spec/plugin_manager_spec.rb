@@ -68,14 +68,16 @@ module SimplyGenius
         it "initializes plugin classes once" do
           # we check for new plugin classes after each load of a plugin, so use a real gem here
           pm = described_class.new(["rubygems"])
+          existing = Plugin.descendants
+          existing_instances = existing.collect {|e| instance_of(e) }
           c1 = Class.new(Plugin)
           c2 = Class.new(Plugin)
           expect { pm.load_plugins }.to_not raise_error
-          expect(pm.instance_variable_get(:@plugin_classes)).to match [c1, c2]
-          expect(pm.instance_variable_get(:@plugin_instances)).to match [instance_of(c1), instance_of(c2)]
+          expect(pm.instance_variable_get(:@plugin_classes)).to contain_exactly c1, c2, *existing
+          expect(pm.instance_variable_get(:@plugin_instances)).to contain_exactly instance_of(c1), instance_of(c2), *existing_instances
           expect { pm.load_plugins }.to_not raise_error
-          expect(pm.instance_variable_get(:@plugin_classes)).to match [c1, c2]
-          expect(pm.instance_variable_get(:@plugin_instances)).to match [instance_of(c1), instance_of(c2)]
+          expect(pm.instance_variable_get(:@plugin_classes)).to contain_exactly c1, c2, *existing
+          expect(pm.instance_variable_get(:@plugin_instances)).to contain_exactly instance_of(c1), instance_of(c2), *existing_instances
         end
 
         it "initializes plugin classes after each plugin loaded, with that plugins config" do
@@ -85,11 +87,11 @@ module SimplyGenius
           pm = described_class.new([plugin1, plugin2])
           expect(pm).to receive(:load_plugin).with(plugin1) do
             c1 = Class.new(Plugin)
-            expect(c1).to receive(:new).with(plugin1)
+            expect(c1).to receive(:new).with(pm, plugin1)
           end
           expect(pm).to receive(:load_plugin).with(plugin2) do
             c2 = Class.new(Plugin)
-            expect(c2).to receive(:new).with(plugin2)
+            expect(c2).to receive(:new).with(pm, plugin2)
           end
 
           pm.load_plugins

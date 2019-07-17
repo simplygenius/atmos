@@ -1,6 +1,5 @@
 require_relative '../atmos'
 require_relative '../atmos/ui'
-require_relative '../atmos/plugins/prompt_notify'
 require 'clamp'
 require 'sigdump/setup'
 
@@ -44,7 +43,7 @@ module SimplyGenius
              'GROUP', "The atmos working group\n for selecting recipe groups\n",
              default: 'default'
 
-      option ["-l", "--load-path"],
+      option ["-p", "--load-path"],
              "PATH", "adds additional paths to ruby load path",
              multivalued: true
 
@@ -109,7 +108,6 @@ module SimplyGenius
           UI.color_enabled = color?
 
           Atmos.config.add_user_load_path(*load_path_list)
-          Atmos.config.plugin_manager.register_output_filter(:stdout, Plugins::PromptNotify)
           Atmos.config.plugin_manager.load_plugins
         end
       end

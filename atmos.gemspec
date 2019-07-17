@@ -54,4 +54,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rotp", "~> 3.3.1"
   spec.add_dependency "clipboard", "~> 1.1.2"
 
+  # plugin dependencies
+  spec.add_dependency "deepsort"
+  spec.add_dependency "diffy"
+
 end
