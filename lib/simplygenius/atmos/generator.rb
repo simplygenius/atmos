@@ -136,7 +136,7 @@ module SimplyGenius
           end
 
           def track_context(varname, value)
-            varname.blank? || value.nil? ? nil: tmpl.scoped_context[varname] = value
+            varname.blank? || value.nil? ? nil : tmpl.scoped_context[varname] = value
           end
 
           def respond_to_missing?(method_name, *args)

@@ -212,7 +212,6 @@ module SimplyGenius
 
           logger.debug("Atmos env: #{atmos_env}")
 
-
           if ! File.exist?(config_file)
             logger.warn "Could not find an atmos config file at: #{config_file}"
             @full_config = SettingsHash.new
@@ -237,7 +236,11 @@ module SimplyGenius
               atmos_working_group: working_group,
               atmos_version: VERSION
           }, ["builtins"])
-          expand(conf, conf)
+
+          conf.error_resolver = ->(statement) { find_config_error(statement) }
+          conf.enable_expansion = true
+          conf
+
         end
       end
 
@@ -258,46 +261,6 @@ module SimplyGenius
         end
 
         config
-      end
-
-      def expand(config, obj)
-        case obj
-          when Hash
-            SettingsHash.new(Hash[obj.collect {|k, v| [k, expand(config, v)] }])
-          when Array
-            result = obj.collect {|i| expand(config, i) }
-            # HACK: accounting for the case when someone wants to force an override using '^' as the first list item, when
-            # there is no upstream to override (i.e. merge proc doesn't get triggered as key is unique, so just added verbatim)
-            result.delete_at(0) if result[0] == "^"
-            result
-          when String
-            result = obj
-            result.scan(INTERP_PATTERN).each do |substr, statement|
-              # TODO: check for cycles
-              if statement =~ /^[\w\.\[\]]$/
-                val = config.notation_get(statement)
-              else
-                # TODO: be consistent with dot notation between eval and
-                # notation_get.  eval ends up calling Hashie method_missing,
-                # which returns nil if a key doesn't exist, causing a nil
-                # exception for next item in chain, while notation_get returns
-                # nil gracefully for the entire chain (preferred)
-                begin
-                  val = eval(statement, config.instance_eval("binding"))
-                rescue => e
-                  file, line = find_config_error(substr)
-                  file_msg = file.nil? ? "" : " in #{File.basename(file)}:#{line}"
-                  raise RuntimeError.new("Failing config statement '#{substr}'#{file_msg} => #{e.class} #{e.message}")
-                end
-              end
-              result = result.sub(substr, expand(config, val).to_s)
-            end
-            result = true if result == 'true'
-            result = false if result == 'false'
-            result
-          else
-            obj
-        end
       end
 
       def find_config_error(statement)

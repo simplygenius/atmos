@@ -265,9 +265,14 @@ module SimplyGenius
               expect(tmpl.scoped_context[:askfoo]).to eq("other")
 
               result = nil
-              expect { simulate_stdin("n") { result = thor.agree("question ", varname: :agreefoo) } }.to output("question ").to_stdout
+              expect { simulate_stdin("y") { result = thor.agree("question ", varname: :agreefooyes) } }.to output("question ").to_stdout
+              expect(result).to eq(true)
+              expect(tmpl.scoped_context[:agreefooyes]).to be(true)
+
+              result = nil
+              expect { simulate_stdin("n") { result = thor.agree("question ", varname: :agreefoono) } }.to output("question ").to_stdout
               expect(result).to eq(false)
-              expect(tmpl.scoped_context[:agreefoo]).to eq(false)
+              expect(tmpl.scoped_context[:agreefoono]).to be(false)
 
               result = nil
               expect { simulate_stdin("foo") {

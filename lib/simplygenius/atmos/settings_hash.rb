@@ -10,6 +10,97 @@ module SimplyGenius
       disable_warnings
 
       PATH_PATTERN = /[\.\[\]]/
+      INTERP_PATTERN = /(\#\{([^\}]+)\})/
+
+      attr_accessor :root, :error_resolver, :enable_expansion
+
+      alias orig_reader []
+
+      def expanding_reader(name)
+        value = orig_reader(name)
+
+        if value.nil? && root && enable_expansion
+          value = root[name]
+        end
+
+        if value.kind_of?(self.class) && value.root.nil?
+          value.root = root || self
+        end
+
+        enable_expansion ? expand(value) : value
+      end
+
+      def error_resolver
+        @error_resolver || root.try(:error_resolver)
+      end
+
+      def enable_expansion
+        @enable_expansion.nil? ? root.try(:enable_expansion) : @enable_expansion
+      end
+
+      alias [] expanding_reader
+
+      # allows expansion when iterating
+      def each
+        each_key do |key|
+          yield key, self[key]
+        end
+      end
+
+      # allows expansion for to_a (which doesn't use each)
+      def to_a
+        self.collect {|k, v| [k, v]}
+      end
+
+      def expand_string(obj)
+        result = obj
+        result.scan(INTERP_PATTERN).each do |substr, statement|
+          # TODO: add an explicit check for cycles instead of relying on Stack error
+          if statement =~ /^[\w\.\[\]]$/
+            val = notation_get(statement)
+          else
+            # TODO: be consistent with dot notation between eval and
+            # notation_get.  eval ends up calling Hashie method_missing,
+            # which returns nil if a key doesn't exist, causing a nil
+            # exception for next item in chain, while notation_get returns
+            # nil gracefully for the entire chain (preferred)
+            begin
+              val = eval(statement, binding, __FILE__)
+            rescue => e
+              file, line = nil, nil
+              if error_resolver
+                file, line = error_resolver.call(substr)
+              end
+              file_msg = file.nil? ? "" : " in #{File.basename(file)}:#{line}"
+              raise RuntimeError.new("Failing config statement '#{substr}'#{file_msg} => #{e.class} #{e.message}")
+            end
+          end
+          result = result.sub(substr, val.to_s)
+        end
+
+        result = true if result == "true"
+        result = false if result == "false"
+
+        result
+      end
+
+      def expand(value)
+        result = value
+        case value
+        when Hash
+          value
+        when String
+          expand_string(value)
+        when Enumerable
+          value.map! {|v| expand(v)}
+          # HACK: accounting for the case when someone wants to force an override using '^' as the first list item, when
+          # there is no upstream to override (i.e. merge proc doesn't get triggered as key is unique, so just added verbatim)
+          value.delete_at(0) if value[0] == "^"
+          value
+        else
+          value
+        end
+      end
 
       def notation_get(key)
         path = key.to_s.split(PATH_PATTERN).compact
@@ -70,6 +161,9 @@ module SimplyGenius
         comment_places["<EOF>"] = comment_lines
 
         orig_config = SettingsHash.new((YAML.load_file(yml_file) rescue {}))
+        # expansion disabled by default, but being explicit since we don't want
+        # expansion when mutating config files from generators
+        orig_config.enable_expansion = false
         orig_config.notation_put(key, value, additive: additive)
         new_config_no_comments = YAML.dump(orig_config.to_hash)
         new_config_no_comments.sub!(/\A---\n/, "")
