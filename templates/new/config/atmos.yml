@@ -67,4 +67,4 @@ atmos:
   # to the directory containing atmos.yml
   #
   config_sources:
-    - atmos/*.y{,a}ml
+  - atmos/*.y{,a}ml
