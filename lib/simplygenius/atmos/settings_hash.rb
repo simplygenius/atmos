@@ -1,4 +1,5 @@
 require 'hashie'
+require_relative "../atmos/exceptions"
 
 module SimplyGenius
   module Atmos
@@ -7,6 +8,7 @@ module SimplyGenius
       include GemLogger::LoggerSupport
       include Hashie::Extensions::DeepMerge
       include Hashie::Extensions::DeepFetch
+      include SimplyGenius::Atmos::Exceptions
       disable_warnings
 
       PATH_PATTERN = /[\.\[\]]/
@@ -16,11 +18,16 @@ module SimplyGenius
 
       alias orig_reader []
 
-      def expanding_reader(name)
-        value = orig_reader(name)
-
-        if value.nil? && root && enable_expansion
+      def expand_results(name, &blk)
+        # NOTE: looking up globally then locally in order to preserve compatibility
+        # would be better to look up locally first, and refer to global with an
+        # explicit qualifier like "root.path.to.config"
+        if root && enable_expansion
           value = root[name]
+        end
+
+        if value.nil?
+          value = blk.call(name)
         end
 
         if value.kind_of?(self.class) && value.root.nil?
@@ -28,6 +35,14 @@ module SimplyGenius
         end
 
         enable_expansion ? expand(value) : value
+      end
+
+      def expanding_reader(key)
+        expand_results(key) {|k| orig_reader(k) }
+      end
+
+      def fetch(key, *args)
+        expand_results(key) {|k| super(k, *args) }
       end
 
       def error_resolver
@@ -52,28 +67,34 @@ module SimplyGenius
         self.collect {|k, v| [k, v]}
       end
 
+      def format_error(msg, expr, ex=nil)
+        file, line = nil, nil
+        if error_resolver
+          file, line = error_resolver.call(expr)
+        end
+        file_msg = file.nil? ? "" : " in #{File.basename(file)}:#{line}"
+        msg = "#{msg} '#{expr}'#{file_msg}"
+        if ex
+          msg +=  " => #{ex.class} #{ex.message}"
+        end
+        return msg
+      end
+
       def expand_string(obj)
         result = obj
         result.scan(INTERP_PATTERN).each do |substr, statement|
           # TODO: add an explicit check for cycles instead of relying on Stack error
-          if statement =~ /^[\w\.\[\]]$/
-            val = notation_get(statement)
-          else
+          begin
             # TODO: be consistent with dot notation between eval and
             # notation_get.  eval ends up calling Hashie method_missing,
             # which returns nil if a key doesn't exist, causing a nil
             # exception for next item in chain, while notation_get returns
             # nil gracefully for the entire chain (preferred)
-            begin
-              val = eval(statement, binding, __FILE__)
-            rescue => e
-              file, line = nil, nil
-              if error_resolver
-                file, line = error_resolver.call(substr)
-              end
-              file_msg = file.nil? ? "" : " in #{File.basename(file)}:#{line}"
-              raise RuntimeError.new("Failing config statement '#{substr}'#{file_msg} => #{e.class} #{e.message}")
-            end
+            val = eval(statement, binding, __FILE__)
+          rescue SystemStackError => e
+            raise ConfigInterpolationError.new(format_error("Cycle in interpolated config", substr))
+          rescue StandardError => e
+            raise ConfigInterpolationError.new(format_error("Failing config statement", substr, e))
           end
           result = result.sub(substr, val.to_s)
         end

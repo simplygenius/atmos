@@ -112,6 +112,19 @@ module SimplyGenius
         end
       end
 
+      # Hook into clamp lifecycle to globally handle errors
+      class << self
+        def run(*args, **opts, &blk)
+          begin
+            super
+          rescue Exception => e
+            logger.log_exception(e, "Unhandled exception", level: :debug)
+            logger.error(e.message)
+            exit!
+          end
+        end
+      end
+
     end
 
   end

@@ -40,6 +40,26 @@ describe "Initial Setup" do
       end
     end
 
+    it "it catches and formats errors" do
+      within_construct do |c|
+        c.file('config/atmos.yml', 'foo: "#{fail}"')
+
+        output = atmos "config", allow_fail: true, output_on_fail: false
+        expect(output).to match(/Failing config statement/)
+        expect(output).to_not match(/\.rb:\d+:in /) # backtrace
+      end
+    end
+
+    it "it shows full trace in debug" do
+      within_construct do |c|
+        c.file('config/atmos.yml', 'foo: "#{fail}"')
+
+        output = atmos "--debug", "config", allow_fail: true, output_on_fail: false
+        expect(output).to match(/Failing config statement/)
+        expect(output).to match(/\.rb:\d+:in /) # backtrace
+      end
+    end
+
   end
 
   describe "new repo" do

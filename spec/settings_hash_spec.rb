@@ -246,7 +246,7 @@ module SimplyGenius
 
         it "prevents cycles in interpolation" do
           config = create(foo: '#{baz}', baz: '#{foo}')
-          expect { config["foo"] }.to raise_error(SystemStackError)
+          expect { config["foo"] }.to raise_error(SimplyGenius::Atmos::Exceptions::ConfigInterpolationError)
         end
 
         it "handles multi eval" do
@@ -269,9 +269,17 @@ module SimplyGenius
           config = create({baz: '#{1/0}'})
           config.error_resolver = ->(s) { return "atmos.yml", 57 }
           expect{config["baz"]}.
-              to raise_error(RuntimeError,
+              to raise_error(SimplyGenius::Atmos::Exceptions::ConfigInterpolationError,
                              /Failing config statement '\#{1\/0}' in atmos.yml:57 => ZeroDivisionError.*/)
         end
+
+        it "raises when interpolating a non-existant path" do
+          config = create(foo: '#{bar.baz.boo}')
+          expect{config.foo}.
+              to raise_error(SimplyGenius::Atmos::Exceptions::ConfigInterpolationError,
+                            /Failing config statement '\#{bar.baz.boo}' => NoMethodError undefined method `baz' for nil:NilClass/)
+        end
+
 
         it "handles truthy" do
           config = create(foo: true, bar: false,
@@ -310,10 +318,20 @@ module SimplyGenius
           expect(config["baz"]).to eq("1")
         end
 
-        it "tries lookups from root if not found in current hash level" do
-          config = create(foo: {bar: "baz", bum: '#{bar}', hum: '#{foo.bar}'}, blah: "bah")
-          expect(config.foo.bum).to eq("baz")
+        it "looks up from root deeply" do
+          config = create(foo: {bar: "baz", bum: '#{bar}', hum: '#{foo.bar}'})
           expect(config.foo.hum).to eq("baz")
+        end
+
+        it "looks up from root first" do
+          config = create(foo: {bar: "hum", baz: '#{bar}', hum: 'dum', bum: '#{hum}'}, bar: "bah")
+          expect(config.foo.baz).to eq("bah")
+          expect(config.foo.bum).to eq("dum")
+        end
+
+        it "expands for notation_get" do
+          config = create(foo: {bar: "baz", boo: '#{bar}'})
+          expect(config.notation_get("foo.boo")).to eq("baz")
         end
 
       end
