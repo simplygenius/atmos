@@ -39,8 +39,8 @@ In a nutshell, you provide the green, atmos delivers the rest:
 
 First install the dependencies:
  * [Install docker](https://www.docker.com/community-edition) for deploying containers
- * Install terraform (optional if running atmos as a docker image): e.g. `brew install terraform@0.11` on OS X
- * Install the aws cli (optional, useful for managing aws credentials): e.g. `brew install awscli` on OS X
+ * Install terraform (optional if running atmos as a docker image): e.g. `brew install terraform@0.11` on macOS or Linux
+ * Install the aws cli (optional, useful for managing aws credentials): e.g. `brew install awscli` on macOS or Linux
 
 Then install atmos:
 
