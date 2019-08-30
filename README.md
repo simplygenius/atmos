@@ -14,7 +14,7 @@ In a nutshell, you provide the green, atmos delivers the rest:
 
 ## Goals
 
-* The whole is greater than the sum of its parts.  Assist in creating a cloud infrastructure _system_ rather than just discrete infrastructure components.  Learning aws and terraform is a lot to bite off when getting started.  It's much easier to start with a working system ,and learn incrementally as you go by making changes to it.
+* The whole is greater than the sum of its parts.  Assist in creating a cloud infrastructure _system_ rather than just discrete infrastructure components.  Learning aws and terraform is a lot to bite off when getting started.  It's much easier to start with a working system, and learn incrementally as you go by making changes to it.
 
 * The command line is king.  Using a CLI to iterate on and manage core infrastructure has always been more effective for me, so I aim to make things as convenient and usable as possible from there.
 
@@ -107,11 +107,11 @@ aws configure --profile <user_profile_name>
 
 If you supply the "-m" flag, it will automatically create and activate a virtual MFA device with the user, and prompt you to save the secret to the atmos mfa keystore for integrated usage.  You can skip saving the secret and instead just copy/paste it into your MFA device of choice.  The "user create" command can also act in more of an upsert fashion, so to do something like reset a user's password and keys, you could do `atmos user create --force -l -m -k your@email.address`
 
-Login to the aws console as that user, change your password and setup MFA there if you prefer doing it that way.  Make sure you log out and back in again with MFA before you try setting up the [role switcher](#per-user-role-switcher-in-console)
+Login to the aws console as that user, change your password and setup MFA there if you prefer doing it that way.  Make sure you log out and back in again with MFA before you try setting up the [role switcher](#per-user-role-switcher-in-console).
 
-Now that a non-root user is created, you should be able to do everything as that user, so you can remove the root access keys if desired.  Keeping them around can be useful though, as there are some AWS operations that can only be done as the root user.  Leaving them in your shared credential store, but deactivating them in the AWS console till needed is a reasonable compromise.  
+Now that a non-root user is created, you should be able to do everything as that user, so you can remove the root access keys if desired.  Keeping them around can be useful though, as there are some AWS operations that can only be done as the root user.  Leaving them in your shared credential store, but deactivating them in the AWS console until needed is a reasonable compromise.  
 
-While you can do everything in a single account, i've found a better practice is to use a new account for each env (dev, staging, prod, etc), and leave the ops account providing authentication duties and acting as a jumping off point to the others.  This allows for easier role/permission management down the line as well as better isolation between environments, thereby enabling safe iteration in dev environments without risking production.
+While you can do everything in a single account, I've found a better practice is to use a new account for each env (dev, staging, prod, etc), and leave the ops account providing authentication duties and acting as a jumping off point to the others.  This allows for easier role/permission management down the line as well as better isolation between environments, thereby enabling safe iteration in dev environments without risking production.
 
 Create a new `dev` account, and bootstrap it to work with atmos
 
@@ -127,7 +127,7 @@ Use the 'aws/service' template to setup an ECS Fargate based service, then apply
 
 ```
 atmos generate --force aws/service
-# If you setup a db for your service, add its password to the secret store
+# If you setup a db for your service, add its password to the secret store.
 # Otherwise the service container will fail to start if it is using the
 # ATMOS_SECRET_KEYS mechanism like the example app is using.
 # atmos -e dev secret set service_<service_name>_db_password sekret!
@@ -150,7 +150,7 @@ Then use atmos to push and deploy that image to the ECR repo:
 atmos -e dev container deploy -c services <service_name>
 ```
 
-The atmos aws scaffold also sets up a user named deployer, with restricted permissions sufficient to do the deploy.  Add the [key/secret](https://github.com/simplygenius/atmos-recipes/blob/master/aws/scaffold/recipes/atmos-permissions.tf#L159)) to the environment for your CI to get your CI to auto deploy on successful build.
+The atmos aws scaffold also sets up a user named _deployer_, with restricted permissions sufficient to do the deploy.  Add the [key/secret](https://github.com/simplygenius/atmos-recipes/blob/master/aws/scaffold/recipes/atmos-permissions.tf#L159) to the environment for your CI to get your CI to auto-deploy on successful build.
 
 ```
 AWS_ACCESS_KEY_ID=<deployer_key> AWS_SECRET_ACCESS_KEY=<deployer_secret> atmos -e <env_based_on_branch> container deploy -c services <service_name>
@@ -192,14 +192,14 @@ These are separate commands so that day-day usage where you want to tear down ev
 
 If you are following the account-per-environment pattern, you will need to setup a role switcher for each account in the AWS console for your user.  The AWS console seems to store these in cookies, so if you make a mistake its easy to fix by clearing them.  First, login to the AWS console with your personal aws user that was created in the ops account.  Select the dropdown with your email at top right of the page, Switch Role.  Fill the details for the environment you want to be able to access from the console:
 
-* Account number for the environment (See environments->`<env>`-> account_id in `config/atmos.yml` 
+* Account number for the environment (see environments->`<env>`-> account_id in `config/atmos.yml`).
 * Role `<env>-admin` - this is the role you assume in the destination account.
 * Pick a name (e.g. DevAdmin)
 * Pick a color that you like (e.g. Red=production, Yellow=staging, Green=dev)
 
 ## Managing secrets
 
-Secrets are stored in a s3 bucket unique to each environment, and automatically passed into terraform when it is executed by atmos.  The secret key should be the same as a terraform variable name defined in your terraform recipes, and if the secret exists, it will override whatever default value you have setup for the terraform variable.
+Secrets are stored in a S3 bucket unique to each environment, and automatically passed into terraform when it is executed by atmos.  The secret key should be the same as a terraform variable name defined in your terraform recipes, and if the secret exists, it will override whatever default value you have setup for the terraform variable.
 
 To set a secret:
 
