@@ -14,24 +14,23 @@ module SimplyGenius
       PATH_PATTERN = /[\.\[\]]/
       INTERP_PATTERN = /(\#\{([^\}]+)\})/
 
-      attr_accessor :root, :error_resolver, :enable_expansion
+      attr_accessor :_root_, :error_resolver, :enable_expansion
 
       alias orig_reader []
 
       def expand_results(name, &blk)
-        # NOTE: looking up globally then locally in order to preserve compatibility
-        # would be better to look up locally first, and refer to global with an
-        # explicit qualifier like "root.path.to.config"
-        if root && enable_expansion
-          value = root[name]
+        # NOTE: we lookup locally first, then globally if a value is missing
+        # locally.  To force a global lookup, use the explicit qualifier like
+        # "_root_.path.to.config"
+
+        value = blk.call(name)
+
+        if value.nil? && _root_ && enable_expansion
+          value = _root_[name]
         end
 
-        if value.nil?
-          value = blk.call(name)
-        end
-
-        if value.kind_of?(self.class) && value.root.nil?
-          value.root = root || self
+        if value.kind_of?(self.class) && value._root_.nil?
+          value._root_ = _root_ || self
         end
 
         enable_expansion ? expand(value) : value
@@ -46,11 +45,11 @@ module SimplyGenius
       end
 
       def error_resolver
-        @error_resolver || root.try(:error_resolver)
+        @error_resolver || _root_.try(:error_resolver)
       end
 
       def enable_expansion
-        @enable_expansion.nil? ? root.try(:enable_expansion) : @enable_expansion
+        @enable_expansion.nil? ? _root_.try(:enable_expansion) : @enable_expansion
       end
 
       alias [] expanding_reader

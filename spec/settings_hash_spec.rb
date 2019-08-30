@@ -26,10 +26,10 @@ module SimplyGenius
 
           it "preserves root for sub hashes" do
             config = create(foo: {bar: {baz: {bum: "hum"}}})
-            expect(config.root).to be_nil
-            expect(config["foo"].root).to eq(config)
-            expect(config["foo"]["bar"].root).to eq(config)
-            expect(config.foo.bar.baz.root).to eq(config)
+            expect(config._root_).to be_nil
+            expect(config["foo"]._root_).to eq(config)
+            expect(config["foo"]["bar"]._root_).to eq(config)
+            expect(config.foo.bar.baz._root_).to eq(config)
           end
 
           it "preserves error_resolver for sub hashes" do
@@ -323,10 +323,22 @@ module SimplyGenius
           expect(config.foo.hum).to eq("baz")
         end
 
-        it "looks up from root first" do
-          config = create(foo: {bar: "hum", baz: '#{bar}', hum: 'dum', bum: '#{hum}'}, bar: "bah")
-          expect(config.foo.baz).to eq("bah")
+        it "looks up from local first" do
+          config = create(foo: {bar: "hum", baz: '#{bar}', bazzy: '#{_root_.bar}', hum: 'dum', bum: '#{hum}'}, bar: "bah")
+          expect(config.foo.baz).to eq("hum")
+          expect(config.foo.bazzy).to eq("bah")
           expect(config.foo.bum).to eq("dum")
+        end
+
+        it "can use root qualifier when looking up from root" do
+          config = create(foo: {bar: "baz"}, bum: {hum: '#{_root_.foo.bar}'})
+          expect(config.bum.hum).to eq("baz")
+        end
+
+        it "can use fetch" do
+          config = create(foo: "bar", fetch: "baz")
+          expect(config.fetch("foo")).to eq("bar")
+          expect(config.fetch("fetch")).to eq("baz")
         end
 
         it "expands for notation_get" do
