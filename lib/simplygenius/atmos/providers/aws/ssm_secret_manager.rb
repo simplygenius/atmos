@@ -13,7 +13,6 @@ module SimplyGenius
             @provider = provider
             @path_prefix = "#{Atmos.config[:secret][:prefix]}"
             @encrypt = Atmos.config[:secret][:encrypt]
-            @client = ::Aws::SSM::Client.new
           end
 
           def set(key, value, force: false)
@@ -29,21 +28,21 @@ module SimplyGenius
               param_value = value.join(",")
             end
 
-            @client.put_parameter(name: param_name, value: param_value, type: param_type, overwrite: force)
+            client.put_parameter(name: param_name, value: param_value, type: param_type, overwrite: force)
           end
 
           def get(key)
-            resp = @client.get_parameter(name: param_name(key), with_decryption: @encrypt)
+            resp = client.get_parameter(name: param_name(key), with_decryption: @encrypt)
             resp.parameter.value
           end
 
           def delete(key)
-            @client.delete_parameter(name: param_name(key))
+            client.delete_parameter(name: param_name(key))
           end
 
           def to_h
             result = {}
-            resp = @client.get_parameters_by_path(path: param_name(""), recursive: true, with_decryption: @encrypt)
+            resp = client.get_parameters_by_path(path: param_name(""), recursive: true, with_decryption: @encrypt)
             resp.parameters.each do |p|
               key = p.name.gsub(/^#{param_name("")}/, '')
               result[key] = p.value
@@ -60,6 +59,9 @@ module SimplyGenius
             param_name
           end
 
+          def client
+            @client ||= ::Aws::SSM::Client.new
+          end
         end
 
       end
