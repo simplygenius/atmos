@@ -11,7 +11,6 @@ module SimplyGenius
 
           def initialize(provider)
             @provider = provider
-            logger.debug("Secrets config is: #{Atmos.config[:secret]}")
             @bucket_name = Atmos.config[:secret][:bucket]
             @bucket_prefix = "#{Atmos.config[:secret][:prefix]}"
             @encrypt = Atmos.config[:secret][:encrypt]

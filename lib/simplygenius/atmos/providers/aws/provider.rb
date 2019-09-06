@@ -36,7 +36,16 @@ module SimplyGenius
 
           def secret_manager
             @secret_manager ||= begin
-              S3SecretManager.new(self)
+              conf = Atmos.config[:secret]
+              logger.debug("Secrets config is: #{conf}")
+              manager_type = conf[:type] || "ssm"
+              if manager_type !~ /::/
+                manager_type += "_secret_manager"
+                manager_type = "#{self.class.name.deconstantize}::#{manager_type.camelize}"
+              end
+              manager = manager_type.constantize
+              logger.debug("Using secrets manager #{manager}")
+              manager.new(self)
             end
           end
 

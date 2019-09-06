@@ -35,11 +35,41 @@ module SimplyGenius
 
           describe "secret_manager" do
 
-            it "gets the secret manager" do
+            it "gets a ssm secret manager when nothing specified" do
               within_construct do |c|
                 c.file('config/atmos.yml', YAML.dump('providers' => {'aws' => {'secret' => {}}}))
                 Atmos.config = Config.new("ops")
+                expect(provider.secret_manager).to be_instance_of(Providers::Aws::SsmSecretManager)
+              end
+            end
+
+            it "gets a ssm secret manager when chosen" do
+              within_construct do |c|
+                c.file('config/atmos.yml', YAML.dump('providers' => {'aws' => {'secret' => {'type' => 'ssm'}}}))
+                Atmos.config = Config.new("ops")
+                expect(provider.secret_manager).to be_instance_of(Providers::Aws::SsmSecretManager)
+              end
+            end
+
+            it "gets a s3 secret manager when chosen" do
+              within_construct do |c|
+                c.file('config/atmos.yml', YAML.dump('providers' => {'aws' => {'secret' => {'type' => 's3'}}}))
+                Atmos.config = Config.new("ops")
                 expect(provider.secret_manager).to be_instance_of(Providers::Aws::S3SecretManager)
+              end
+            end
+
+            it "gets a custom secret manager when fully qualified" do
+              FooSecretManager = Class.new do
+                def initialize(p); end
+              end
+              name = FooSecretManager.name
+              expect(name).to match(/::/)
+
+              within_construct do |c|
+                c.file('config/atmos.yml', YAML.dump('providers' => {'aws' => {'secret' => {'type' => name}}}))
+                Atmos.config = Config.new("ops")
+                expect(provider.secret_manager).to be_instance_of(Providers::Aws::FooSecretManager)
               end
             end
 

@@ -25,6 +25,7 @@ module SimplyGenius
                   'providers' => {
                       'aws' => {
                           'secret' => {
+                              'type' => 's3',
                               'bucket' => 'mybucket'
                           }
                       }
