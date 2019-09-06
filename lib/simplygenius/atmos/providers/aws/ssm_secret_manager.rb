@@ -16,7 +16,7 @@ module SimplyGenius
             @client = ::Aws::SSM::Client.new
           end
 
-          def set(key, value)
+          def set(key, value, force: false)
             opts = {}
 
             param_name = param_name(key)
@@ -29,7 +29,7 @@ module SimplyGenius
               param_value = value.join(",")
             end
 
-            @client.put_parameter(name: param_name, value: param_value, type: param_type)
+            @client.put_parameter(name: param_name, value: param_value, type: param_type, overwrite: force)
           end
 
           def get(key)

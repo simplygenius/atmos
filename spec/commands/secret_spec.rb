@@ -70,8 +70,17 @@ module SimplyGenius
             env = Hash.new
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(Atmos.config.provider.secret_manager).to receive(:set).
-                with("foo", "bar")
+                with("foo", "bar", force: false)
             cli.run(["set", "foo", "bar"])
+            expect(Logging.contents).to match(/Secret set for foo/)
+          end
+
+          it "force sets a secret" do
+            env = Hash.new
+            expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
+            expect(Atmos.config.provider.secret_manager).to receive(:set).
+                with("foo", "bar", force: true)
+            cli.run(["set", "--force", "foo", "bar"])
             expect(Logging.contents).to match(/Secret set for foo/)
           end
 

@@ -16,10 +16,14 @@ module SimplyGenius
             @encrypt = Atmos.config[:secret][:encrypt]
           end
 
-          def set(key, value)
+          def set(key, value, force: false)
             opts = {}
             opts[:server_side_encryption] = "AES256" if @encrypt
-            bucket.object(@bucket_prefix + key).put(body: value, **opts)
+            obj = bucket.object(@bucket_prefix + key)
+            if obj.exists? && ! force
+              raise "A value already exists for the given key, force overwrite or delete first"
+            end
+            obj.put(body: value, **opts)
           end
 
           def get(key)

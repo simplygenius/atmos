@@ -93,14 +93,47 @@ module SimplyGenius
           describe "set" do
 
             it "sets a secret" do
+              ::Aws.config[:s3] = {
+                  stub_responses: {
+                      head_object: { status_code: 404, headers: {}, body: '', }
+                  }
+              }
               client = ::Aws::S3::Client.new
               expect(::Aws::S3::Client).to receive(:new).and_return(client)
               expect(client).to receive(:put_object).with(hash_including(key: "foo")).and_call_original
-
               manager.set("foo", "bar")
             end
 
+            it "fails if secret exists" do
+              ::Aws.config[:s3] = {
+                  stub_responses: {
+                      head_object: { status_code: 200, headers: {}, body: '', }
+                  }
+              }
+              client = ::Aws::S3::Client.new
+              expect(::Aws::S3::Client).to receive(:new).and_return(client)
+              expect(client).to_not receive(:put_object)
+              expect { manager.set("foo", "bar") }.to raise_error(RuntimeError, /already exists/)
+            end
+
+            it "can force if secret exists" do
+              ::Aws.config[:s3] = {
+                  stub_responses: {
+                      head_object: { status_code: 200, headers: {}, body: '', }
+                  }
+              }
+              client = ::Aws::S3::Client.new
+              expect(::Aws::S3::Client).to receive(:new).and_return(client)
+              expect(client).to receive(:put_object).with(hash_including(key: "foo")).and_call_original
+              manager.set("foo", "bar", force: true)
+            end
+
             it "uses prefix to set a secret" do
+              ::Aws.config[:s3] = {
+                  stub_responses: {
+                      head_object: { status_code: 404, headers: {}, body: '', }
+                  }
+              }
               Atmos.config[:secret][:prefix] = "path/"
               client = ::Aws::S3::Client.new
               expect(::Aws::S3::Client).to receive(:new).and_return(client)

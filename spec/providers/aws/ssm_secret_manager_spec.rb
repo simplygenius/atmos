@@ -101,6 +101,25 @@ module SimplyGenius
               manager.set("foo", "bar")
             end
 
+            it "fails if secret exists" do
+              # cant figure out how to stub failure on exist, so just verifying
+              # that default for overwrite is false
+              client = ::Aws::SSM::Client.new(stub_responses: true)
+              expect(::Aws::SSM::Client).to receive(:new).and_return(client)
+              expect(client).to receive(:put_parameter).with(hash_including(name: "/foo", value: "bar", overwrite: false)).and_call_original
+
+              manager.set("foo", "bar")
+            end
+
+            it "can force if secret exists" do
+              client = ::Aws::SSM::Client.new(stub_responses: true)
+              expect(::Aws::SSM::Client).to receive(:new).and_return(client)
+              expect(client).to receive(:put_parameter).with(hash_including(name: "/foo", value: "bar", overwrite: true)).and_call_original
+
+              manager.set("foo", "bar", force: true)
+            end
+
+
             it "uses prefix to set a secret" do
               Atmos.config[:secret][:prefix] = "/path/"
               client = ::Aws::SSM::Client.new(stub_responses: true)

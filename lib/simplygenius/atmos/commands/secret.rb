@@ -31,6 +31,10 @@ module SimplyGenius
 
         subcommand "set", "Sets the secret value" do
 
+          option ["-f", "--force"],
+                 :flag, "forces updates for pre-existing secret\n",
+                 default: false
+
           parameter "KEY",
                     "The secret key"
 
@@ -41,7 +45,7 @@ module SimplyGenius
 
             Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
               ClimateControl.modify(auth_env) do
-                Atmos.config.provider.secret_manager.set(key, value)
+                Atmos.config.provider.secret_manager.set(key, value, force: force?)
                 logger.info "Secret set for #{key}"
               end
             end
