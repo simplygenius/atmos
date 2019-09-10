@@ -153,7 +153,7 @@ atmos -e dev container deploy -c services <service_name>
 The atmos aws scaffold also sets up a user named _deployer_, with restricted permissions sufficient to do the deploy.  Add the [key/secret](https://github.com/simplygenius/atmos-recipes/blob/master/aws/scaffold/recipes/atmos-permissions.tf#L159) to the environment for your CI to get your CI to auto-deploy on successful build.
 
 ```
-AWS_ACCESS_KEY_ID=<deployer_key> AWS_SECRET_ACCESS_KEY=<deployer_secret> atmos -e <env_based_on_branch> container deploy -c services <service_name>
+AWS_ACCESS_KEY_ID=<deployer_key> AWS_SECRET_ACCESS_KEY=<deployer_secret> atmos -e <env_based_on_branch> container deploy -r <env>-deployer -c services <service_name>
 ```
 
 To clean it all up:
