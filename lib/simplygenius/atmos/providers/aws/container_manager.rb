@@ -97,6 +97,68 @@ module SimplyGenius
              return result
           end
 
+          def remote_image(name, tag)
+            ecr = ::Aws::ECR::Client.new
+
+            resp = ecr.get_authorization_token
+            endpoint = resp.authorization_data.first.proxy_endpoint
+
+            ecs_image="#{endpoint.sub(/https?:\/\//, '')}/#{name}"
+            tagged_image = "#{ecs_image}:#{tag}"
+
+            return tagged_image
+          end
+
+          def list_image_tags(cluster, name)
+            result = {tags: [], latest: nil, current: nil}
+            latest_digest = nil
+
+            ecs = ::Aws::ECS::Client.new
+            ecr = ::Aws::ECR::Client.new
+
+            resp = ecs.describe_services(services: [name], cluster: cluster)
+            if resp.services.size == 1
+              task_def = resp.services.first.task_definition
+              resp = ecs.describe_task_definition(task_definition: task_def)
+              image = resp.task_definition.container_definitions.first.image
+              result[:current] = image.sub(/^.*:/, '')
+            else
+              raise "No services found for '#{name}' in cluster '#{cluster}'"
+            end
+
+            # TODO: handle pagination?
+            resp = ecr.list_images(repository_name: name, filter: {tag_status: "TAGGED"}, max_results: 1000)
+            if resp.image_ids.size > 0
+
+              images = resp.image_ids
+
+              images.each do |i|
+                if i.image_tag == 'latest'
+                  latest_digest = i.image_digest
+                end
+
+                result[:tags] << i.image_tag
+              end
+
+              if latest_digest
+                images.each do |i|
+                  if i.image_digest == latest_digest && i.image_tag != 'latest'
+                    result[:latest] = i.image_tag
+                    break
+                  end
+                end
+                # Handle if latest tag isn't some other tag
+                result[:latest] = 'latest' if result[:latest].nil?
+              end
+
+              result[:tags].sort!
+            else
+              raise "No images found for '#{name}'"
+            end
+
+            return result
+          end
+
           private
 
           def run(*args, **opts)

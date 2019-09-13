@@ -136,6 +136,126 @@ module SimplyGenius
 
           end
 
+          describe "remote_image" do
+
+            it "constructs the remote image" do
+              ecr = ::Aws::ECR::Client.new
+              expect(::Aws::ECR::Client).to receive(:new).and_return(ecr)
+
+              name = "myname"
+              endpoint = 'https://repo.amazon.com'
+              repo = "repo.amazon.com/#{name}"
+              ecr.stub_responses(:get_authorization_token, authorization_data: [
+                  {proxy_endpoint: endpoint}
+              ])
+
+              result = manager.remote_image(name, "rev")
+              expect(result).to eq("#{repo}:rev")
+            end
+
+          end
+
+          describe "list_image_tags" do
+
+            it "fails when no service" do
+              ecs = ::Aws::ECS::Client.new
+              allow(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+
+              cluster = "mycluster"
+              name = "myname"
+
+              ecs.stub_responses(:describe_services, services: [])
+              expect(ecs).to receive(:describe_services).with(services: [name], cluster: cluster).and_call_original
+              expect { manager.list_image_tags(cluster, name) }.to raise_error(RuntimeError, /No services found/)
+            end
+
+            it "fails when no images" do
+              ecs = ::Aws::ECS::Client.new
+              allow(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+              ecr = ::Aws::ECR::Client.new
+              allow(::Aws::ECR::Client).to receive(:new).and_return(ecr)
+
+              cluster = "mycluster"
+              name = "myname"
+              tag = "mytag"
+              td_arn = "arn:aws:ecs:us-east-1:123456789012:task-definition/#{name}:1"
+              image = "repo.amazon.com/#{name}:#{tag}"
+
+              ecs.stub_responses(:describe_services, services: [{task_definition: td_arn}])
+              ecs.stub_responses(:describe_task_definition, task_definition: {container_definitions: [{image: image}]})
+              ecr.stub_responses(:list_images, image_ids: [])
+
+              expect(ecs).to receive(:describe_services).with(services: [name], cluster: cluster).and_call_original
+              expect(ecs).to receive(:describe_task_definition).with(task_definition: td_arn).and_call_original
+              expect(ecr).to receive(:list_images).with(repository_name: name, filter: {tag_status: "TAGGED"}, max_results: 1000).and_call_original
+
+              expect { manager.list_image_tags(cluster, name) }.to raise_error(RuntimeError, /No images found/)
+            end
+
+            it "returns the tags" do
+              ecs = ::Aws::ECS::Client.new
+              allow(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+              ecr = ::Aws::ECR::Client.new
+              allow(::Aws::ECR::Client).to receive(:new).and_return(ecr)
+
+              cluster = "mycluster"
+              name = "myname"
+              tag = "mytag"
+              digest = "0x123"
+              td_arn = "arn:aws:ecs:us-east-1:123456789012:task-definition/#{name}:1"
+              image = "repo.amazon.com/#{name}:#{tag}"
+
+              ecs.stub_responses(:describe_services, services: [{task_definition: td_arn}])
+              ecs.stub_responses(:describe_task_definition, task_definition: {container_definitions: [{image: image}]})
+              ecr.stub_responses(:list_images, image_ids: [
+                  {image_tag: "latest", image_digest: '0x321'},
+                  {image_tag: tag, image_digest: digest},
+                  {image_tag: '1tag', image_digest: '0x321'},
+              ])
+
+              expect(ecs).to receive(:describe_services).with(services: [name], cluster: cluster).and_call_original
+              expect(ecs).to receive(:describe_task_definition).with(task_definition: td_arn).and_call_original
+              expect(ecr).to receive(:list_images).with(repository_name: name, filter: {tag_status: "TAGGED"}, max_results: 1000).and_call_original
+
+              result = manager.list_image_tags(cluster, name)
+              expect(result).to be_a(Hash)
+              expect(result[:tags]).to eq(["1tag", "latest", "mytag"]) # sorted
+              expect(result[:latest]).to eq("1tag")
+              expect(result[:current]).to eq("mytag")
+            end
+
+            it "handles other latest tag" do
+              ecs = ::Aws::ECS::Client.new
+              allow(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+              ecr = ::Aws::ECR::Client.new
+              allow(::Aws::ECR::Client).to receive(:new).and_return(ecr)
+
+              cluster = "mycluster"
+              name = "myname"
+              tag = "mytag"
+              digest = "0x123"
+              td_arn = "arn:aws:ecs:us-east-1:123456789012:task-definition/#{name}:1"
+              image = "repo.amazon.com/#{name}:#{tag}"
+
+              ecs.stub_responses(:describe_services, services: [{task_definition: td_arn}])
+              ecs.stub_responses(:describe_task_definition, task_definition: {container_definitions: [{image: image}]})
+              ecr.stub_responses(:list_images, image_ids: [
+                  {image_tag: "latest", image_digest: '0x789'},
+                  {image_tag: tag, image_digest: digest},
+                  {image_tag: '1tag', image_digest: '0x321'},
+              ])
+
+              expect(ecs).to receive(:describe_services).with(services: [name], cluster: cluster).and_call_original
+              expect(ecs).to receive(:describe_task_definition).with(task_definition: td_arn).and_call_original
+              expect(ecr).to receive(:list_images).with(repository_name: name, filter: {tag_status: "TAGGED"}, max_results: 1000).and_call_original
+
+              result = manager.list_image_tags(cluster, name)
+              expect(result).to be_a(Hash)
+              expect(result[:latest]).to eq("latest")
+            end
+
+          end
+
         end
 
       end
