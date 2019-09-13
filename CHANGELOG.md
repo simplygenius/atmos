@@ -1,3 +1,33 @@
+0.10.0 (09/13/2019)
+-------------------
+
+#### Notes on breaking changes
+
+* Made AWS SSM Parameter Store the default secrets store for atmos.  The s3 secrets will still work unless you overwrite your provider/aws.yml with the changes
+* Interpolations in the yml config now look up from the top level only if missing in the current level (hashes of hashes).  Previously it looked up values from the top level before the current level, which was causing a number of issues.  One can force a lookup from the top level by prefixing the key in the interpolations with `_root_`, e.g. The [config/provider/aws.yml](https://github.com/simplygenius/atmos-recipes/blob/master/aws/scaffold/config/atmos/providers/aws.yml#L20) in the atmos aws scaffold.  You will know you forgot to do this when you get s circular reference error when running atmos.
+* Atmos pro has been merged into core Atmos, so you should stop using of the atmos-pro-recipes repository as well as the atmos-pro-plugins gem as they will go away soon.
+
+#### Full changelog
+* add ability to push or activate instead of always doing both as deploy does [dfac7ad](https://github.com/simplygenius/atmos/commit/dfac7ad)
+* add ruby 2.6 [a3b8aff](https://github.com/simplygenius/atmos/commit/a3b8aff)
+* add ruby 2.6 [db3469f](https://github.com/simplygenius/atmos/commit/db3469f)
+* running deploy as deployer user needs the deployer specific role to be specified [06a34b0](https://github.com/simplygenius/atmos/commit/06a34b0)
+* move client out of ctor to fix tests [b9d8c02](https://github.com/simplygenius/atmos/commit/b9d8c02)
+* make s3 consistent with ssm for trying to set an existing secret add force option when setting secret to cause ssm (and s3) to overwrite existing secret [b05f189](https://github.com/simplygenius/atmos/commit/b05f189)
+* add aws ssm for secret management, update aws gem version dependencies [8cb4350](https://github.com/simplygenius/atmos/commit/8cb4350)
+* Merge pull request #3 from nirvdrum/readme-improvements [d82710b](https://github.com/simplygenius/atmos/commit/d82710b)
+* interpolations in config should only lookup values from root only if they don't exit in current level of hash.  One can force a root lookup with the _root_ prefix.  This is a breaking change [cc925d3](https://github.com/simplygenius/atmos/commit/cc925d3)
+* Minor README clean-ups. [16778b1](https://github.com/simplygenius/atmos/commit/16778b1)
+* Homebrew is now available on Linux, so no need to limit the docs to just macOS. [6885a35](https://github.com/simplygenius/atmos/commit/6885a35)
+* Update the package names to be installed via Homebrew. [68f3cde](https://github.com/simplygenius/atmos/commit/68f3cde)
+* friendlier output for cycles in interpolation, better exception handling [dea7766](https://github.com/simplygenius/atmos/commit/dea7766)
+* fix whitespace [870f4c2](https://github.com/simplygenius/atmos/commit/870f4c2)
+* allow running multiple organizations from a single ops account [baef6c3](https://github.com/simplygenius/atmos/commit/baef6c3)
+* Fix config interpolation to allow one path to refer to another that also needs interpolation [202fd85](https://github.com/simplygenius/atmos/commit/202fd85)
+* Inline all the atmos pro functionality/recipes to make atmos fully open source [b906d7e](https://github.com/simplygenius/atmos/commit/b906d7e)
+* mention setting of secret for example app [382db44](https://github.com/simplygenius/atmos/commit/382db44)
+* upgrade bundler [667c7a6](https://github.com/simplygenius/atmos/commit/667c7a6)
+
 0.9.4 (03/20/2019)
 ------------------
 
