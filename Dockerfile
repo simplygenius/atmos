@@ -21,6 +21,7 @@ RUN apk --update upgrade && \
     apk add \
       --virtual build_deps \
       $BUILD_PACKAGES && \
+    apk add aws-cli --update-cache --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ && \
     rake install && \
     apk del build_deps && \
     rm -rf /var/cache/apk/*
