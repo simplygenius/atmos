@@ -7,7 +7,7 @@ ENV BUNDLE_PATH /srv/bundler
 ENV BUNDLE_BIN=${BUNDLE_PATH}/bin
 ENV GEM_HOME=${BUNDLE_PATH}
 ENV PATH="${BUNDLE_BIN}:${PATH}"
-ENV TF_VER=0.11.10
+ENV TF_VER=0.11.14
 ENV TF_PKG=https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip
 
 RUN mkdir -p $APP_DIR $RUN_DIR

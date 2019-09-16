@@ -3,7 +3,7 @@ MAINTAINER Matt Conway <matt@simplygenius.com>
 
 ENV APP_DIR /atmos
 ENV RUN_DIR /app
-ENV TF_VER=0.11.10
+ENV TF_VER=0.11.14
 ENV TF_PKG=https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip
 
 RUN mkdir -p $APP_DIR $RUN_DIR
