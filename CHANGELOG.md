@@ -1,3 +1,10 @@
+0.10.1 (09/20/2019)
+-------------------
+
+* add a quiet output option to make it easier to use secret values in external scripts [da7770a](https://github.com/simplygenius/atmos/commit/da7770a)
+* latest 0.11 terraform [0959ba6](https://github.com/simplygenius/atmos/commit/0959ba6)
+* add aws cli to image as it comes in handy for oddball deploy scenarios [392bb9b](https://github.com/simplygenius/atmos/commit/392bb9b)
+
 0.10.0 (09/13/2019)
 -------------------
 
