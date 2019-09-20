@@ -21,7 +21,8 @@ module SimplyGenius
             Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
               ClimateControl.modify(auth_env) do
                 value = Atmos.config.provider.secret_manager.get(key)
-                logger.info "Secret value for #{key}: #{value}"
+                logger.info "Secret value for #{key}:"
+                puts value
               end
             end
 

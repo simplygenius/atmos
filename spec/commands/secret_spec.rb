@@ -42,8 +42,8 @@ module SimplyGenius
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(Atmos.config.provider.secret_manager).to receive(:get).
                 with("foo").and_return("bar")
-            cli.run(["get", "foo"])
-            expect(Logging.contents).to match(/Secret value.*foo.*bar/)
+            expect { cli.run(["get", "foo"]) }.to output("bar\n").to_stdout
+            expect(Logging.contents).to match(/Secret value for foo:\n/)
           end
 
         end

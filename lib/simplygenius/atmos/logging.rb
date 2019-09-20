@@ -100,10 +100,10 @@ module SimplyGenius
         sio.try(:clear)
       end
 
-      def self.setup_logging(debug, color, logfile)
+      def self.setup_logging(level, color, logfile)
         init_logger
 
-        ::Logging.logger.root.level = debug ? :debug : :info
+        ::Logging.logger.root.level = level
         appenders = []
         detail_pattern = '[%d] %-5l %c{2} %m\n'
         plain_pattern = '%m\n'

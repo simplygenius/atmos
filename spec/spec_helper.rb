@@ -120,7 +120,7 @@ RSpec.configure do |config|
   config.before(:each) do
     SimplyGenius::Atmos::UI.color_enabled = false
     SimplyGenius::Atmos::Logging.testing = true
-    SimplyGenius::Atmos::Logging.setup_logging(true, false, nil)
+    SimplyGenius::Atmos::Logging.setup_logging(:debug, false, nil)
     SimplyGenius::Atmos::Logging.clear
   end
 

@@ -11,7 +11,7 @@ module SimplyGenius
       describe "setup_logging" do
 
         it "logs at info log level" do
-          described_class.setup_logging(false, false, nil)
+          described_class.setup_logging(:info, false, nil)
           logger.info("infolog")
           expect(Logging.contents).to include("infolog")
           logger.debug("debuglog")
@@ -19,7 +19,7 @@ module SimplyGenius
         end
 
         it "logs at debug log level" do
-          described_class.setup_logging(true, false, nil)
+          described_class.setup_logging(:debug, false, nil)
           logger.info("infolog")
           expect(Logging.contents).to include("infolog")
           logger.debug("debuglog")
@@ -29,7 +29,7 @@ module SimplyGenius
         it "can write to logfile" do
           within_construct do |c|
             expect(File.exist?('foo.log')).to be false
-            described_class.setup_logging(false, false, 'foo.log')
+            described_class.setup_logging(:info, false, 'foo.log')
             logger.info("howdy")
             expect(File.exist?('foo.log')).to be true
             expect(File.read('foo.log')).to include("howdy")
@@ -40,7 +40,7 @@ module SimplyGenius
         it "can avoid writing to logfile" do
           within_construct do |c|
             expect(File.exist?('foo.log')).to be false
-            described_class.setup_logging(false, false, nil)
+            described_class.setup_logging(:info, false, nil)
             logger.info("howdy")
             expect(File.exist?('foo.log')).to be false
             expect(Logging.contents).to include("howdy")
@@ -48,14 +48,14 @@ module SimplyGenius
         end
 
         it "logs with color" do
-          described_class.setup_logging(false, true, nil)
+          described_class.setup_logging(:info, true, nil)
           logger.info("howdy")
           a = ::Logging.logger.root.appenders.find {|a| a.try(:layout).try(:color_scheme) }
           expect(a).to_not be_nil
         end
 
         it "outputs plain text" do
-          described_class.setup_logging(false, false, nil)
+          described_class.setup_logging(:info, false, nil)
           a = ::Logging.logger.root.appenders.find {|a| a.try(:layout).try(:color_scheme) }
           expect(a).to be_nil
         end

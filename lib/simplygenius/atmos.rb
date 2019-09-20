@@ -18,6 +18,4 @@ module SimplyGenius
 end
 
 require_relative 'atmos/logging'
-# SimplyGenius::Atmos::Logging.setup_logging(false, false, nil)
-
 require_relative 'atmos/config'

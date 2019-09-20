@@ -32,6 +32,10 @@ module SimplyGenius
              :flag, "debug output\n",
              default: false
 
+      option ["-q", "--quiet"],
+             :flag, "suppress output\n",
+             default: false
+
       option ["-c", "--[no-]color"],
              :flag, "colorize output (or not)\n (default: $stdout.tty?)"
 
@@ -104,7 +108,12 @@ module SimplyGenius
         if Atmos.config.nil?
           Atmos.config = Config.new(atmos_env, atmos_group)
           log = Atmos.config.is_atmos_repo? && log? ? "atmos.log" : nil
-          Logging.setup_logging(debug?, color?, log)
+          level = :info
+          level = :debug if debug?
+          level = :error if quiet?
+
+          Logging.setup_logging(level, color?, log)
+
           UI.color_enabled = color?
 
           Atmos.config.add_user_load_path(*load_path_list)

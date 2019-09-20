@@ -91,7 +91,7 @@ module SimplyGenius
         end
 
         it "sets log level to debug" do
-          expect(Logging).to receive(:setup_logging).with(true, any_args)
+          expect(Logging).to receive(:setup_logging).with(:debug, any_args)
           cli.run(['--debug', 'version'])
         end
 
