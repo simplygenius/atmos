@@ -161,7 +161,7 @@ module SimplyGenius
 
         it "skips a bad zip archive" do
           within_construct do |c|
-            c.file("bad.zip")
+            c.file("bad.zip", "not a zip file")
             expanded = described_class.new("test", "bad.zip")
             expect(expanded.directory).to be_nil
             expect(Logging.contents).to match(/Could not read from zip/)
