@@ -33,7 +33,8 @@ module SimplyGenius
         end
 
         def summarize(data)
-          lines = data.lines.select {|l| l =~ /^[\e\[\dm\s]*[~+\-<]/ }.collect(&:chomp)
+          # Looking for +/-/~ at start within 2 spaces, could also look for lines that end with {
+          lines = data.lines.select {|l| l =~ /^[\e\[\dm]*\s{0,2}[~+\-<]/ }.collect(&:chomp)
           lines = lines.reject {|l| l =~ /-----/ }
           "Plan Summary:\n#{lines.join("\n")}"
         end
