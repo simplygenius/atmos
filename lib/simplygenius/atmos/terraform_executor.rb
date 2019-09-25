@@ -61,6 +61,12 @@ module SimplyGenius
           end
         end
 
+        # TF 0.12 deprecates values for undeclared vars in an tfvars file, so
+        # put it in env instead as they claim that to be the expected way to do
+        # so and will continue to work
+        # https://github.com/hashicorp/terraform/issues/19424
+        env = env.merge(atmos_env)
+
         # lets tempfiles created by subprocesses be easily found by users
         env['TMPDIR'] = Atmos.config.tmp_dir
 
@@ -139,7 +145,6 @@ module SimplyGenius
         clean_links
         link_support_dirs
         link_recipes
-        write_atmos_vars
         setup_backend(skip_backend)
       end
 
@@ -209,25 +214,6 @@ module SimplyGenius
         end
       end
 
-      def write_atmos_vars
-        File.open(File.join(tf_recipes_dir, 'atmos.auto.tfvars.json'), 'w') do |f|
-          # A mapping in the auto vars file is ignored if a variable declaration doesn't exist for it in a tf file.  Thus,
-          # as a convenience to allow everything from atmos to be referenceable, we put everything from the atmos_config
-          # in a homogenized hash named atmos_config which is declared by the atmos scaffolding.  For variables which are
-          # declared, we also merge in atmos config with only the values homogenized (vs the entire map) so that hash
-          # variables if declared in terraform can be managed from yml, set here and accessed from terraform
-          #
-          homogenized_config = homogenize_for_terraform(Atmos.config.to_h)
-          var_hash = {
-              all_env_names: Atmos.config.all_env_names,
-              account_ids: Atmos.config.account_hash,
-              atmos_config: homogenized_config
-          }
-          var_hash = var_hash.merge(Atmos.config.to_h)
-          f.puts(JSON.pretty_generate(var_hash))
-        end
-      end
-
       def secrets_env
         # NOTE use an auto-deleting temp file if passing secrets through env ends
         # up being problematic
@@ -238,6 +224,41 @@ module SimplyGenius
           env_secrets = Hash[secrets.collect { |k, v| ["TF_VAR_#{k}", v] }]
           return env_secrets
         end
+      end
+
+      def atmos_env
+        # A var value in the env is ignored if a variable declaration doesn't exist for it in a tf file.  Thus,
+        # as a convenience to allow everything from atmos to be referenceable, we put everything from the atmos_config
+        # in a homogenized hash named atmos_config which is declared by the atmos scaffolding.  For variables which are
+        # declared, we also merge in atmos config with only the values homogenized (vs the entire map) so that hash
+        # variables if declared in terraform can be managed from yml, set here and accessed from terraform
+        #
+        homogenized_config = homogenize_for_terraform(Atmos.config.to_h)
+        var_hash = {
+            all_env_names: Atmos.config.all_env_names,
+            account_ids: Atmos.config.account_hash,
+            atmos_config: homogenized_config
+        }
+        var_hash = var_hash.merge(Atmos.config.to_h)
+        env_hash = Hash[var_hash.collect do |k, v|
+          encoded_val = case v
+          when Numeric, String, TrueClass, FalseClass
+            v.to_s
+          else
+            JSON.generate(v)
+          end
+          ["TF_VAR_#{k}", encoded_val]
+        end]
+
+        # write out a file so users have some visibility into vars passed in -
+        # mostly useful for debugging
+        File.open(File.join(tf_recipes_dir, 'atmos-tfvars.env'), 'w') do |f|
+          env_hash.each do |k, v|
+            f.puts("#{k}='#{v}'")
+          end
+        end
+
+        return env_hash
       end
 
       def clean_links

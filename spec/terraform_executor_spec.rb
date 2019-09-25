@@ -226,13 +226,18 @@ module SimplyGenius
 
       end
 
-      describe "write_atmos_vars" do
+      describe "atmos_env" do
 
-        it "writes the terraform var file for atmos vars" do
+        it "generates env for atmos vars" do
           within_construct do |c|
             c.file('config/atmos.yml', YAML.dump(
-                'foo' => 'bar',
-                'baz' => {'boo' => 'bum'},
+                'string' => 'str',
+                'booltrue' => true,
+                'boolfalse' => false,
+                'numint' => 1,
+                'numfloat' => 2.1,
+                'map' => {'foo' => 'bar'},
+                'list' => ['one', 'two'],
                 'environments' => {
                     'ops' => {
                         'account_id' => 123
@@ -240,19 +245,45 @@ module SimplyGenius
                 }
             ))
             Atmos.config = Config.new("ops")
-            te.send(:write_atmos_vars)
+            p vars = te.send(:atmos_env)
+            atmos_config = JSON.parse(vars['TF_VAR_atmos_config'])
+            expect(vars['TF_VAR_string']).to eq('str')
+            expect(atmos_config['string']).to eq(vars['TF_VAR_string'])
+            expect(vars['TF_VAR_booltrue']).to eq('true')
+            expect(atmos_config['booltrue'].to_s).to eq(vars['TF_VAR_booltrue'])
+            expect(vars['TF_VAR_boolfalse']).to eq('false')
+            expect(atmos_config['boolfalse'].to_s).to eq(vars['TF_VAR_boolfalse'])
+            expect(vars['TF_VAR_numint']).to eq('1')
+            expect(atmos_config['numint'].to_s).to eq(vars['TF_VAR_numint'])
+            expect(vars['TF_VAR_numfloat']).to eq('2.1')
+            expect(atmos_config['numfloat'].to_s).to eq(vars['TF_VAR_numfloat'])
+            expect(vars['TF_VAR_map']).to eq('{"foo":"bar"}')
+            expect(atmos_config['map_foo']).to eq('bar')
+            expect(vars['TF_VAR_list']).to eq('["one","two"]')
 
-            file = File.join(te.send(:tf_recipes_dir), 'atmos.auto.tfvars.json')
+            expect(vars['TF_VAR_atmos_env']).to eq('ops')
+            expect(vars['TF_VAR_all_env_names']).to eq('["ops"]')
+            expect(vars['TF_VAR_account_ids']).to eq('{"ops":123}')
+            expect(vars['TF_VAR_atmos_working_group']).to eq("default")
+          end
+        end
+
+        it "writes a env file for atmos vars" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump(
+                'foo' => 'bar',
+                'environments' => {
+                    'ops' => {
+                        'account_id' => 123
+                    }
+                }
+            ))
+            Atmos.config = Config.new("ops")
+            te.send(:atmos_env)
+
+            file = File.join(te.send(:tf_recipes_dir), 'atmos-tfvars.env')
             expect(File.exist?(file)).to be true
-            vars = JSON.parse(File.read(file))
-            expect(vars['atmos_env']).to eq('ops')
-            expect(vars['all_env_names']).to eq(["ops"])
-            expect(vars['account_ids']).to eq("ops" => 123)
-            expect(vars['atmos_working_group']).to eq("default")
-            expect(vars['atmos_config']['foo']).to eq('bar')
-            expect(vars['atmos_config']['baz_boo']).to eq('bum')
-            expect(vars['foo']).to eq('bar')
-            expect(vars['baz']).to eq({'boo' => 'bum'})
+            expect(File.read(file).lines(chomp: true)).to include("TF_VAR_foo='bar'")
           end
         end
 
@@ -383,7 +414,6 @@ module SimplyGenius
             expect(te).to receive(:clean_links)
             expect(te).to receive(:link_support_dirs)
             expect(te).to receive(:link_recipes)
-            expect(te).to receive(:write_atmos_vars)
             expect(te).to receive(:setup_backend)
 
             te.send(:setup_working_dir)

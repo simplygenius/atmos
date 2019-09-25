@@ -60,7 +60,7 @@ module SimplyGenius
 
       def all_env_names
         load
-        @full_config[:environments].keys
+        (@full_config[:environments] || {}).keys
       end
 
       def account_hash
