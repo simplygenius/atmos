@@ -1,3 +1,18 @@
+0.11.0 (09/25/2019)
+-------------------
+
+#### Notes on major changes
+
+ * Upgraded to support using terraform 0.12 .  This should continue to work with terraform 0.11, but revving the minor version in case it introduces a breaking change.  Most of the breaking changes were in the atmos-recipes repo, but you can pin to an older version of that to avoid getting the 0.12 recipes.
+
+#### Full changelog
+
+* fix 2.3 test failure [c20f957](https://github.com/simplygenius/atmos/commit/c20f957)
+* terraform 0.12 conversion - fix passing of atmos variables to terraform process [cad8c8f](https://github.com/simplygenius/atmos/commit/cad8c8f)
+* add_config comment detection needs single quote empty strings [2ef430b](https://github.com/simplygenius/atmos/commit/2ef430b)
+* fix summary for terraform 0.12 [bccb915](https://github.com/simplygenius/atmos/commit/bccb915)
+* use empty string instead of null as terraform 0.12 now treats null differently [8dd3853](https://github.com/simplygenius/atmos/commit/8dd3853)
+
 0.10.1 (09/20/2019)
 -------------------
 
