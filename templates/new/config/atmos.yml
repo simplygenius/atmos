@@ -35,14 +35,14 @@ global_name_prefix: "#{org}-#{atmos_env}-"
 # The local name prefix for disambiguating resource names that have a local
 # scope (e.g. when running multiple environments in the same account)
 #
-local_name_prefix: ""
+local_name_prefix: ''
 
 # The prefix used for the resources global to the organization.  Setting this
 # to something like "#{org}-" will allow you to manage multiple orgs from the same
 # ops account without name conflicts.
 # Most people should leave this blank.
 #
-org_prefix: ""
+org_prefix: ''
 
 # Environment specific overrides.  When adding new environments place them
 # after the existing ones so that you don't end up with permission issues when

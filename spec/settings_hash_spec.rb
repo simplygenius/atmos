@@ -214,6 +214,9 @@ module SimplyGenius
 
               new_data = File.read("foo.yml")
               new_comment_count = new_data.lines.grep(/^#/).size
+              # File.write("/tmp/old.yml", yml)
+              # File.write("/tmp/new.yml", new_data)
+              # system("diff /tmp/old.yml /tmp/new.yml")
               expect(new_comment_count).to eq(comment_count)
 
               new_data = YAML.load(new_data)
