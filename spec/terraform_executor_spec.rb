@@ -283,7 +283,7 @@ module SimplyGenius
 
             file = File.join(te.send(:tf_recipes_dir), 'atmos-tfvars.env')
             expect(File.exist?(file)).to be true
-            expect(File.read(file).lines(chomp: true)).to include("TF_VAR_foo='bar'")
+            expect(File.read(file).lines).to include("TF_VAR_foo='bar'\n")
           end
         end
 
