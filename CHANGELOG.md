@@ -1,3 +1,8 @@
+0.11.1 (10/16/2019)
+-------------------
+
+* stop pinning aws sdk versions as they change too frequently [61cfebf](https://github.com/simplygenius/atmos/commit/61cfebf)
+
 0.11.0 (09/25/2019)
 -------------------
 
