@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    simplygenius-atmos (0.11.1)
+    simplygenius-atmos (0.11.2)
       activesupport (~> 5.2.1)
       aws-sdk-core
       aws-sdk-ecr
@@ -38,8 +38,8 @@ GEM
     addressable (2.7.0)
       public_suffix (>= 2.0.2, < 5.0)
     aws-eventstream (1.0.3)
-    aws-partitions (1.223.0)
-    aws-sdk-core (3.68.1)
+    aws-partitions (1.225.0)
+    aws-sdk-core (3.69.0)
       aws-eventstream (~> 1.0, >= 1.0.2)
       aws-partitions (~> 1.0)
       aws-sigv4 (~> 1.1)
@@ -59,7 +59,7 @@ GEM
     aws-sdk-organizations (1.33.0)
       aws-sdk-core (~> 3, >= 3.61.1)
       aws-sigv4 (~> 1.1)
-    aws-sdk-s3 (1.49.0)
+    aws-sdk-s3 (1.50.0)
       aws-sdk-core (~> 3, >= 3.61.1)
       aws-sdk-kms (~> 1)
       aws-sigv4 (~> 1.1)
