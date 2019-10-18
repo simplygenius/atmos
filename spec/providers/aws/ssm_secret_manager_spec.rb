@@ -133,7 +133,7 @@ module SimplyGenius
 
           describe "to_h" do
 
-            it "gets all secrets" do
+            it "gets secrets" do
               client = ::Aws::SSM::Client.new(stub_responses: true)
               client.stub_responses(:get_parameters_by_path, parameters: [
                   {name: '/foo', value: 'bar'},
@@ -142,6 +142,28 @@ module SimplyGenius
               expect(::Aws::SSM::Client).to receive(:new).and_return(client)
 
               expect(manager.to_h).to eq("foo" => "bar", "baz" => "boo")
+            end
+
+            it "paginates secrets" do
+              client = ::Aws::SSM::Client.new(stub_responses: true)
+              client.stub_responses(:get_parameters_by_path, [
+                  {
+                      parameters: [
+                          {name: '/foo', value: 'bar'},
+                          {name: '/baz', value: 'boo'}
+                      ],
+                      next_token: 'nextpage'
+                  },
+                  {
+                      parameters: [
+                          {name: '/bum', value: 'dum'},
+                          {name: '/hum', value: 'sum'}
+                      ]
+                  }
+              ])
+              expect(::Aws::SSM::Client).to receive(:new).and_return(client)
+
+              expect(manager.to_h).to eq("baz"=>"boo", "bum"=>"dum", "foo"=>"bar", "hum"=>"sum")
             end
 
             it "uses prefix to restrict all secrets" do

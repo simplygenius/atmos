@@ -42,10 +42,19 @@ module SimplyGenius
 
           def to_h
             result = {}
-            resp = client.get_parameters_by_path(path: param_name(""), recursive: true, with_decryption: @encrypt)
-            resp.parameters.each do |p|
-              key = p.name.gsub(/^#{param_name("")}/, '')
-              result[key] = p.value
+            next_token = nil
+            loop do
+              # max_results can't be greater than 10, which is the default
+              resp = client.get_parameters_by_path(path: param_name(""),
+                                                   next_token: next_token,
+                                                   recursive: true, with_decryption: @encrypt)
+              resp.parameters.each do |p|
+                key = p.name.gsub(/^#{param_name("")}/, '')
+                result[key] = p.value
+              end
+
+              next_token = resp.next_token
+              break if next_token.nil?
             end
 
             return result
