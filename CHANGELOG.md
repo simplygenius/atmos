@@ -1,3 +1,8 @@
+0.11.2 (10/18/2019)
+-------------------
+
+* paginate across all secrets when listing [7f43461](https://github.com/simplygenius/atmos/commit/7f43461)
+
 0.11.1 (10/16/2019)
 -------------------
 
