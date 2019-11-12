@@ -7,9 +7,7 @@ module SimplyGenius
 
       class Secret < BaseCommand
 
-        def self.description
-          "Manages application secrets"
-        end
+        banner "Manages application secrets"
 
         subcommand "get", "Gets the secret value" do
 
@@ -80,8 +78,12 @@ module SimplyGenius
             Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
               ClimateControl.modify(auth_env) do
                 value = Atmos.config.provider.secret_manager.get(key)
-                Atmos.config.provider.secret_manager.delete(key)
-                logger.info "Deleted secret: #{key}=#{value}"
+                if value
+                  Atmos.config.provider.secret_manager.delete(key)
+                  logger.info "Deleted secret: #{key}=#{value}"
+                else
+                  logger.warn "Key does not exist: #{key}"
+                end
               end
             end
 

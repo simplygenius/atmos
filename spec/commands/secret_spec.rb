@@ -126,6 +126,17 @@ module SimplyGenius
             expect(Logging.contents).to match(/Deleted secret: foo=bar/)
           end
 
+          it "warns if non-existant secret" do
+            env = Hash.new
+            expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
+            expect(Atmos.config.provider.secret_manager).to receive(:get).
+                with("foo").and_return(nil)
+            expect(Atmos.config.provider.secret_manager).to_not receive(:delete)
+            cli.run(["delete", "foo"])
+            expect(Logging.contents).to_not match(/Deleted secret: foo=bar/)
+            expect(Logging.contents).to match(/Key does not exist: foo/)
+          end
+
         end
 
       end
