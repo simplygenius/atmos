@@ -1,3 +1,11 @@
+0.11.3 (11/12/2019)
+-------------------
+
+* add a compat mode for running with terraform 0.11 [30052a1](https://github.com/simplygenius/atmos/commit/30052a1)
+* handle deleting a secret that doesn't exist [224c926](https://github.com/simplygenius/atmos/commit/224c926)
+* update rubyzip to avoid vulnerability [d46d817](https://github.com/simplygenius/atmos/commit/d46d817)
+
+
 0.11.2 (10/18/2019)
 -------------------
 
