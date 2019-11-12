@@ -152,7 +152,7 @@ module SimplyGenius
               stub = SymbolizedMash.new(stub.to_h).deep_merge(body: 'bar')
               ::Aws.config[:s3] = {
                   stub_responses: {
-                      list_objects: { contents: [
+                      list_objects_v2: { contents: [
                           {key: 'foo', storage_class: "STANDARD"},
                           {key: 'baz', storage_class: "STANDARD"}
                       ]},
@@ -171,7 +171,7 @@ module SimplyGenius
               Atmos.config[:secret][:prefix] = "path/"
               client = ::Aws::S3::Client.new
               expect(::Aws::S3::Client).to receive(:new).and_return(client)
-              expect(client).to receive(:list_objects).with(hash_including(prefix: "path/")).and_call_original
+              expect(client).to receive(:list_objects_v2).with(hash_including(prefix: "path/")).and_call_original
 
               manager.to_h
             end
@@ -183,7 +183,7 @@ module SimplyGenius
               stub = SymbolizedMash.new(stub.to_h).deep_merge(body: 'bar')
               ::Aws.config[:s3] = {
                   stub_responses: {
-                      list_objects: { contents: [
+                      list_objects_v2: { contents: [
                           {key: 'path/foo', storage_class: "STANDARD"},
                           {key: 'path/baz', storage_class: "STANDARD"}
                       ]},
