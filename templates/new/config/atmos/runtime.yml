@@ -75,3 +75,5 @@ atmos:
     # env/group combination will be independent and download all plugins for
     # itself only
     disable_shared_plugins: false
+    # Set true if running terraform version < 0.11.x
+    compat11: false

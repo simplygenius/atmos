@@ -23,6 +23,7 @@ module SimplyGenius
         if @recipes.blank?
           logger.warn("Check your configuration, there are no recipes in '#{recipe_config_path}'")
         end
+        @compat11 = Atmos.config['atmos.terraform.compat11'].to_s == "true"
       end
 
       def run(*terraform_args, skip_backend: false, skip_secrets: false, get_modules: false, output_io: nil)
@@ -172,10 +173,19 @@ module SimplyGenius
         end
       end
 
-      # terraform currently (v0.11.7) doesn't handle maps with nested maps or
-      # lists well, so flatten them - nested maps get expanded into the top level
-      # one, with their keys being appended with underscores, and lists get
-      # joined with "," so we end up with a single hash with homogenous types
+      def homogenize_encode(v)
+        case v
+        when nil
+          @compat11 ? "" : v
+        else
+          v
+        end
+      end
+
+      # terraform requires all values within a map to have the same type, so
+      # flatten the map - nested maps get expanded into the top level one, with
+      # their keys being appended with underscores, and lists get joined with
+      # "," so we end up with a single hash with homogenous types
       #
       def homogenize_for_terraform(obj, prefix="")
         if obj.is_a? Hash
@@ -185,7 +195,7 @@ module SimplyGenius
             if ho.is_a? Hash
               result = result.merge(ho)
             else
-              result["#{prefix}#{k}"] = ho
+              result["#{prefix}#{k}"] = homogenize_encode(ho)
             end
           end
           return result
@@ -194,15 +204,41 @@ module SimplyGenius
           obj.each do |o|
             ho = homogenize_for_terraform(o, prefix)
             if ho.is_a? Hash
-              result << ho.collect {|k, v| "#{k}=#{v}"}.join(";")
+              result << ho.collect {|k, v| "#{k}=#{homogenize_encode(v)}"}.join(";")
             else
-              result << ho
+              result << homogenize_encode(ho)
             end
           end
           return result.join(",")
         else
-          return obj
+          return homogenize_encode(obj)
         end
+      end
+
+      def encode_tf_env_value(v)
+        case v
+        when nil
+          @compat11 ? "" : JSON.generate(v)
+        when Numeric, String, TrueClass, FalseClass
+          v.to_s
+        when Hash
+          if @compat11
+            hcl_hash =v.collect {|k, v| %Q("#{k.to_s}"="#{encode_tf_env_value(v)}") }.join(",")
+            "{#{hcl_hash}}"
+          else
+            JSON.generate(v)
+          end
+        else
+          JSON.generate(v)
+        end
+      end
+
+      def encode_tf_env(hash)
+        result = {}
+        hash.each do |k, v|
+          result["TF_VAR_#{k}"] = encode_tf_env_value(v)
+        end
+        return result
       end
 
       def tf_recipes_dir
@@ -221,34 +257,30 @@ module SimplyGenius
         # ENV, so kinda clunk to have to do both CC and pass the env in
         ClimateControl.modify(@process_env) do
           secrets = Atmos.config.provider.secret_manager.to_h
-          env_secrets = Hash[secrets.collect { |k, v| ["TF_VAR_#{k}", v] }]
+          env_secrets = encode_tf_env(secrets)
           return env_secrets
         end
       end
 
+      # TODO: Add ability to declare variables as well as set them.  May need to
+      # inspect existing tf to find all declared vars so we don't double declare
       def atmos_env
         # A var value in the env is ignored if a variable declaration doesn't exist for it in a tf file.  Thus,
         # as a convenience to allow everything from atmos to be referenceable, we put everything from the atmos_config
         # in a homogenized hash named atmos_config which is declared by the atmos scaffolding.  For variables which are
-        # declared, we also merge in atmos config with only the values homogenized (vs the entire map) so that hash
+        # declared, we also merge in atmos config with only the hash values homogenized (vs the entire map) so that hash
         # variables if declared in terraform can be managed from yml, set here and accessed from terraform
         #
         homogenized_config = homogenize_for_terraform(Atmos.config.to_h)
+        homogenized_values = Hash[Atmos.config.to_h.collect {|k, v| [k, v.is_a?(Hash) ? homogenize_for_terraform(v) : v]}]
         var_hash = {
             all_env_names: Atmos.config.all_env_names,
             account_ids: Atmos.config.account_hash,
             atmos_config: homogenized_config
         }
-        var_hash = var_hash.merge(Atmos.config.to_h)
-        env_hash = Hash[var_hash.collect do |k, v|
-          encoded_val = case v
-          when Numeric, String, TrueClass, FalseClass
-            v.to_s
-          else
-            JSON.generate(v)
-          end
-          ["TF_VAR_#{k}", encoded_val]
-        end]
+        var_hash = var_hash.merge(homogenized_values)
+
+        env_hash = encode_tf_env(var_hash)
 
         # write out a file so users have some visibility into vars passed in -
         # mostly useful for debugging
@@ -269,8 +301,9 @@ module SimplyGenius
       end
 
       def link_support_dirs
-        ['modules', 'templates'].each do |subdir|
-          ln_sf(File.join(Atmos.config.root_dir, subdir), Atmos.config.tf_working_dir)
+        ['modules', 'templates', '.terraform-version'].each do |subdir|
+          source = File.join(Atmos.config.root_dir, subdir)
+          ln_sf(source, Atmos.config.tf_working_dir) if File.exist?(source)
         end
       end
 

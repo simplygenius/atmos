@@ -226,6 +226,70 @@ module SimplyGenius
 
       end
 
+      describe "encode_tf_env_value" do
+
+        around :each do |ex|
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump({}))
+            Atmos.config = Config.new("ops")
+            ex.run
+            Atmos.config = Config.new("ops")
+          end
+        end
+
+        it "handles scalars" do
+          expect(Atmos.config['atmos.terraform.compat11']).to be_falsey
+          expect(te.send(:encode_tf_env_value, "foo")).to eq("foo")
+          expect(te.send(:encode_tf_env_value, 1)).to eq("1")
+          expect(te.send(:encode_tf_env_value, true)).to eq("true")
+          expect(te.send(:encode_tf_env_value, false)).to eq("false")
+          expect(te.send(:encode_tf_env_value, nil)).to eq("null")
+        end
+
+        it "handles scalars in compat mode" do
+          Atmos.config['atmos.terraform.compat11'] = true
+          expect(Atmos.config['atmos.terraform.compat11']).to be_truthy
+          expect(te.send(:encode_tf_env_value, "foo")).to eq("foo")
+          expect(te.send(:encode_tf_env_value, 1)).to eq("1")
+          expect(te.send(:encode_tf_env_value, true)).to eq("true")
+          expect(te.send(:encode_tf_env_value, false)).to eq("false")
+          expect(te.send(:encode_tf_env_value, nil)).to eq("")
+        end
+
+        it "encodes map as json" do
+          expect(Atmos.config['atmos.terraform.compat11']).to be_falsey
+          expect(te.send(:encode_tf_env_value, {"foo" => "bar"})).to eq('{"foo":"bar"}')
+        end
+
+        it "encodes map as tfvar map in compat mode" do
+          Atmos.config['atmos.terraform.compat11'] = true
+          expect(Atmos.config['atmos.terraform.compat11']).to be_truthy
+          expect(te.send(:encode_tf_env_value, {"foo" => "bar"})).to eq('{"foo"="bar"}')
+        end
+
+        it "encodes list as json" do
+          expect(te.send(:encode_tf_env_value, ["foo", "bar"])).to eq('["foo","bar"]')
+        end
+
+      end
+
+      describe "encode_tf_env" do
+
+        around :each do |ex|
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump({}))
+            Atmos.config = Config.new("ops")
+            ex.run
+            Atmos.config = Config.new("ops")
+          end
+        end
+
+        it "converts a map to a TF_VAR env map" do
+          expect(te.send(:encode_tf_env, {"foo" => "bar"})).to eq({"TF_VAR_foo" => "bar"})
+        end
+
+      end
+
       describe "atmos_env" do
 
         it "generates env for atmos vars" do
@@ -245,7 +309,7 @@ module SimplyGenius
                 }
             ))
             Atmos.config = Config.new("ops")
-            p vars = te.send(:atmos_env)
+            vars = te.send(:atmos_env)
             atmos_config = JSON.parse(vars['TF_VAR_atmos_config'])
             expect(vars['TF_VAR_string']).to eq('str')
             expect(atmos_config['string']).to eq(vars['TF_VAR_string'])
@@ -289,6 +353,37 @@ module SimplyGenius
 
       end
 
+      describe "homogenize_encode" do
+
+        around :each do |ex|
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump({}))
+            Atmos.config = Config.new("ops")
+            ex.run
+          end
+        end
+
+        it "handles scalars" do
+          expect(Atmos.config['atmos.terraform.compat11']).to be_falsey
+          expect(te.send(:homogenize_encode, "foo")).to eq("foo")
+          expect(te.send(:homogenize_encode, 1)).to eq(1)
+          expect(te.send(:homogenize_encode, true)).to eq(true)
+          expect(te.send(:homogenize_encode, false)).to eq(false)
+          expect(te.send(:homogenize_encode, nil)).to eq(nil)
+        end
+
+        it "handles scalars in compat mode" do
+          Atmos.config['atmos.terraform.compat11'] = true
+          expect(Atmos.config['atmos.terraform.compat11']).to be_truthy
+          expect(te.send(:homogenize_encode, "foo")).to eq("foo")
+          expect(te.send(:homogenize_encode, 1)).to eq(1)
+          expect(te.send(:homogenize_encode, true)).to eq(true)
+          expect(te.send(:homogenize_encode, false)).to eq(false)
+          expect(te.send(:homogenize_encode, nil)).to eq("")
+        end
+
+      end
+
       describe "homogenize_for_terraform" do
 
         around :each do |ex|
@@ -310,6 +405,9 @@ module SimplyGenius
         it "handles scalars" do
           expect(te.send(:homogenize_for_terraform, "foo")).to eq("foo")
           expect(te.send(:homogenize_for_terraform, 1)).to eq(1)
+          expect(te.send(:homogenize_for_terraform, true)).to eq(true)
+          expect(te.send(:homogenize_for_terraform, false)).to eq(false)
+          expect(te.send(:homogenize_for_terraform, nil)).to eq(nil)
         end
 
         it "handles basic maps" do
