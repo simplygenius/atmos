@@ -17,19 +17,7 @@ module SimplyGenius
           end
         end
 
-        describe "--help" do
-
-          it "produces help text under standard width" do
-            expect(cli.help).to be_line_width_for_cli
-          end
-
-        end
-
         describe "push" do
-
-          it "produces help text under standard width" do
-            expect(described_class.new("push").help).to be_line_width_for_cli
-          end
 
           it "requires a cluster" do
             expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)
@@ -82,10 +70,6 @@ module SimplyGenius
         end
 
         describe "activate" do
-
-          it "produces help text under standard width" do
-            expect(described_class.new("activate").help).to be_line_width_for_cli
-          end
 
           it "requires a cluster" do
             expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)
@@ -193,10 +177,6 @@ module SimplyGenius
         end
 
         describe "deploy" do
-
-          it "produces help text under standard width" do
-            expect(described_class.new("deploy").help).to be_line_width_for_cli
-          end
 
           it "requires a cluster" do
             expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)

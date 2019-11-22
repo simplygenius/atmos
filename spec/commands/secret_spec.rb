@@ -17,19 +17,7 @@ module SimplyGenius
           end
         end
 
-        describe "--help" do
-
-          it "produces help text under standard width" do
-            expect(cli.help).to be_line_width_for_cli
-          end
-
-        end
-
         describe "get" do
-
-          it "produces help text under standard width" do
-            expect(described_class.new("get").help).to be_line_width_for_cli
-          end
 
           it "requires a key" do
             expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)
@@ -49,10 +37,6 @@ module SimplyGenius
         end
 
         describe "set" do
-
-          it "produces help text under standard width" do
-            expect(described_class.new("set").help).to be_line_width_for_cli
-          end
 
           it "requires a key" do
             expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)
@@ -88,10 +72,6 @@ module SimplyGenius
 
         describe "list" do
 
-          it "produces help text under standard width" do
-            expect(described_class.new("list").help).to be_line_width_for_cli
-          end
-
           it "lists secret keys" do
             env = Hash.new
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
@@ -104,10 +84,6 @@ module SimplyGenius
         end
 
         describe "delete" do
-
-          it "produces help text under standard width" do
-            expect(described_class.new("delete").help).to be_line_width_for_cli
-          end
 
           it "requires a key" do
             expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)

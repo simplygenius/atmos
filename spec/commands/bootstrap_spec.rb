@@ -19,15 +19,6 @@ module SimplyGenius
           end
         end
 
-
-        describe "--help" do
-
-          it "produces help text under standard width" do
-            expect(cli.help).to be_line_width_for_cli
-          end
-
-        end
-
         describe "execute" do
 
           it "runs against a fresh repo" do

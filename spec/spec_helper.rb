@@ -143,21 +143,22 @@ require "test_construct/rspec_integration"
 require 'rspec/expectations'
 
 
-RSpec::Matchers.define :be_line_width_for_cli do
+RSpec::Matchers.define :be_line_width_for_cli do |name|
   match do |actual|
     @actual = []
     @expected = []
     actual.lines.each {|l| @actual << l if l.size > 80}
-    actual.present? && @actual.size == 0
+    !(actual.nil? || actual.empty?) && @actual.size == 0
   end
 
   diffable
 
   failure_message do |actual|
+    maybe_name = name.nil? ? "" : "[subcommand=#{name}] "
     if @actual.size == 0
-      "No lines in output"
+      "#{maybe_name}No lines in output"
     else
-      "Some lines are longer than standard terminal width"
+      "#{maybe_name}Some lines are longer than standard terminal width"
     end
   end
 end

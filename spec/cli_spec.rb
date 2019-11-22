@@ -26,6 +26,21 @@ module SimplyGenius
         end
       end
 
+      def all_usage(clazz, path=[])
+        Enumerator.new do |y|
+          obj = clazz.new("")
+          path << clazz.name.split(":").last if path.empty?
+          cmd_path = path.join(" -> ")
+          y << {name: cmd_path, usage: obj.help}
+
+          clazz.recognised_subcommands.each do |sc|
+            sc_clazz = sc.subcommand_class
+            sc_name = sc.names.first
+            all_usage(sc_clazz, path + [sc_name]).each {|sy| y << sy}
+          end
+        end
+      end
+
       describe "--help" do
 
         it "shows usage when no parameters" do
@@ -33,7 +48,9 @@ module SimplyGenius
         end
 
         it "produces help text under standard width" do
-          expect(cli.help).to be_line_width_for_cli
+          all_usage(described_class).each do |m|
+            expect(m[:usage]).to be_line_width_for_cli(m[:name])
+          end
         end
 
       end

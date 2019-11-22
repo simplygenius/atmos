@@ -14,7 +14,7 @@ module SimplyGenius
         subcommand "create", "Create a new user" do
 
           option ["-f", "--force"],
-                 :flag, "forces deletion/updates for pre-existing resources\n",
+                 :flag, "forces deletion/updates for pre-existing\nresources",
                  default: false
 
           option ["-l", "--login"],

@@ -17,19 +17,7 @@ module SimplyGenius
           end
         end
 
-        describe "--help" do
-
-          it "produces help text under standard width" do
-            expect(cli.help).to be_line_width_for_cli
-          end
-
-        end
-
         describe "create" do
-
-          it "produces help text under standard width" do
-            expect(described_class.new("create").help).to be_line_width_for_cli
-          end
 
           it "requires an env" do
             expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)

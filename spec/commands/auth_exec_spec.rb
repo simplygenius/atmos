@@ -8,14 +8,6 @@ module SimplyGenius
 
         let(:cli) { described_class.new("") }
 
-        describe "--help" do
-
-          it "produces help text under standard width" do
-            expect(cli.help).to be_line_width_for_cli
-          end
-
-        end
-
         describe "execute" do
           around(:each) do |ex|
             within_construct do |c|
