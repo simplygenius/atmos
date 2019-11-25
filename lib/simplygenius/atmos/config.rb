@@ -121,8 +121,6 @@ module SimplyGenius
 
       private
 
-      INTERP_PATTERN = /(\#\{([^\}]+)\})/
-
       def config_merge(lhs, rhs, debug_state=[])
         result = nil
 

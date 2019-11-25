@@ -12,7 +12,7 @@ module SimplyGenius
       disable_warnings
 
       PATH_PATTERN = /[\.\[\]]/
-      INTERP_PATTERN = /(\#\{([^\}]+)\})/
+      INTERP_PATTERN = /(\#?\#\{([^\}]+)\})/
 
       attr_accessor :_root_, :error_resolver, :enable_expansion
 
@@ -84,12 +84,16 @@ module SimplyGenius
         result.scan(INTERP_PATTERN).each do |substr, statement|
           # TODO: add an explicit check for cycles instead of relying on Stack error
           begin
-            # TODO: be consistent with dot notation between eval and
-            # notation_get.  eval ends up calling Hashie method_missing,
-            # which returns nil if a key doesn't exist, causing a nil
-            # exception for next item in chain, while notation_get returns
-            # nil gracefully for the entire chain (preferred)
-            val = eval(statement, binding, __FILE__)
+            if substr.start_with?('##')
+              val = substr[1..-1]
+            else
+              # TODO: be consistent with dot notation between eval and
+              # notation_get.  eval ends up calling Hashie method_missing,
+              # which returns nil if a key doesn't exist, causing a nil
+              # exception for next item in chain, while notation_get returns
+              # nil gracefully for the entire chain (preferred)
+              val = eval(statement, binding, __FILE__)
+            end
           rescue SystemStackError => e
             raise ConfigInterpolationError.new(format_error("Cycle in interpolated config", substr))
           rescue StandardError => e

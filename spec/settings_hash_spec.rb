@@ -242,6 +242,11 @@ module SimplyGenius
           expect(config["baz"]).to eq("bar")
         end
 
+        it "can escape interpolation" do
+          config = create(foo: "bar", baz: '##{foo}')
+          expect(config["baz"]).to eq('#{foo}')
+        end
+
         it "handles dot notation interpolation" do
           config = create(foo: {bar: ["boo"]}, baz: '#{foo.bar[0]}')
           expect(config["baz"]).to eq("boo")
