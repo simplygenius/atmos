@@ -249,6 +249,58 @@ module SimplyGenius
 
         end
 
+        describe "console" do
+
+          it "requires a cluster" do
+            expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)
+            expect(Atmos.config.provider.container_manager).to_not receive(:push)
+            expect { cli.run(["console", "bar"]) }.to raise_error(Clamp::UsageError, /'-c' is required/)
+          end
+
+          it "requires a name" do
+            expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)
+            expect(Atmos.config.provider.container_manager).to_not receive(:push)
+            expect { cli.run(["console", "-c", "foo"]) }.to raise_error(Clamp::UsageError, /NAME.*no value provided/)
+          end
+
+          it "runs a task" do
+            env = Hash.new
+            remote_command = Atmos.config["atmos.container.console.remote_command"] = ["run", "server"]
+            log_pattern = Atmos.config["atmos.container.console.remote_log_pattern"] = "^ssh (?<token>\\w+)@foo.com$"
+            Atmos.config["atmos.container.console.local_command"] = ["run", "client", "<token>"]
+
+            fake_match = Regexp.new(log_pattern).match("ssh abcxyz@foo.com")
+            expect(Atmos.config.provider.auth_manager).
+                to receive(:authenticate).with(ENV, role: nil).and_yield(env)
+            expect(Atmos.config.provider.container_manager).
+                to receive(:run_task).with("foo", "bar", command: remote_command, waiter_log_pattern: log_pattern).and_return(log_match: fake_match, task_id: "tid")
+            expect_any_instance_of(described_class.find_subcommand_class("console")).to receive(:system).with("run", "client", "abcxyz")
+            expect(Atmos.config.provider.container_manager).
+                to receive(:stop_task).with("foo", "tid")
+
+            cli.run(["console", "-c", "foo", "bar"])
+          end
+
+          it "runs a persistant task" do
+            env = Hash.new
+            Atmos.config["atmos.container.console.remote_command"] = ["run", "server"]
+            remote_persist_command = Atmos.config["atmos.container.console.remote_persist_command"] = ["run", "persist"]
+            log_pattern = Atmos.config["atmos.container.console.remote_log_pattern"] = "^ssh (?<token>\\w+)@foo.com$"
+            Atmos.config["atmos.container.console.local_command"] = ["run", "client", "<token>"]
+
+            fake_match = Regexp.new(log_pattern).match("ssh abcxyz@foo.com")
+            expect(Atmos.config.provider.auth_manager).
+                to receive(:authenticate).with(ENV, role: nil).and_yield(env)
+            expect(Atmos.config.provider.container_manager).
+                to receive(:run_task).with("foo", "bar", command: remote_persist_command, waiter_log_pattern: log_pattern).and_return(log_match: fake_match, task_id: "tid")
+            expect_any_instance_of(described_class.find_subcommand_class("console")).to receive(:system).with("run", "client", "abcxyz")
+            expect(Atmos.config.provider.container_manager).
+                to_not receive(:stop_task).with("foo", "tid")
+
+            cli.run(["console", "-c", "foo", "-p", "bar"])
+          end
+
+        end
       end
 
     end

@@ -1,8 +1,9 @@
 PATH
   remote: .
   specs:
-    simplygenius-atmos (0.11.3)
+    simplygenius-atmos (0.11.4)
       activesupport (~> 5.2.1)
+      aws-sdk-cloudwatchlogs
       aws-sdk-core
       aws-sdk-ecr
       aws-sdk-ecs
@@ -38,19 +39,22 @@ GEM
     addressable (2.7.0)
       public_suffix (>= 2.0.2, < 5.0)
     aws-eventstream (1.0.3)
-    aws-partitions (1.237.0)
-    aws-sdk-core (3.76.0)
+    aws-partitions (1.243.0)
+    aws-sdk-cloudwatchlogs (1.27.0)
+      aws-sdk-core (~> 3, >= 3.71.0)
+      aws-sigv4 (~> 1.1)
+    aws-sdk-core (3.80.0)
       aws-eventstream (~> 1.0, >= 1.0.2)
-      aws-partitions (~> 1, >= 1.228.0)
+      aws-partitions (~> 1, >= 1.239.0)
       aws-sigv4 (~> 1.1)
       jmespath (~> 1.0)
     aws-sdk-ecr (1.23.0)
       aws-sdk-core (~> 3, >= 3.71.0)
       aws-sigv4 (~> 1.1)
-    aws-sdk-ecs (1.52.0)
+    aws-sdk-ecs (1.53.0)
       aws-sdk-core (~> 3, >= 3.71.0)
       aws-sigv4 (~> 1.1)
-    aws-sdk-iam (1.31.0)
+    aws-sdk-iam (1.32.0)
       aws-sdk-core (~> 3, >= 3.71.0)
       aws-sigv4 (~> 1.1)
     aws-sdk-kms (1.25.0)
@@ -59,11 +63,11 @@ GEM
     aws-sdk-organizations (1.34.0)
       aws-sdk-core (~> 3, >= 3.71.0)
       aws-sigv4 (~> 1.1)
-    aws-sdk-s3 (1.53.0)
-      aws-sdk-core (~> 3, >= 3.71.0)
+    aws-sdk-s3 (1.57.0)
+      aws-sdk-core (~> 3, >= 3.77.0)
       aws-sdk-kms (~> 1)
       aws-sigv4 (~> 1.1)
-    aws-sdk-ssm (1.59.0)
+    aws-sdk-ssm (1.63.0)
       aws-sdk-core (~> 3, >= 3.71.0)
       aws-sigv4 (~> 1.1)
     aws-sigv4 (1.1.0)

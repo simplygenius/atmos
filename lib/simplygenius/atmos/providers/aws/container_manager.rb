@@ -1,6 +1,7 @@
 require_relative '../../../atmos'
 require 'aws-sdk-ecs'
 require 'aws-sdk-ecr'
+require 'aws-sdk-cloudwatchlogs'
 require 'open3'
 
 module SimplyGenius
@@ -159,7 +160,87 @@ module SimplyGenius
             return result
           end
 
-          private
+          def run_task(cluster, name, command:, waiter_log_pattern: nil, launch_type: "FARGATE")
+            result = {}
+
+            ecs = ::Aws::ECS::Client.new
+            resp = nil
+
+            task_opts = {
+                count: 1,
+                cluster: cluster,
+                task_definition: name,
+                launch_type: launch_type,
+                overrides: {container_overrides: [{name: name, command: command}]}
+            }
+
+            defn_arn = nil
+            resp = ecs.describe_services(cluster: cluster, services: [name])
+            if resp.services.size > 0
+              svc = resp.services.first
+              task_opts[:launch_type] = svc.launch_type
+              task_opts[:network_configuration] = svc.network_configuration.to_h
+              defn_arn = svc.task_definition
+              logger.info "Running service task as '#{task_opts[:launch_type]}'"
+            else
+              resp = ecs.list_task_definitions(family_prefix: name, sort: 'DESC')
+              defn_arn = resp.task_definition_arns.first
+              logger.info "Running task as '#{task_opts[:launch_type]}'"
+            end
+
+            resp = ecs.describe_task_definition(task_definition: defn_arn)
+            defn = resp.task_definition
+            raise "Invalid Launch type '#{launch_type}'" unless (defn.requires_compatibilities + defn.compatibilities).include?(launch_type)
+
+            log_config = defn.container_definitions.first.log_configuration
+            log_group = nil
+            log_stream_prefix = nil
+            if log_config && log_config.log_driver == "awslogs"
+              log_group = log_config.options["awslogs-group"]
+              log_stream_prefix = log_config.options["awslogs-stream-prefix"]
+            end
+            if waiter_log_pattern && log_group.nil?
+              logger.error "Cannot wait on a log unless task definition uses cloudwatch for logging"
+              waiter_log_pattern = nil
+            end
+
+            resp = ecs.run_task(**task_opts)
+            task_arn = result[:task_arn] = resp.tasks.first.task_arn
+            task_id = result[:task_id] = task_arn.split('/').last
+
+            logger.info "Waiting for task to start"
+            ecs.wait_until(:tasks_running, cluster: cluster, tasks: [task_id])
+
+            if waiter_log_pattern
+              cwl = ::Aws::CloudWatchLogs::Client.new
+
+              waiter_regexp = Regexp.new(waiter_log_pattern)
+              log_stream = "#{log_stream_prefix}/#{name}/#{task_id}"
+              logger.info "Task started, looking for log pattern in group=#{log_group} stream=#{log_stream}"
+              log_token = nil
+              10.times do
+                resp = cwl.get_log_events(log_group_name: log_group, log_stream_name: log_stream, start_from_head: true, next_token: log_token)
+                resp.events.each do |e|
+                  logger.debug("Task log #{e.timestamp}: #{e.message}")
+                  if e.message =~ waiter_regexp
+                    result[:log_match] = Regexp.last_match
+                    return result # return, not break due to doubly nested iterator
+                  end
+                end
+                log_token = resp.next_forward_token
+                sleep 1
+              end
+            end
+
+            return result
+          end
+
+          def stop_task(cluster, task)
+            ecs = ::Aws::ECS::Client.new
+            resp = ecs.stop_task(cluster: cluster, task: task)
+          end
+
+        private
 
           def run(*args, **opts)
             logger.debug("Running: #{args}")

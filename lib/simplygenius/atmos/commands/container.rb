@@ -14,14 +14,14 @@ module SimplyGenius
           "Manages containers in the cloud provider"
         end
 
+        option ["-c", "--cluster"],
+               "CLUSTER", "The cluster name\n",
+               required: true
+
+        option ["-r", "--role"],
+               "ROLE", "The role to assume when deploying\n"
+
         subcommand "push", "Only push a container image without activating it" do
-
-          option ["-c", "--cluster"],
-                 "CLUSTER", "The cluster name\n",
-                 required: true
-
-          option ["-r", "--role"],
-                 "ROLE", "The role to assume when deploying\n"
 
           option ["-i", "--image"],
                  "IMAGE", "The local container image to deploy\nDefaults to service/task name"
@@ -54,15 +54,8 @@ module SimplyGenius
 
         subcommand "activate", "Activate a container that has already been pushed" do
 
-          option ["-c", "--cluster"],
-                 "CLUSTER", "The cluster name\n",
-                 required: true
-
-          option ["-r", "--role"],
-                 "ROLE", "The role to assume when deploying\n"
-
           option ["-v", "--revision"],
-                 "REVISION", "Use the given revision of the pushed image to activate\n"
+                 "REVISION", "Use the given revision of the pushed image\nto activate\n"
 
           option ["-l", "--list"],
                  :flag, "List the most recent pushed images\n"
@@ -122,13 +115,6 @@ module SimplyGenius
 
         subcommand "deploy", "Push and activate a container" do
 
-          option ["-c", "--cluster"],
-                 "CLUSTER", "The cluster name\n",
-                 required: true
-
-          option ["-r", "--role"],
-                 "ROLE", "The role to assume when deploying\n"
-
           option ["-i", "--image"],
                  "IMAGE", "The local container image to deploy\nDefaults to service/task name"
 
@@ -159,6 +145,44 @@ module SimplyGenius
                 end
 
                 logger.info "Container deployed:\n #{display result}"
+              end
+            end
+          end
+        end
+
+        subcommand "console", "Spawn a console and attach to it" do
+
+          option ["-p", "--persist"],
+                 :flag, "Leave the task running after disconnect\n"
+
+          parameter "NAME",
+                    "The name of the service (or task) to attach\nthe console to"
+
+          def execute
+            Atmos.config.provider.auth_manager.authenticate(ENV, role: role) do |auth_env|
+              ClimateControl.modify(auth_env) do
+                mgr = Atmos.config.provider.container_manager
+                remote_command = Array(Atmos.config['atmos.container.console.remote_command'])
+                remote_persist_command = Array(Atmos.config['atmos.container.console.remote_persist_command'])
+                log_pattern = Atmos.config['atmos.container.console.remote_log_pattern']
+                local_command = Atmos.config['atmos.container.console.local_command']
+
+                cmd = persist? ? remote_persist_command : remote_command
+                logger.debug "Running remote command: #{cmd.join(" ")}"
+                result = mgr.run_task(cluster, name, command: cmd, waiter_log_pattern: log_pattern)
+                logger.debug "Run task result: #{result}"
+                begin
+                  match = result[:log_match]
+                  local_command = local_command.collect {|c| match.named_captures.each {|n, v| c = c.gsub("<#{n}>", v) }; c }
+                  system(*local_command)
+                ensure
+                  if persist?
+                    logger.info "Console disconnected, you can reconnect with: #{local_command.join(" ")}"
+                  else
+                    logger.info "Console complete, stopping task"
+                    mgr.stop_task(cluster, result[:task_id])
+                  end
+                end
               end
             end
           end

@@ -64,6 +64,51 @@ atmos:
       # a GUI notification
       force_inline: false
 
+  # Configure the container components accessible with 'atmos container ....'
+  container:
+    # Configuration for the console subcommand
+    # For this to work, your service container needs to have a recent (>= 2.4)
+    # tmate installed. For example in a debian container:
+    #
+    #      # Install locales package for tmate
+    #      RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -q -y locales
+    #
+    #      # To set utf-8 locale for tmate
+    #      RUN sed -i -e 's/# \(en_US\.UTF-8 .*\)/\1/' /etc/locale.gen && \
+    #      dpkg-reconfigure --frontend=noninteractive locales && \
+    #      update-locale LANG=en_US.UTF-8
+    #      ENV LANG en_US.UTF-8
+    #
+    #      # Install tmate
+    #      RUN curl -Lo /tmp/tmate.tar.xz https://github.com/tmate-io/tmate/releases/download/2.4.0/tmate-2.4.0-static-linux-amd64.tar.xz && \
+    #      cd /tmp && \
+    #      tar xf /tmp/tmate.tar.xz && \
+    #      mv tmate-2.4.0-static-linux-amd64/tmate /usr/bin/tmate && \
+    #      rm -rf /tmp/tmate*
+    #
+    #      # tmate needs ssh keys
+    #      RUN ssh-keygen -f ~/.ssh/id_rsa -N '' -t rsa
+    #
+    console:
+      # The remote command to run when initiating a console (exits on disconnect)
+      remote_command:
+        - bash
+        - -c
+        - echo "set tmate-foreground-restart 0" > ~/.tmate.conf && tmate -F
+      # The remote command to run when initiating a console (persists on disconnect)
+      remote_persist_command:
+        - bash
+        - -c
+        - tmate -F
+      # The regexp to match against remote command output to extract any tokens
+      # needed for the client to connect.  The regexp named groups (?<...>) get
+      # substituted within the client command (<...>)
+      remote_log_pattern: "^ssh session: ssh (?<token>\\w+)@nyc1.tmate.io$"
+      # The local command to run when initiating a console
+      local_command:
+        - ssh
+        - <token>@nyc1.tmate.io
+
   # Configure terraform execution details
   terraform:
     # Disable module fetch from convenience plan/apply commands

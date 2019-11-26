@@ -256,6 +256,106 @@ module SimplyGenius
 
           end
 
+          describe "run_task" do
+
+            it "runs a service task" do
+              ecs = ::Aws::ECS::Client.new
+              expect(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+              expect(::Aws::CloudWatchLogs::Client).to_not receive(:new)
+
+              cluster = "mycluster"
+              name = "myname"
+              command = ["do", "it"]
+              task_id = "abc123"
+              task_arn = "arn:aws:ecs:us-east-1:<aws_account_id>:task/#{task_id}"
+
+              svc_stub = ecs.stub_data(:create_service).service
+              defn_stub = ecs.stub_data(:describe_task_definition).task_definition
+              defn_stub.compatibilities = [svc_stub.launch_type]
+              defn_stub.container_definitions = [{}]
+
+              ecs.stub_responses(:describe_services, services: [svc_stub.to_h])
+              ecs.stub_responses(:describe_task_definition, task_definition: defn_stub.to_h)
+              ecs.stub_responses(:run_task, tasks: [{task_arn: task_arn}])
+              expect(ecs).to receive(:wait_until).with(:tasks_running, cluster: cluster, tasks: [task_id])
+
+              result = manager.run_task(cluster, name, command: command, launch_type: svc_stub.launch_type)
+              expect(result[:task_id]).to eq(task_id)
+            end
+
+            it "runs a non-service task" do
+              ecs = ::Aws::ECS::Client.new
+              expect(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+              expect(::Aws::CloudWatchLogs::Client).to_not receive(:new)
+
+              cluster = "mycluster"
+              name = "myname"
+              command = ["do", "it"]
+              task_id = "abc123"
+              task_arn = "arn:aws:ecs:us-east-1:<aws_account_id>:task/#{task_id}"
+              launch_type = "FARGATE"
+
+              defn_stub = ecs.stub_data(:describe_task_definition).task_definition
+              defn_stub.compatibilities = [launch_type]
+              defn_stub.container_definitions = [{}]
+
+              ecs.stub_responses(:describe_services)
+              ecs.stub_responses(:list_task_definitions, task_definition_arns: [defn_stub.task_definition_arn])
+              ecs.stub_responses(:describe_task_definition, task_definition: defn_stub.to_h)
+              ecs.stub_responses(:run_task, tasks: [{task_arn: task_arn}])
+              expect(ecs).to receive(:wait_until).with(:tasks_running, cluster: cluster, tasks: [task_id])
+
+              result = manager.run_task(cluster, name, command: command, launch_type: launch_type)
+              expect(result[:task_id]).to eq(task_id)
+            end
+
+            it "waits for logs when running a task" do
+              ecs = ::Aws::ECS::Client.new
+              expect(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+              cwl = ::Aws::CloudWatchLogs::Client.new
+              expect(::Aws::CloudWatchLogs::Client).to receive(:new).and_return(cwl)
+
+              cluster = "mycluster"
+              name = "myname"
+              command = ["do", "it"]
+              task_id = "abc123"
+              task_arn = "arn:aws:ecs:us-east-1:<aws_account_id>:task/#{task_id}"
+
+              svc_stub = ecs.stub_data(:create_service).service
+              defn_stub = ecs.stub_data(:describe_task_definition).task_definition
+              defn_stub.compatibilities = [svc_stub.launch_type]
+              defn_stub.container_definitions = [{log_configuration: {log_driver: "awslogs", options: {"awslogs-group" => "mygroup"}}}]
+              log_stub = cwl.stub_data(:get_log_events)
+              log_stub.events = [{timestamp: Time.now.to_i, message: "my log message"}]
+
+              ecs.stub_responses(:describe_services, services: [svc_stub.to_h])
+              ecs.stub_responses(:describe_task_definition, task_definition: defn_stub.to_h)
+              ecs.stub_responses(:run_task, tasks: [{task_arn: task_arn}])
+              expect(ecs).to receive(:wait_until).with(:tasks_running, cluster: cluster, tasks: [task_id])
+              cwl.stub_responses(:get_log_events, **log_stub)
+
+              result = manager.run_task(cluster, name, command: command, waiter_log_pattern: "my", launch_type: svc_stub.launch_type)
+              expect(result[:task_id]).to eq(task_id)
+              expect(result[:log_match]).to be_a_kind_of(MatchData)
+            end
+
+          end
+
+          describe "stop_task" do
+
+            it "stops a task" do
+              ecs = ::Aws::ECS::Client.new
+              allow(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+
+              ecs.stub_responses(:stop_task)
+              result = manager.stop_task("mycluster", "abc123")
+              expect(ecs.api_requests.size).to eq(1)
+              expect(ecs.api_requests.first[:params][:cluster]).to eq("mycluster")
+              expect(ecs.api_requests.first[:params][:task]).to eq("abc123")
+            end
+
+          end
+
         end
 
       end

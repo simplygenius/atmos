@@ -51,6 +51,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "aws-sdk-ssm"
   spec.add_dependency "aws-sdk-ecr"
   spec.add_dependency "aws-sdk-ecs"
+  spec.add_dependency "aws-sdk-cloudwatchlogs"
   spec.add_dependency "os", "~> 1.0.0"
   spec.add_dependency "rotp", "~> 3.3.1"
   spec.add_dependency "clipboard", "~> 1.1.2"
