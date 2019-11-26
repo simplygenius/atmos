@@ -173,7 +173,7 @@ module SimplyGenius
                 logger.debug "Run task result: #{result}"
                 begin
                   match = result[:log_match]
-                  local_command = local_command.collect {|c| match.named_captures.each {|n, v| c = c.gsub("<#{n}>", v) }; c }
+                  local_command = local_command.collect {|c| match.names.each {|n| c = c.gsub("<#{n}>", match[n]) }; c }
                   system(*local_command)
                 ensure
                   if persist?
