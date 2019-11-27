@@ -1,3 +1,10 @@
+0.11.4 (11/27/2019)
+-------------------
+
+* add the ability to spawn a console for any service container [0d1764e](https://github.com/simplygenius/atmos/commit/0d1764e)
+* allow escaping atmos interpolations [3d8b59e](https://github.com/simplygenius/atmos/commit/3d8b59e)
+
+
 0.11.3 (11/12/2019)
 -------------------
 
