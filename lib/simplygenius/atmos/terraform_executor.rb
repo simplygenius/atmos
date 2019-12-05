@@ -301,7 +301,9 @@ module SimplyGenius
       end
 
       def link_support_dirs
-        ['modules', 'templates', '.terraform-version'].each do |subdir|
+        working_dir_links = Atmos.config['atmos.terraform.working_dir_links']
+        working_dir_links ||= ['modules', 'templates']
+        working_dir_links.each do |subdir|
           source = File.join(Atmos.config.root_dir, subdir)
           ln_sf(source, Atmos.config.tf_working_dir) if File.exist?(source)
         end

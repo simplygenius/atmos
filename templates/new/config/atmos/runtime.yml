@@ -120,5 +120,8 @@ atmos:
     # env/group combination will be independent and download all plugins for
     # itself only
     disable_shared_plugins: false
+    # Customize what gets linked into the working directory that terraform gets
+    # executed in
+    working_dir_links: ['modules', 'templates', 'bin', '.terraform-version']
     # Set true if running terraform version < 0.11.x
     compat11: false
