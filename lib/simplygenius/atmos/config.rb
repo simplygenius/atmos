@@ -119,8 +119,6 @@ module SimplyGenius
         File.chmod(0600, user_config_file)
       end
 
-      private
-
       def config_merge(lhs, rhs, debug_state=[])
         result = nil
 
@@ -167,6 +165,8 @@ module SimplyGenius
 
         return result
       end
+
+      private
 
       def load_config_sources(relative_root, config, *patterns)
         patterns.each do |pattern|

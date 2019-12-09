@@ -88,6 +88,8 @@ module SimplyGenius
                  Commands::AuthExec
       subcommand "container", "Container tools",
                  Commands::Container
+      subcommand "tfutil", "Terraform tools",
+                 Commands::TfUtil
 
       subcommand "version", "Display version" do
         def execute
