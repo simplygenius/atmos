@@ -96,8 +96,17 @@ module SimplyGenius
       end
 
       subcommand "config", "Display expanded config for atmos_env" do
+
+        option ["-j", "--json"],
+               :flag, "Dump config as json instead of yaml"
+
         def execute
-          logger.info YAML.dump(Atmos.config.to_h)
+          if json?
+            output = JSON.pretty_generate(Atmos.config.to_h)
+          else
+            output = YAML.dump(Atmos.config.to_h)
+          end
+          logger.info output
         end
       end
 

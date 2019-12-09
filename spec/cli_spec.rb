@@ -71,6 +71,11 @@ module SimplyGenius
           expect(Logging.contents).to match(/^atmos_env:/)
         end
 
+        it "produces json config dump" do
+          cli.run(['config', '-j'])
+          expect(Logging.contents).to match(/"atmos_env":/)
+        end
+
       end
 
       describe "--atmos-env" do
