@@ -5,6 +5,8 @@ module SimplyGenius
 
     describe TerraformExecutor do
       let(:te) { described_class.new(process_env: Hash.new) }
+      let(:okstatus) { double(Process::Status, exitstatus: 0) }
+      let(:failstatus) { double(Process::Status, exitstatus: 1) }
 
       after :all do
         Atmos.config = nil
@@ -558,8 +560,7 @@ module SimplyGenius
 
             expect(te).to receive(:secrets_env).and_return({'foo' => 'bar'})
             expect(te).to receive(:spawn).with(hash_including('foo' => 'bar'), any_args)
-            expect(Process).to receive(:wait)
-            expect($?).to receive(:exitstatus).and_return 0
+            expect(Process).to receive(:wait2).and_return([999, okstatus])
 
             te.send(:execute, "init", skip_secrets: false)
           end
@@ -572,8 +573,7 @@ module SimplyGenius
 
             expect(te).to_not receive(:secrets_env)
             expect(te).to receive(:spawn)
-            expect(Process).to receive(:wait)
-            expect($?).to receive(:exitstatus).and_return 0
+            expect(Process).to receive(:wait2).and_return([999, okstatus])
 
             te.send(:execute, "init", skip_secrets: true)
           end
@@ -648,8 +648,22 @@ module SimplyGenius
 
             expect(te).to receive(:spawn).
                 with(hash_including('TMPDIR' => Atmos.config.tmp_dir), any_args)
-            expect(Process).to receive(:wait)
-            expect($?).to receive(:exitstatus).and_return 0
+            expect(Process).to receive(:wait2).and_return([999, okstatus])
+
+            te.send(:execute, "init", skip_secrets: true)
+          end
+        end
+
+        it "passes current atmos location through process env" do
+          within_construct do |c|
+            c.file('config/atmos.yml', "foo: bar")
+            Atmos.config = Config.new("ops")
+
+            expect(te).to receive(:spawn).
+                with(hash_including(
+                         'ATMOS_ROOT' => Atmos.config.root_dir,
+                         'ATMOS_CONFIG' => Atmos.config.config_file), any_args)
+            expect(Process).to receive(:wait2).and_return([999, okstatus])
 
             te.send(:execute, "init", skip_secrets: true)
           end
@@ -662,8 +676,7 @@ module SimplyGenius
 
             expect(te).to receive(:spawn).
                 with(hash_including('ATMOS_IPC_SOCK', 'ATMOS_IPC_CLIENT'), any_args)
-            expect(Process).to receive(:wait)
-            expect($?).to receive(:exitstatus).and_return 0
+            expect(Process).to receive(:wait2).and_return([999, okstatus])
 
             te.send(:execute, "init", skip_secrets: true)
           end
@@ -678,8 +691,7 @@ module SimplyGenius
 
             expect(te).to receive(:spawn).
                 with(hash_including('ATMOS_IPC_CLIENT' => ':'), any_args)
-            expect(Process).to receive(:wait)
-            expect($?).to receive(:exitstatus).and_return 0
+            expect(Process).to receive(:wait2).and_return([999, okstatus])
 
             te.send(:execute, "init", skip_secrets: true)
           end

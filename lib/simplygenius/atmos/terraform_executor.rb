@@ -54,6 +54,8 @@ module SimplyGenius
         logger.debug("Running terraform: #{cmd.join(' ')}")
 
         env = Hash[@process_env]
+        env['ATMOS_ROOT'] = Atmos.config.root_dir
+        env['ATMOS_CONFIG'] = Atmos.config.config_file
         if ! skip_secrets
           begin
             env = env.merge(secrets_env)
@@ -84,7 +86,7 @@ module SimplyGenius
 
             stdout_thr = pipe_stream(stdout, output_io.nil? ? $stdout : output_io, &stdout_filters.filter_block)
             stderr_thr = pipe_stream(stderr, output_io.nil? ? $stderr : output_io, &stderr_filters.filter_block)
-
+            status = nil
             ipc.listen do |sock_path|
 
               if Atmos.config['atmos.ipc.disable']
@@ -111,12 +113,12 @@ module SimplyGenius
 
               logger.debug("Terraform started with pid #{pid}")
               begin
-                Process.wait(pid)
+                _, status = Process.wait2(pid)
               rescue Interrupt
                 logger.warn "Got SIGINT, sending to terraform pid=#{pid}"
 
                 Process.kill("INT", pid)
-                Process.wait(pid)
+                _, status = Process.wait2(pid)
 
                 logger.debug "Completed signal cleanup"
                 exit!(1)
@@ -131,10 +133,10 @@ module SimplyGenius
             stdout_filters.close
             stderr_filters.close
 
-            status = $?.exitstatus
-            logger.debug("Terraform exited: #{status}")
-            if status != 0
-              raise ProcessFailed.new "Terraform exited with non-zero exit code: #{status}"
+            exitcode = status.exitstatus
+            logger.debug("Terraform exited: #{exitcode}")
+            if exitcode != 0
+              raise ProcessFailed.new "Terraform exited with non-zero exit code: #{exitcode}"
             end
 
           end

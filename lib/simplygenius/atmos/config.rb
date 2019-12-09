@@ -19,11 +19,11 @@ module SimplyGenius
                     :user_config_file,
                     :tmp_root
 
-      def initialize(atmos_env, working_group = 'default')
+      def initialize(atmos_env, working_group = 'default', root: ENV['ATMOS_ROOT'], config: ENV['ATMOS_CONFIG'])
         @atmos_env = atmos_env
         @working_group = working_group
-        @root_dir = File.expand_path(Dir.pwd)
-        @config_file = File.join(root_dir, "config", "atmos.yml")
+        @root_dir = File.expand_path(root || Dir.pwd)
+        @config_file = config ? File.expand_path(config, root_dir) : File.join(root_dir, "config", "atmos.yml")
         @user_config_file = "~/.atmos.yml"
         @tmp_root = File.join(root_dir, "tmp")
         @included_configs = []

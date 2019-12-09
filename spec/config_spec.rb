@@ -21,6 +21,41 @@ module SimplyGenius
           expect(config.tmp_root).to eq("#{Dir.pwd}/tmp")
         end
 
+        it "can get root from env" do
+          env = "ops"
+          within_construct do |c|
+            myroot = "#{c}/root"
+            ClimateControl.modify('ATMOS_ROOT' => myroot) do
+              config = described_class.new(env)
+              expect(config.root_dir).to eq(myroot)
+              expect(config.tmp_root).to eq("#{myroot}/tmp")
+            end
+          end
+        end
+
+        it "can get config from env" do
+          env = "ops"
+          within_construct do |c|
+            myconf = "/a.yml"
+            ClimateControl.modify('ATMOS_CONFIG' => myconf) do
+              config = described_class.new(env)
+              expect(config.config_file).to eq(myconf)
+            end
+          end
+        end
+
+        it "can get config relative to root from env" do
+          env = "ops"
+          within_construct do |c|
+            myroot = "#{c}/root"
+            myconf = "c/a.yml"
+            ClimateControl.modify('ATMOS_ROOT' => myroot, 'ATMOS_CONFIG' => myconf) do
+              config = described_class.new(env)
+              expect(config.config_file).to eq("#{myroot}/#{myconf}")
+            end
+          end
+        end
+
       end
 
       describe "tmp_dir" do
