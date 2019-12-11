@@ -60,6 +60,15 @@ describe "Initial Setup" do
       end
     end
 
+    it "can display cli help" do
+      within_construct do |c|
+        c.file('config/atmos.yml', "foo: bar")
+
+        output = atmos "--help"
+        expect(output).to match(/Usage:\n\s*atmos \[OPTIONS\] SUBCOMMAND \[ARG\] \.\.\./)
+      end
+    end
+
   end
 
   describe "new repo" do

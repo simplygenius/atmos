@@ -51,6 +51,9 @@ module SimplyGenius
              "PATH", "adds additional paths to ruby load path",
              multivalued: true
 
+      option ["-v", "--version"],
+             :flag, "Shows the atmos version"
+
       def default_color?
          $stdout.tty?
       end
@@ -129,14 +132,26 @@ module SimplyGenius
 
           Atmos.config.add_user_load_path(*load_path_list)
           Atmos.config.plugin_manager.load_plugins
+
+          # So we can show just the version with the -v flag
+          if version?
+            logger.info "Atmos Version #{VERSION}"
+            exit(0)
+          end
         end
       end
 
       # Hook into clamp lifecycle to globally handle errors
       class << self
-        def run(*args, **opts, &blk)
+        def run(invocation_path = File.basename($PROGRAM_NAME), arguments = ARGV, context = {})
           begin
             super
+          rescue SystemExit => e
+            if ! e.success?
+              logger.log_exception(e, "Failure exit", level: :debug)
+              logger.error(e.message)
+              raise
+            end
           rescue Exception => e
             logger.log_exception(e, "Unhandled exception", level: :debug)
             logger.error(e.message)

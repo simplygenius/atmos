@@ -62,6 +62,11 @@ module SimplyGenius
           expect(Logging.contents).to include(VERSION)
         end
 
+        it "uses flag to produce version text" do
+          expect { cli.run(['-v']) }.to raise_error(SystemExit)
+          expect(Logging.contents).to include(VERSION)
+        end
+
       end
 
       describe "config" do
