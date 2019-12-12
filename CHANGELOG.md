@@ -1,3 +1,13 @@
+0.11.5 (12/12/2019)
+-------------------
+
+* fix usage to include exe name and add -v for checking version [64a6183](https://github.com/simplygenius/atmos/commit/64a6183)
+* allow setting atmos root/config_file from env, and pass it down to subprocesses so that tfutil can act the same from the terraform working dir [c417d4c](https://github.com/simplygenius/atmos/commit/c417d4c)
+* add tfutil.jsonify to make it easier to call out from terraform data.external [c9bfdf5](https://github.com/simplygenius/atmos/commit/c9bfdf5)
+* add ability to dump config as json [9e6176f](https://github.com/simplygenius/atmos/commit/9e6176f)
+* allow customization of what gets linked into terraform working dir [115e460](https://github.com/simplygenius/atmos/commit/115e460)
+
+
 0.11.4 (11/27/2019)
 -------------------
 
