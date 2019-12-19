@@ -274,13 +274,24 @@ module SimplyGenius
         # variables if declared in terraform can be managed from yml, set here and accessed from terraform
         #
         homogenized_config = homogenize_for_terraform(Atmos.config.to_h)
-        homogenized_values = Hash[Atmos.config.to_h.collect {|k, v| [k, v.is_a?(Hash) ? homogenize_for_terraform(v) : v]}]
         var_hash = {
             all_env_names: Atmos.config.all_env_names,
             account_ids: Atmos.config.account_hash,
             atmos_config: homogenized_config
         }
-        var_hash = var_hash.merge(homogenized_values)
+
+        # Terraform > 0.12 can have more complex data types (deeply nested
+        # maps), so if not enforcing 0.11 compatibility, we should preserve that
+        # structure for vars, but still homogenize in compat mode.  This way,
+        # assuming the var defined in tf source has constraints that match the
+        # yml definition, then it will get populated correctly after all the
+        # atmos niceties like merging env specific overrides into a default
+        if @compat11
+          homogenized_values = Hash[Atmos.config.to_h.collect {|k, v| [k, v.is_a?(Hash) ? homogenize_for_terraform(v) : v]}]
+          var_hash = var_hash.merge(homogenized_values)
+        else
+          var_hash = var_hash.merge(Atmos.config.to_h)
+        end
 
         env_hash = encode_tf_env(var_hash)
 

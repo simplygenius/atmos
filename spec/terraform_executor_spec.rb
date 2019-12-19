@@ -353,6 +353,31 @@ module SimplyGenius
           end
         end
 
+        it "homogenizes global vars for compat mode" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump(
+                'map' => {'submap' => {'foo' => 'bar'}},
+                ))
+            Atmos.config = Config.new("ops")
+            Atmos.config['atmos.terraform.compat11'] = true
+            vars = te.send(:atmos_env)
+            expect(vars['TF_VAR_map']).to eq('{"submap_foo"="bar"}')
+          end
+        end
+
+        it "doesn't homogenize global vars for non-compat mode" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump(
+                'map' => {'submap' => {'foo' => 'bar'}},
+                ))
+            Atmos.config = Config.new("ops")
+            Atmos.config['atmos.terraform.compat11'] = false
+            vars = te.send(:atmos_env)
+            expect(vars['TF_VAR_map']).to eq('{"submap":{"foo":"bar"}}')
+          end
+        end
+
+
       end
 
       describe "homogenize_encode" do
