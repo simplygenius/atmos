@@ -1,3 +1,8 @@
+0.11.6 (01/03/2020)
+-------------------
+
+* fix passing of complex types from atmos to terraform for 0.12 and up [1df9b3d](https://github.com/simplygenius/atmos/commit/1df9b3d)
+
 0.11.5 (12/12/2019)
 -------------------
 
