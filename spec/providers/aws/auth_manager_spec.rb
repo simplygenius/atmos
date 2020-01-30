@@ -95,6 +95,26 @@ module SimplyGenius
               expect(manager.send(:session_duration)).to eq(60)
             end
 
+            it "uses default when bootstrapping from config" do
+              @c.file('config/atmos.yml', YAML.dump(
+                  'providers' => {
+                      'aws' => {
+                          'auth' => {
+                              'assume_role_arn' => 'role',
+                              'session_duration' => 60
+                          }
+                      }
+                  }
+              ))
+              Atmos.config = Config.new("foo")
+              expect(manager.send(:session_duration)).to eq(60)
+
+              expect(manager).to receive(:assume_role).and_call_original
+              manager.authenticate({}, bootstrap: true) {}
+
+              expect(manager.send(:session_duration)).to eq(3600)
+            end
+
           end
 
           describe "assume_role" do

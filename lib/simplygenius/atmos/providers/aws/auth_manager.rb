@@ -49,6 +49,7 @@ module SimplyGenius
             if opts[:bootstrap] && Atmos.config.atmos_env != 'ops'
               # TODO: do this hack better
               assume_role_name = Atmos.config["auth.bootstrap_assume_role_name"]
+              @session_duration = 3600
             else
               assume_role_name = opts[:role] || Atmos.config["auth.assume_role_name"]
             end
