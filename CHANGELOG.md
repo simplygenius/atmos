@@ -1,3 +1,9 @@
+0.11.7 (01/30/2020)
+-------------------
+
+* add ability to wait for a service to deploy [9448bd1](https://github.com/simplygenius/atmos/commit/9448bd1)
+* force a shorter session duration when bootstrapping since the role to extend session has not been setup yet [c1b5394](https://github.com/simplygenius/atmos/commit/c1b5394)
+
 0.11.6 (01/03/2020)
 -------------------
 
