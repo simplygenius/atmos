@@ -341,6 +341,39 @@ module SimplyGenius
 
           end
 
+          describe "wait" do
+
+            it "waits for steady state for a service" do
+              ecs = ::Aws::ECS::Client.new
+              expect(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+
+              cluster = "mycluster"
+              service = "myname"
+
+              manager.wait(cluster, service)
+
+              expect(ecs.api_requests.size).to eq(1)
+              req = ecs.api_requests.first
+              expect(req[:operation_name]).to eq(:describe_services)
+              expect(req[:params][:cluster]).to eq(cluster)
+              expect(req[:params][:services]).to eq([service])
+            end
+
+            it "waits for steady state for a task" do
+              ecs = ::Aws::ECS::Client.new(stub_responses: true)
+              expect(::Aws::ECS::Client).to receive(:new).and_return(ecs)
+
+              cluster = "mycluster"
+              task_id = "abc123"
+              task_arn = "arn:aws:ecs:us-east-1:<aws_account_id>:task/#{task_id}"
+
+              # Using a rspec stub as aws stubbing just blocks here for tasks, but services above seem to be ok
+              expect(ecs).to receive(:wait_until).with(:tasks_running, cluster: cluster, tasks: [task_arn])
+              manager.wait(cluster, task_arn)
+            end
+
+          end
+
           describe "stop_task" do
 
             it "stops a task" do

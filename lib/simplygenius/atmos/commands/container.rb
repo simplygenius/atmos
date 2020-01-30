@@ -57,6 +57,9 @@ module SimplyGenius
           option ["-v", "--revision"],
                  "REVISION", "Use the given revision of the pushed image\nto activate\n"
 
+          option ["-w", "--wait"],
+                 :flag, "Wait for service to become stable after deploy\nnon-zero exit on fail"
+
           option ["-l", "--list"],
                  :flag, "List the most recent pushed images\n"
 
@@ -106,6 +109,12 @@ module SimplyGenius
                   result[:task_definitions] << resp[:task_definition]
                 end
 
+                if wait?
+                  name_list.each do |name|
+                    mgr.wait(cluster, name)
+                  end
+                end
+
                 logger.info "Container activated:\n #{display result}"
               end
             end
@@ -117,6 +126,9 @@ module SimplyGenius
 
           option ["-i", "--image"],
                  "IMAGE", "The local container image to deploy\nDefaults to service/task name"
+
+          option ["-w", "--wait"],
+                 :flag, "Wait for service to become stable after deploy\nnon-zero exit on fail"
 
           option ["-v", "--revision"],
                  "REVISION", "Use as the remote image revision\n"
@@ -142,6 +154,12 @@ module SimplyGenius
                   resp = mgr.deploy(cluster, name, result[:remote_image])
                   result[:task_definitions] ||= []
                   result[:task_definitions] << resp[:task_definition]
+                end
+
+                if wait?
+                  name_list.each do |name|
+                    mgr.wait(cluster, name)
+                  end
                 end
 
                 logger.info "Container deployed:\n #{display result}"

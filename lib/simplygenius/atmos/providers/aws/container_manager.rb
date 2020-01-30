@@ -98,6 +98,16 @@ module SimplyGenius
              return result
           end
 
+          def wait(cluster, service_name_or_task_arn)
+            ecs = ::Aws::ECS::Client.new
+            logger.info "Waiting for #{cluster}:#{service_name_or_task_arn} to stabilize"
+            if service_name_or_task_arn =~ /arn:aws:ecs:.*:task\/.*/
+              ecs.wait_until(:tasks_running, cluster: cluster, tasks: [service_name_or_task_arn])
+            else
+              ecs.wait_until(:services_stable, cluster: cluster, services: [service_name_or_task_arn])
+            end
+          end
+
           def remote_image(name, tag)
             ecr = ::Aws::ECR::Client.new
 

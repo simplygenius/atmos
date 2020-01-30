@@ -127,6 +127,8 @@ module SimplyGenius
                 to receive(:remote_image).with("bar", "xyz").and_return("bar/xyz")
             expect(Atmos.config.provider.container_manager).
                 to receive(:deploy).with("foo", "bar", "bar/xyz").and_return({})
+            expect(Atmos.config.provider.container_manager).
+                to_not receive(:wait)
             cli.run(["activate", "-c", "foo", "-v", "xyz", "bar"])
           end
 
@@ -152,6 +154,19 @@ module SimplyGenius
             expect(Atmos.config.provider.container_manager).
                 to receive(:deploy).with("foo", "bar", "bar/xyz").and_return({})
             cli.run(["activate", "-r", "myrole", "-c", "foo", "-v", "xyz", "bar"])
+          end
+
+          it "waits when activating a service" do
+            env = Hash.new
+            expect(Atmos.config.provider.auth_manager).
+                to receive(:authenticate).with(ENV, role: nil).and_yield(env)
+            expect(Atmos.config.provider.container_manager).
+                to receive(:remote_image).with("bar", "xyz").and_return("bar/xyz")
+            expect(Atmos.config.provider.container_manager).
+                to receive(:deploy).with("foo", "bar", "bar/xyz").and_return({})
+            expect(Atmos.config.provider.container_manager).
+                to receive(:wait).with("foo", "bar")
+            cli.run(["activate", "-w", "-c", "foo", "-v", "xyz", "bar"])
           end
 
           it "prompts with revision picker if none supplied" do
@@ -198,6 +213,8 @@ module SimplyGenius
                 to receive(:push).with("bar", "bar", revision: nil).and_return(remote_image: "baz")
             expect(Atmos.config.provider.container_manager).
                 to receive(:deploy).with("foo", "bar", "baz").and_return({})
+            expect(Atmos.config.provider.container_manager).
+                to_not receive(:wait)
             cli.run(["deploy", "-c", "foo", "bar"])
           end
 
@@ -223,6 +240,19 @@ module SimplyGenius
             expect(Atmos.config.provider.container_manager).
                 to receive(:deploy).with("foo", "bar", "baz").and_return({})
             cli.run(["deploy", "-r", "myrole", "-c", "foo", "bar"])
+          end
+
+          it "waits when deploying a service" do
+            env = Hash.new
+            expect(Atmos.config.provider.auth_manager).
+                to receive(:authenticate).with(ENV, role: nil).and_yield(env)
+            expect(Atmos.config.provider.container_manager).
+                to receive(:push).with("bar", "bar", revision: nil).and_return(remote_image: "baz")
+            expect(Atmos.config.provider.container_manager).
+                to receive(:deploy).with("foo", "bar", "baz").and_return({})
+            expect(Atmos.config.provider.container_manager).
+                to receive(:wait).with("foo", "bar")
+            cli.run(["deploy", "-w", "-c", "foo", "bar"])
           end
 
           it "uses image when deploying a service" do
