@@ -12,7 +12,7 @@ WORKDIR $APP_DIR
 COPY . $APP_DIR/
 
 ENV BUILD_PACKAGES=""
-ENV APP_PACKAGES="bash curl git docker"
+ENV APP_PACKAGES="bash curl git docker python3"
 
 RUN apk --update upgrade && \
     apk add \
@@ -21,10 +21,11 @@ RUN apk --update upgrade && \
     apk add \
       --virtual build_deps \
       $BUILD_PACKAGES && \
-    apk add aws-cli --update-cache --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ && \
     rake install && \
     apk del build_deps && \
     rm -rf /var/cache/apk/*
+
+RUN pip3 install awscli --upgrade
 
 RUN curl -sL $TF_PKG > terraform.zip && \
     unzip terraform.zip && \
