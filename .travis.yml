@@ -1,6 +1,8 @@
 sudo: false
 language: ruby
 cache: bundler
+services:
+  - docker
 
 rvm:
   - 2.3
@@ -19,3 +21,19 @@ before_install:
   - git --version
 
 script: bundle exec rspec spec
+
+before_deploy:
+  - docker --version
+  - docker build -t atmos:latest .
+
+deploy:
+  - provider: script
+    # Deploy the 'dev' tag on all master pushes
+    script: bash bin/deploy.sh atmos:latest simplygenius/atmos dev
+    on:
+      branch: master
+  - provider: script
+    # Deploy the 'latest' and '<git_tag>' tag on all tagged pushes
+    script: bash bin/deploy.sh atmos:latest simplygenius/atmos latest "${TRAVIS_TAG}"
+    on:
+      tags: true
