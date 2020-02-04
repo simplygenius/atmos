@@ -1,24 +1,27 @@
-sudo: false
 language: ruby
 cache: bundler
 services:
   - docker
 
-rvm:
-  - 2.3
-  - 2.4
-  - 2.5
-  - 2.6
-
 before_install:
+  - git clone https://github.com/tfutils/tfenv.git ~/.tfenv
+  - export PATH="$HOME/.tfenv/bin:$PATH"
+  - tfenv install $TFVER
+  - terraform --version
   - gem update --system
   - gem install bundler
-  - curl -sL https://releases.hashicorp.com/terraform/0.11.7/terraform_0.11.7_linux_amd64.zip > terraform.zip
-  - unzip terraform.zip
-  - mv terraform bin/
-  - export PATH=$PATH:$PWD/bin/
-  - terraform --version
   - git --version
+
+jobs:
+  include:
+    - rvm: 2.3
+      env: TFVER=0.11.7
+    - rvm: 2.3
+      env: TFVER=latest
+    - rvm: 2.6
+      env: TFVER=latest
+    - rvm: 2.7
+      env: TFVER=latest
 
 script: bundle exec rspec spec
 
