@@ -25,10 +25,11 @@ for tag in $tags; do
   docker push "$target"
 done
 
+# Broken - personal access tokens no longer allow updating readme?
 # Set README on docker hub
-docker run -v $PWD:/workspace \
-  -e DOCKERHUB_USERNAME \
-  -e DOCKERHUB_PASSWORD \
-  -e DOCKERHUB_REPOSITORY="${target_image}" \
-  -e README_FILEPATH='/workspace/README.md' \
-  peterevans/dockerhub-description:2.1.0
+#docker run -v $PWD:/workspace \
+#  -e DOCKERHUB_USERNAME \
+#  -e DOCKERHUB_PASSWORD \
+#  -e DOCKERHUB_REPOSITORY="${target_image}" \
+#  -e README_FILEPATH='/workspace/README.md' \
+#  peterevans/dockerhub-description:2.1.0
