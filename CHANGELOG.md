@@ -1,3 +1,9 @@
+0.11.8 (02/04/2020)
+-------------------
+
+* newer terraform in docker image [771ab07](https://github.com/simplygenius/atmos/commit/771ab07)
+* fix plan summary to handle newer terraform [f0a5b95](https://github.com/simplygenius/atmos/commit/f0a5b95)
+
 0.11.7 (01/30/2020)
 -------------------
 
