@@ -35,6 +35,15 @@ module SimplyGenius
           expect(output).to match(/add\n\nPlan Summary:\n\+ one\n- two\n~ three\n-\/\+ four\n<= five\n\nDo you/m)
         end
 
+        it 'should display summary lines regardless of control codes' do
+          output  = ""
+          output << plugin.filter("Terraform will perform the following actions:\n")
+          output << plugin.filter("\e[0m  \e[33m+\e[0m\e[0m one\n")
+          output << plugin.filter("Plan: 1 to add\n")
+          output << plugin.filter("Do you want to perform these actions?\n")
+
+          expect(output).to match(/add\n\nPlan Summary:\n\e\[0m  \e\[33m\+\e\[0m\e\[0m one\n\nDo you/m)
+        end
 
         it 'should display summary lines only' do
           output = ""
