@@ -1,3 +1,9 @@
+0.11.9 (02/13/2020)
+-------------------
+
+* Automatically run init when needed for current environment [f902232](https://github.com/simplygenius/atmos/commit/f902232)
+
+
 0.11.8 (02/04/2020)
 -------------------
 
