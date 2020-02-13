@@ -27,6 +27,7 @@ module SimplyGenius
                 with(process_env: env).and_return(te)
             expect(te).to receive(:run).with("destroy", get_modules: false)
             cli.run([])
+            expect(cli.auto_init).to be_falsey
           end
 
         end

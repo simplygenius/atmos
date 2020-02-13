@@ -26,7 +26,9 @@ module SimplyGenius
             expect(TerraformExecutor).to receive(:new).
                 with(process_env: env).and_return(te)
             expect(te).to receive(:run).with("plan", get_modules: true)
+            expect(cli.auto_init).to be_falsey
             cli.run([])
+            expect(cli.auto_init).to be_truthy
           end
 
           it "calls terraform without auto modules if configured" do
@@ -37,7 +39,9 @@ module SimplyGenius
                 with(process_env: env).and_return(te)
             Atmos.config.instance_variable_get(:@config).notation_put("atmos.terraform.disable_auto_modules", true)
             expect(te).to receive(:run).with("plan", get_modules: false)
+            expect(cli.auto_init).to be_falsey
             cli.run([])
+            expect(cli.auto_init).to be_truthy
           end
 
         end

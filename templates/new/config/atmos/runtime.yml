@@ -125,3 +125,5 @@ atmos:
     working_dir_links: ['modules', 'templates', 'bin', '.terraform-version']
     # Set true if running terraform version < 0.11.x
     compat11: false
+    # Automatically run "init" if needed when using "atmos plan|apply"
+    auto_init: true
