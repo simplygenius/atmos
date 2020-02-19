@@ -51,6 +51,10 @@ module SimplyGenius
              "PATH", "adds additional paths to ruby load path",
              multivalued: true
 
+      option ["-o", "--override"],
+             "KEYVALUE", "overrides atmos configuration\nin the form 'some.config=value' where value can\nbe expressed in yaml form for complex types\ne.g. foo=1 foo=abc, foo=[x, y], foo={x: y}",
+             multivalued: true
+
       option ["-v", "--version"],
              :flag, "Shows the atmos version"
 
@@ -127,6 +131,13 @@ module SimplyGenius
           level = :error if quiet?
 
           Logging.setup_logging(level, color?, log)
+
+          override_list.each do |o|
+            k, v = o.split("=")
+            v = YAML.load(v)
+            logger.debug("Overriding config '#{k}' = #{v.inspect}")
+            Atmos.config.[]=(k, v, additive: false)
+          end
 
           UI.color_enabled = color?
 

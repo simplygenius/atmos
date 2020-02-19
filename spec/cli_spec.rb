@@ -196,6 +196,69 @@ module SimplyGenius
 
       end
 
+      describe "--override" do
+
+        it "defaults to none" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          expect(conf).to_not receive(:[]=)
+          cli.run(['version'])
+        end
+
+        it "can override with a string" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          cli.run(['--override', 'foo=bar', 'version'])
+          expect(conf["foo"]).to eq("bar")
+        end
+
+        it "can override with a number" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          cli.run(['--override', 'foo=3', 'version'])
+          expect(conf["foo"]).to eq(3)
+        end
+
+        it "can override with an array" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          cli.run(['--override', 'foo=[x, y, z]', 'version'])
+          expect(conf["foo"]).to eq(%w(x y z))
+        end
+
+        it "can override with a hash" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          cli.run(['--override', 'foo=[x, y, z]', 'version'])
+          expect(conf["foo"]).to eq(%w(x y z))
+        end
+
+        it "overrides deep config" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          cli.run(['--override', 'foo.bar.baz=boo', 'version'])
+          expect(conf["foo"]["bar"]["baz"]).to eq("boo")
+        end
+
+        it "overrides config non-additively" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          conf["foo.bar"] = [1, 2]
+          expect(conf).to receive(:[]=).with("foo.bar", 3, additive: false).and_call_original
+          cli.run(['--override', 'foo.bar=3', 'version'])
+          expect(conf["foo"]["bar"]).to eq(3)
+        end
+
+        it "can override with an interpolated string" do
+          conf = Config.new("ops")
+          expect(Config).to receive(:new).and_return(conf)
+          cli.run(['--override', 'foo="#{atmos_env}"', 'version'])
+          expect(conf["foo"]).to eq("ops")
+        end
+
+
+      end
+
     end
 
   end

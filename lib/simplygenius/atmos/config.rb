@@ -39,9 +39,9 @@ module SimplyGenius
         return result
       end
 
-      def []=(key, value)
+      def []=(key, value, additive: true)
         load
-        result = @config.notation_put(key, value)
+        result = @config.notation_put(key, value, additive: additive)
         return result
       end
 
