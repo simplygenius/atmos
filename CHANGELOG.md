@@ -1,3 +1,8 @@
+0.11.10 (02/19/2020)
+--------------------
+
+* allow overriding atmos config from cli [f83902b](https://github.com/simplygenius/atmos/commit/f83902b)
+
 0.11.9 (02/13/2020)
 -------------------
 
