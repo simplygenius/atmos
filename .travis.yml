@@ -14,10 +14,10 @@ before_install:
 
 jobs:
   include:
-    - rvm: 2.3
+    - rvm: 2.4
       env: TFVER=0.11.7
       script: bundle exec rspec spec
-    - rvm: 2.3
+    - rvm: 2.4
       env: TFVER=latest
       script: bundle exec rspec spec
     - rvm: 2.6
