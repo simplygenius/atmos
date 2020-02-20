@@ -1,3 +1,8 @@
+0.11.11 (02/20/2020)
+--------------------
+
+* Add the ability to setup a version requirement for forcing teams to use a consistent version of atmos [5c44ef3](https://github.com/simplygenius/atmos/commit/5c44ef3)
+
 0.11.10 (02/19/2020)
 --------------------
 
