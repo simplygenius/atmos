@@ -2,6 +2,7 @@ require_relative '../atmos'
 require_relative '../atmos/ui'
 require 'clamp'
 require 'sigdump/setup'
+require 'open-uri'
 
 Dir.glob(File.join(File.join(__dir__, 'commands'), '*.rb')) do |f|
   require_relative "commands/#{File.basename(f).sub(/\.rb$/, "")}"
@@ -119,6 +120,41 @@ module SimplyGenius
         end
       end
 
+      def fetch_latest_version
+        begin
+          latest_ver = JSON.parse(open("https://rubygems.org/api/v1/versions/simplygenius-atmos/latest.json").read)['version']
+        rescue => e
+          latest_ver = "[Version Fetch Failed]"
+          logger.log_exception(e, "Couldn't check latest atmos gem version", level: :debug)
+        end
+        latest_ver
+      end
+
+      def version_check(atmos_version)
+
+        required_ver = Atmos.config["atmos.version_requirement"]
+        if required_ver.present?
+          case required_ver
+
+          when "latest"
+            latest_ver = fetch_latest_version
+
+            if latest_ver != atmos_version
+              raise "The atmos version (#{atmos_version}) does not match the given requirement (latest: #{latest_ver})"
+            end
+
+          when /[~<>=]*\s*[\d\.]*/
+            if ! Gem::Dependency.new('', required_ver).match?('', atmos_version)
+              raise "The atmos version (#{atmos_version}) does not match the given requirement (#{required_ver})"
+            end
+
+          else
+            raise "Invalid atmos.version_requirement, should be 'latest' or in a gem dependency form"
+          end
+        end
+
+      end
+
       # hook into clamp lifecycle to force logging setup even when we are calling
       # a subcommand
       def parse(arguments)
@@ -149,6 +185,8 @@ module SimplyGenius
             logger.info "Atmos Version #{VERSION}"
             exit(0)
           end
+
+          version_check(VERSION)
         end
       end
 

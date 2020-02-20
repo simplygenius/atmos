@@ -20,15 +20,15 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_development_dependency "bundler", "~> 2.0"
-  spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "rspec", "~> 3.7"
-  spec.add_development_dependency "simplecov", "~> 0.10"
-  spec.add_development_dependency "coveralls", "~> 0.8"
-  spec.add_development_dependency "test_construct", "~> 2.0.1"
-  spec.add_development_dependency "vcr", "~> 4.0.0"
-  spec.add_development_dependency "webmock", "~> 3.3.0"
-  spec.add_development_dependency "pry", "~> 0.11.3"
-  spec.add_development_dependency "pry-byebug", "~> 3.6.0"
+  spec.add_development_dependency "rake"
+  spec.add_development_dependency "rspec"
+  spec.add_development_dependency "simplecov"
+  spec.add_development_dependency "coveralls"
+  spec.add_development_dependency "test_construct"
+  spec.add_development_dependency "vcr"
+  spec.add_development_dependency "webmock"
+  spec.add_development_dependency "pry"
+  spec.add_development_dependency "pry-byebug"
 
 
   # core dependencies

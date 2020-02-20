@@ -256,10 +256,60 @@ module SimplyGenius
           expect(conf["foo"]).to eq("ops")
         end
 
+      end
+
+      describe "version requirement", :vcr do
+
+        describe "#fetch_latest_ver" do
+
+          it "fetches version from rubygems" do
+            expect(cli.fetch_latest_version).to match(/^\d+\.\d+\.\d+$/)
+          end
+
+          it "has an error string when version fails to fetch" do
+            expect(cli).to receive(:open).with("https://rubygems.org/api/v1/versions/simplygenius-atmos/latest.json").and_raise(RuntimeError, "bad")
+            expect(cli.fetch_latest_version).to eq("[Version Fetch Failed]")
+          end
+
+        end
+
+        describe "#version_check" do
+
+          it "gets called by cli" do
+            conf = Config.new("ops")
+            expect(Config).to receive(:new).and_return(conf)
+            expect(cli).to receive(:version_check).with(Atmos::VERSION)
+            cli.run(['version'])
+          end
+
+
+          it "does nothing without config set" do
+            Atmos.config = Config.new("ops")
+            expect { cli.version_check(Atmos::VERSION) }.to_not raise_error
+          end
+
+          it "works for latest" do
+            Atmos.config = Config.new("ops")
+            Atmos.config["atmos.version_requirement"] = "latest"
+            expect(cli).to receive(:fetch_latest_version).and_return("1.0.0", "0.0.1")
+            expect { cli.version_check("0.0.1") }.to raise_error(RuntimeError, /The atmos version \(0.0.1\) does not match the given requirement \(latest: 1.0.0\)/)
+            expect { cli.version_check("0.0.1") }.to_not raise_error
+          end
+
+          it "works for gem dependency form" do
+            Atmos.config = Config.new("ops")
+            Atmos.config["atmos.version_requirement"] = verspec = "~> 0.2.0"
+            expect(cli).to_not receive(:fetch_latest_version)
+            expect { cli.version_check("0.0.1") }.to raise_error(RuntimeError, /The atmos version \(0.0.1\) does not match the given requirement \(#{verspec}\)/)
+            expect { cli.version_check("0.2.0") }.to_not raise_error
+            expect { cli.version_check("0.2.1") }.to_not raise_error
+            expect { cli.version_check("0.3.0") }.to raise_error(RuntimeError, /The atmos version \(0.3.0\) does not match the given requirement \(#{verspec}\)/)
+          end
+
+        end
 
       end
 
     end
-
   end
 end

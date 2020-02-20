@@ -35,6 +35,12 @@ atmos:
   # gets expanded at runtime
   load_path:
 
+  # Forces one to use the version of atmos that is given.  This version
+  # specifier can be 'latest' or in the form of a gem version dependency
+  # specifier, e.g. '~> 0.11.10'.  If unset, then no version check will be
+  # performed
+  version_requirement:
+
   # Configure the mechanism that allows terraform to callback into atmos
   ipc:
     # Disables all IPC callbacks into atmos from terraform
