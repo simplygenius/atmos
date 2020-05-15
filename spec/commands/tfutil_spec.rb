@@ -62,6 +62,20 @@ module SimplyGenius
             expect{cli.run(["jsonify", "-j", *cmd])}.to output("{\"stdout\":\"{\\\"hum\\\":\\\"dum\\\"}\",\"stderr\":\"\",\"exitcode\":\"0\",\"hum\":\"dum\"}\n").to_stdout
           end
 
+          it "flattens json command output" do
+            cmd = %w(foo bar)
+            expect(Open3).to receive(:capture3).with(*cmd, {}).and_return(['{"hum":"dum", "boo": [1]}', "", okstatus])
+
+            expect{cli.run(["jsonify", "-j", *cmd])}.to output(lambda{|o| j = JSON.parse(o); expect(j["boo"]).to eq("[\"1\"]") }).to_stdout
+          end
+
+          it "flattens non-hash json command output" do
+            cmd = %w(foo bar)
+            expect(Open3).to receive(:capture3).with(*cmd, {}).and_return(['[1, 2]', "", okstatus])
+
+            expect{cli.run(["jsonify", "-j", *cmd])}.to output(lambda{|o| j = JSON.parse(o); expect(j["data"]).to eq("[\"1\",\"2\"]") }).to_stdout
+          end
+
           it "exits on error by default" do
             cmd = %w(foo bar)
             expect(Open3).to receive(:capture3).with(*cmd, {}).and_return(["", "", failstatus])
@@ -79,6 +93,37 @@ module SimplyGenius
             expect(Clipboard).to receive(:copy).with("'foo' 'bar'")
             expect(Open3).to receive(:capture3).with(*cmd, {}).and_return(["", "", okstatus])
             expect{cli.run(["jsonify", "-c", *cmd])}.to output.to_stdout
+          end
+
+        end
+
+        describe "terraform external constraints" do
+
+          it "outputs terraform friendly json" do
+            within_construct do |c|
+              c.file('config/atmos.yml', "")
+              c.file('test.tf', <<~EOF
+                data "external" "test" {
+                  program = [
+                    "atmos", "tfutil", "jsonify", "-j",
+                    "bash",
+                    "-c",
+                    "echo [1]"
+                  ]
+                }
+                output "test" {
+                  value = data.external.test.result
+                }
+                output "test_data" {
+                  value = data.external.test.result.data
+                }
+              EOF
+              )
+
+              terraform "init"
+              output = terraform "apply", "-auto-approve"
+              expect(output).to match(/Outputs:\n\ntest = .*test_data = /m)
+            end
           end
 
         end
