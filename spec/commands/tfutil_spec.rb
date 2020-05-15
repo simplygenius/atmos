@@ -100,6 +100,8 @@ module SimplyGenius
         describe "terraform external constraints" do
 
           it "outputs terraform friendly json" do
+            skip("test is for newer terraform only") if `terraform version` =~ /0.11/
+
             within_construct do |c|
               c.file('config/atmos.yml', "")
               c.file('test.tf', <<~EOF
