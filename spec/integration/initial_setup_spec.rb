@@ -3,9 +3,6 @@ require 'simplygenius/atmos/settings_hash'
 
 describe "Initial Setup" do
 
-  let(:exe) { File.expand_path('../../../exe/atmos', __FILE__) }
-  let(:gemfile) { File.expand_path('../../../Gemfile', __FILE__) }
-
   let(:recipes_sourcepath) {
     if ENV['CI'].present?
       ["--no-sourcepaths", "--sourcepath", 'https://github.com/simplygenius/atmos-recipes.git']
@@ -13,19 +10,6 @@ describe "Initial Setup" do
       ["--no-sourcepaths", "--sourcepath", File.expand_path('../../../../atmos-recipes', __FILE__)]
     end
   }
-
-  def atmos(*args, output_on_fail: true, allow_fail: false, stdin_data: nil)
-    args = args.compact
-    require 'bundler'
-    ::Bundler.with_original_env do
-      output, status = Open3.capture2e(ENV.to_h.merge("BUNDLE_GEMFILE" => gemfile), "bundle", "exec", exe, *args, stdin_data: stdin_data)
-      puts output if output_on_fail && status.exitstatus != 0
-      if ! allow_fail
-        expect(status.exitstatus).to eq(0), "atmos #{args.join(' ')} failed: #{output}"
-      end
-      return output
-    end
-  end
 
   describe "executable" do
 

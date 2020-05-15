@@ -183,3 +183,43 @@ require 'hashie'
 class SymbolizedMash < ::Hashie::Mash
   include Hashie::Extensions::Mash::SymbolizeKeys
 end
+
+module RunAtmosHelpers
+
+  def atmos(*args, output_on_fail: true, allow_fail: false, stdin_data: nil)
+    atmos_exe = File.expand_path('../../exe/atmos', __FILE__)
+    atmos_gemfile = File.expand_path('../../Gemfile', __FILE__)
+
+    args = args.compact
+    require 'bundler'
+    ::Bundler.with_original_env do
+      output, status = Open3.capture2e(ENV.to_h.merge("BUNDLE_GEMFILE" => atmos_gemfile), "bundle", "exec", atmos_exe, *args, stdin_data: stdin_data)
+      puts output if output_on_fail && status.exitstatus != 0
+      if ! allow_fail
+        expect(status.exitstatus).to eq(0), "atmos #{args.join(' ')} failed: #{output}"
+      end
+      return output
+    end
+  end
+
+  def terraform(*args, output_on_fail: true, allow_fail: false, stdin_data: nil, tf_log: nil)
+    atmos_gemfile = File.expand_path('../../Gemfile', __FILE__)
+
+    args = args.compact
+    require 'bundler'
+    ::Bundler.with_original_env do
+      env = ENV.to_h.merge("BUNDLE_GEMFILE" => atmos_gemfile)
+      env["TF_LOG"] = tf_log if tf_log
+      output, status = Open3.capture2e(env, "bundle", "exec", "terraform", *args, stdin_data: stdin_data)
+      puts output if output_on_fail && status.exitstatus != 0
+      if ! allow_fail
+        expect(status.exitstatus).to eq(0), "terraform #{args.join(' ')} failed: #{output}"
+      end
+      return output
+    end
+  end
+
+end
+
+include RunAtmosHelpers
+

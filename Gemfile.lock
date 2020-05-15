@@ -178,7 +178,7 @@ DEPENDENCIES
   coveralls
   pry
   pry-byebug
-  rake
+  rake (>= 12.3.3)
   rspec
   simplecov
   simplygenius-atmos!

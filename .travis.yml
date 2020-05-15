@@ -7,6 +7,7 @@ before_install:
   - git clone https://github.com/tfutils/tfenv.git ~/.tfenv
   - export PATH="$HOME/.tfenv/bin:$PATH"
   - tfenv install $TFVER
+  - tfenv use $TFVER
   - terraform --version
   - gem update --system
   - gem install bundler

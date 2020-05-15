@@ -61,7 +61,7 @@ module SimplyGenius
                 result[k] = ev
               end
             else
-              result["data"] = JSON.generate(result)
+              result["data"] = JSON.generate(obj)
             end
 
             return result
