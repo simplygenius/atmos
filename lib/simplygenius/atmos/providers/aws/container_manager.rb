@@ -198,6 +198,8 @@ module SimplyGenius
               logger.info "Running task as '#{task_opts[:launch_type]}'"
             end
 
+            raise "Could not find a task definition in AWS for '#{name}'" if defn_arn.blank?
+
             resp = ecs.describe_task_definition(task_definition: defn_arn)
             defn = resp.task_definition
             raise "Invalid Launch type '#{launch_type}'" unless (defn.requires_compatibilities + defn.compatibilities).include?(launch_type)
