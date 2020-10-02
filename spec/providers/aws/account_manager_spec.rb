@@ -112,6 +112,121 @@ module SimplyGenius
 
           end
 
+          describe "setup_credentials" do
+
+            around :each do |ex|
+              within_construct do |c|
+                @c = c
+                c.file('config/atmos.yml', YAML.dump({
+                   org: "myorg",
+                   region: "myregion",
+                   auth: {
+                      assume_role_name: "myrole"
+                   },
+                   environments: {
+                       ops: {account_id: 123},
+                       dev: {account_id: 456}
+                   }
+                 }))
+                Atmos.config = Config.new("ops")
+
+                RSpec::Mocks.with_temporary_scope do
+                  expect(File).to receive(:expand_path).with("~/.aws/credentials").and_return("#{c}/conf/credentials").at_least(:once)
+                  expect(File).to receive(:expand_path).with("~/.aws/config").and_return("#{c}/conf/config").at_least(:once)
+                  allow(File).to receive(:expand_path).and_call_original
+
+                  ex.run
+                end
+
+              end
+            end
+
+            it "creates dir/files if not present" do
+              expect(File.exist?("#{@c}/conf/credentials")).to be false
+              expect(File.exist?("#{@c}/conf/config")).to be false
+
+              manager.setup_credentials(username: "foo@bar.com", access_key: "mykey", access_secret: "mysecret", become_default: false, force: false, nowrite: false)
+
+              expect(File.exist?("#{@c}/conf/credentials")).to be true
+              expect(File.exist?("#{@c}/conf/config")).to be true
+            end
+
+            it "does nothing for nowrite" do
+              expect(File.exist?("#{@c}/conf/credentials")).to be false
+              expect(File.exist?("#{@c}/conf/config")).to be false
+
+              expect {
+                manager.setup_credentials(username: "foo@bar.com", access_key: "mykey", access_secret: "mysecret", become_default: false, force: false, nowrite: true)
+              }.to output.to_stdout
+
+              expect(File.exist?("#{@c}/conf/credentials")).to be false
+              expect(File.exist?("#{@c}/conf/config")).to be false
+              expect(Logging.contents).to match(/Trial run only/)
+            end
+
+            it "adds profiles for each env" do
+              manager.setup_credentials(username: "foo@bar.com", access_key: "mykey", access_secret: "mysecret", become_default: false, force: false, nowrite: false)
+
+              creds = IniFile.load("#{@c}/conf/credentials")
+              expect(creds.sections).to eq(["myorg"])
+              expect(creds["myorg"]["aws_access_key_id"]).to eq("mykey")
+              expect(creds["myorg"]["aws_secret_access_key"]).to eq("mysecret")
+              expect(creds["myorg"]["mfa_serial"]).to eq("arn:aws:iam::123:mfa/foo@bar.com")
+
+              config = IniFile.load("#{@c}/conf/config")
+              expect(config.sections).to eq(["profile myorg", "profile myorg-ops", "profile myorg-dev"])
+              expect(config["profile myorg"]["region"]).to eq("myregion")
+              expect(config["profile myorg-ops"]["source_profile"]).to eq("myorg")
+              expect(config["profile myorg-ops"]["role_arn"]).to eq("arn:aws:iam::123:role/myrole")
+              expect(config["profile myorg-dev"]["source_profile"]).to eq("myorg")
+              expect(config["profile myorg-dev"]["role_arn"]).to eq("arn:aws:iam::456:role/myrole")
+            end
+
+            it "sets default profile when desired" do
+              manager.setup_credentials(username: "foo@bar.com", access_key: "mykey", access_secret: "mysecret", become_default: true, force: false, nowrite: false)
+
+              creds = IniFile.load("#{@c}/conf/credentials")
+              expect(creds.sections).to eq(["default"])
+
+              config = IniFile.load("#{@c}/conf/config")
+              expect(config.sections).to eq(["default", "profile myorg-ops", "profile myorg-dev"])
+            end
+
+            it "doesn't overwrite by default" do
+              manager.setup_credentials(username: "foo@bar.com", access_key: "mykey", access_secret: "mysecret", become_default: false, force: false, nowrite: false)
+              expect(Logging.contents).to_not match(/Skipping pre-existing sections/)
+              orig_cred = File.read("#{@c}/conf/credentials")
+              orig_config = File.read("#{@c}/conf/config")
+
+              File.write("#{@c}/config/atmos.yml",
+                         File.read("#{@c}/config/atmos.yml").
+                             gsub!(/myrole/, "role2"))
+
+              manager.setup_credentials(username: "foo@bar.com", access_key: "otherkey", access_secret: "mysecret", become_default: false, force: false, nowrite: false)
+              expect(Logging.contents).to match(/Skipping pre-existing sections/)
+              expect(File.read("#{@c}/conf/credentials")).to eq(orig_cred)
+              expect(File.read("#{@c}/conf/config")).to eq(orig_config)
+            end
+
+            it "forces overwrite when desired" do
+              manager.setup_credentials(username: "foo@bar.com", access_key: "mykey", access_secret: "mysecret", become_default: false, force: false, nowrite: false)
+              expect(Logging.contents).to_not match(/Skipping pre-existing sections/)
+              orig_cred = File.read("#{@c}/conf/credentials")
+              orig_config = File.read("#{@c}/conf/config")
+
+              File.write("#{@c}/config/atmos.yml",
+                         File.read("#{@c}/config/atmos.yml").
+                             gsub!(/myrole/, "role2"))
+
+              manager.setup_credentials(username: "foo@bar.com", access_key: "otherkey", access_secret: "mysecret", become_default: false, force: true, nowrite: false)
+              expect(Logging.contents).to_not match(/Skipping pre-existing sections/)
+              expect(Logging.contents).to match(/Overwriting pre-existing sections/)
+              expect(File.read("#{@c}/conf/credentials")).to_not eq(orig_cred)
+              expect(File.read("#{@c}/conf/config")).to_not eq(orig_config)
+            end
+
+          end
+
         end
 
       end

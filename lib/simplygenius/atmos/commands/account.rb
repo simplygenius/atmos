@@ -62,6 +62,42 @@ module SimplyGenius
           end
         end
 
+        subcommand "setup_credentials", "Convenience that adds accounts to the local aws\ncredentials store" do
+
+          option ["-u", "--user"],
+                 "USERNAME", "The username in the cloud provider\n", required: true
+
+          option ["-k", "--key"],
+                 "KEY", "The access key in the cloud provider\n"
+
+          option ["-s", "--secret"],
+                 "SECRET", "The access secret in the cloud provider\n"
+
+          option ["-d", "--default"],
+                 :flag, "Sets as default credentials\n"
+
+          option ["-f", "--force"],
+                 :flag, "Forces overwrites of existing\n"
+
+          option ["-n", "--nowrite"],
+                 :flag, "Trial run without writing results to files\n"
+
+          def execute
+
+            if ! key.present?
+              key = ask("Input your access key: ") { |q| q.echo = "*" }
+              raise ArgumentError.new("An access key is required") if key.blank?
+            end
+            if ! secret.present?
+              secret = ask("Input your access secret: ") { |q| q.echo = "*" }
+              raise ArgumentError.new("An access secret is required") if secret.blank?
+            end
+
+            Atmos.config.provider.account_manager.setup_credentials(username: user, access_key: key, access_secret: secret,
+                                                                    become_default: default?, force: force?, nowrite: nowrite?)
+          end
+        end
+
       end
 
     end

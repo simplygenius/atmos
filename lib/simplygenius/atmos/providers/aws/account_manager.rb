@@ -1,5 +1,6 @@
 require_relative '../../../atmos'
 require 'aws-sdk-organizations'
+require 'inifile'
 
 module SimplyGenius
   module Atmos
@@ -75,6 +76,76 @@ module SimplyGenius
             return result
           end
 
+          def setup_credentials(username:, access_key:, access_secret:, become_default: false, force: false, nowrite: false)
+            creds = File.expand_path("~/.aws/credentials")
+            config = File.expand_path("~/.aws/config")
+
+            creds_data = IniFile.load(creds) || IniFile.new
+            config_data = IniFile.load(config) || IniFile.new
+
+            org = Atmos.config["org"]
+            accounts = Atmos.config.account_hash
+
+            # Our entrypoint account (the ops env/account) is the account we
+            # have credentials for, and typically one authenticate using the
+            # credentials for that account, then assume role (<env>-admin) to
+            # actually operate in each env, even for the ops account
+            ops_config = Atmos::Config.new("ops")
+            entrypoint_section = become_default ? "default" : org
+            entrypoint_config_section = become_default ? "default" : "profile #{org}"
+            write_entrypoint = true
+            if config_data.has_section?(entrypoint_config_section)  || creds_data.has_section?(entrypoint_section)
+              if force
+                logger.info "Overwriting pre-existing sections: '#{entrypoint_config_section}'/'#{entrypoint_section}'"
+              else
+                logger.info "Skipping pre-existing sections (use force to overwrite): '#{entrypoint_config_section}'/'#{entrypoint_section}'"
+                write_entrypoint = false
+              end
+            end
+            if write_entrypoint
+              config_data[entrypoint_config_section]["region"] = ops_config["region"]
+              creds_data[entrypoint_section]["aws_access_key_id"] = access_key
+              creds_data[entrypoint_section]["aws_secret_access_key"] = access_secret
+              creds_data[entrypoint_section]["mfa_serial"] = "arn:aws:iam::#{accounts["ops"]}:mfa/#{username}"
+            end
+
+            accounts.each do |env, account_id|
+              env_config = Atmos::Config.new(env)
+
+              section = "#{org}-#{env}"
+              config_section = "profile #{section}"
+
+              if config_data.has_section?(config_section)  || creds_data.has_section?(section)
+                if force
+                  logger.info "Overwriting pre-existing sections: '#{config_section}'/'#{section}'"
+                else
+                  logger.info "Skipping pre-existing sections (use force to overwrite): '#{config_section}'/'#{section}'"
+                  next
+                end
+              end
+
+              config_data[config_section]["source_profile"] = entrypoint_section
+              role_name = env_config["auth.assume_role_name"]
+              config_data[config_section]["role_arn"] = "arn:aws:iam::#{account_id}:role/#{role_name}"
+            end
+
+            if nowrite
+              logger.info "Trial run only, would write the following:\n"
+              puts "*** #{config}:\n\n"
+              puts config_data.to_s
+
+              puts "\n\n*** #{creds}:\n\n"
+              puts creds_data.to_s
+            else
+              logger.info "Writing credentials to disk"
+              mkdir_p(File.dirname(config))
+              mv config, "#{config}.bak" if File.exist?(config)
+              mv creds, "#{creds}.bak" if File.exist?(creds)
+              config_data.write(filename: config)
+              creds_data.write(filename: creds)
+            end
+
+          end
         end
 
       end
