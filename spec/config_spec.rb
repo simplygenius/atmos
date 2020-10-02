@@ -1,6 +1,24 @@
 require 'simplygenius/atmos/config'
 require 'climate_control'
 
+# bug with list override
+# #
+# #
+# #gpfoo: "bar"
+# #gpbar: ["gpx", "gpy", "gpz"]
+# #gpbaz:
+# #  gphum: "dum"
+# #  gpboo: "bah"
+# #  gpblah: ["gpx", "gpy", "gpz"]
+# #
+# #
+# #environments:
+# #  production:
+# #    "^gpbar": ["gpa", "gpb"]
+# #    gpbaz:
+# #      gpboo: "prodbah"
+# #      gpbar: "proddum"
+# #      "^gpblah": ["gpa", "gpb"]
 module SimplyGenius
   module Atmos
 
@@ -218,7 +236,7 @@ module SimplyGenius
             expect(result).to_not be conf
             expect(result["foo"]).to eq("baz")
             expect(result["bar"]).to eq("bum")
-            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/foo.yml", "#{c}/config/atmos/bar.yml"])
+            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/config/atmos/foo.yml", "#{c}/config/atmos/bar.yml"])
           end
         end
 
@@ -231,7 +249,7 @@ module SimplyGenius
             expect(result).to_not be conf
             expect(result["foo"]).to eq("baz")
             expect(result["bar"]).to eq("bum")
-            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/atmos/foo.yml", "#{c}/atmos/bar.yml"])
+            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/atmos/foo.yml", "#{c}/atmos/bar.yml"])
           end
         end
 
@@ -247,7 +265,7 @@ module SimplyGenius
 
             expect(result).to_not be conf
             expect(result["foo"]).to eq("baz")
-            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/home/foo.yml"])
+            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/home/foo.yml"])
           end
         end
 
@@ -260,7 +278,7 @@ module SimplyGenius
             expect(result).to_not be conf
             expect(result["bar"]).to eq("baz")
             expect(result["baz"]).to eq("bum")
-            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/foo.yml", "#{c}/atmos/bar.yml"])
+            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/config/atmos/foo.yml", "#{c}/atmos/bar.yml"])
           end
         end
 
@@ -273,7 +291,7 @@ module SimplyGenius
             result = config.send(:load_config_sources, "#{c}/config", conf, "atmos/*.yml")
             expect(result).to_not be conf
             expect(result["foo"]).to eq("baz")
-            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/foo.yml"])
+            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/config/atmos/foo.yml"])
             expect(Logging.contents).to_not match(/Skipping.*foo.yml/)
             expect(Logging.contents).to match(/Skipping.*bar.yml/)
             expect(Logging.contents).to match(/Skipping.*baz.yml/)
@@ -286,6 +304,67 @@ module SimplyGenius
             c.file('config/atmos/bar.yml', YAML.dump(foo: [2], bar: {bum: "hum"}))
             conf = SettingsHash.new
             result = config.send(:load_config_sources, "#{c}/config", conf, "atmos/*.yml")
+            expect(result).to_not be conf
+            expect(result["foo"]).to eq([1, 2])
+            expect(result["bar"]["baz"]).to eq("boo")
+            expect(result["bar"]["bum"]).to eq("hum")
+          end
+        end
+
+      end
+
+      describe "load_remote_config_sources" do
+
+        it "does nothing if no sources" do
+          within_construct do |c|
+            conf = SettingsHash.new
+            result = config.send(:load_remote_config_sources, conf)
+            expect(result).to be conf
+          end
+        end
+
+        it "loads from single remote source" do
+          within_construct do |c|
+            yml_url = "http://www.example.com/foo.yml"
+            stub_request(:get, yml_url).to_return(body: YAML.dump(foo: "bar"))
+
+            conf = SettingsHash.new
+            result = config.send(:load_remote_config_sources, conf, yml_url)
+            expect(result).to_not be conf
+            expect(result["foo"]).to eq("bar")
+            expect(config.instance_variable_get(:@included_configs).keys).to eq([yml_url])
+          end
+        end
+
+        it "skips bad files" do
+          within_construct do |c|
+            yml_url1 = "http://www.example.com/foo.yml"
+            stub_request(:get, yml_url1).to_return(body: YAML.dump(foo: "bar"))
+            yml_url2 = "http://www.example.com/bar.yml"
+            stub_request(:get, yml_url2).to_return(body: "")
+            yml_url3 = "http://www.example.com/baz.yml"
+            stub_request(:get, yml_url3).to_return(body: "true")
+
+            conf = SettingsHash.new
+            result = config.send(:load_remote_config_sources, conf, yml_url1, yml_url2, yml_url3)
+            expect(result).to_not be conf
+            expect(result["foo"]).to eq("bar")
+            expect(config.instance_variable_get(:@included_configs).keys).to eq([yml_url1])
+            expect(Logging.contents).to_not match(/Skipping.*foo.yml/)
+            expect(Logging.contents).to match(/Skipping.*bar.yml/)
+            expect(Logging.contents).to match(/Skipping.*baz.yml/)
+          end
+        end
+
+        it "merges config additively" do
+          within_construct do |c|
+            yml_url1 = "http://www.example.com/foo.yml"
+            stub_request(:get, yml_url1).to_return(body: YAML.dump(foo: [1], bar: {baz: "boo"}))
+            yml_url2 = "http://www.example.com/bar.yml"
+            stub_request(:get, yml_url2).to_return(body: YAML.dump(foo: [2], bar: {bum: "hum"}))
+
+            conf = SettingsHash.new
+            result = config.send(:load_remote_config_sources, conf, yml_url1, yml_url2)
             expect(result).to_not be conf
             expect(result["foo"]).to eq([1, 2])
             expect(result["bar"]["baz"]).to eq("boo")
@@ -313,7 +392,7 @@ module SimplyGenius
             expect(result).to_not be conf
             expect(result["environments"]["dev"]["foo"]).to eq("bar")
             expect(result["foo"]).to eq("bar")
-            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/environments/dev.yml"])
+            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/config/atmos/environments/dev.yml"])
           end
         end
 
@@ -349,7 +428,7 @@ module SimplyGenius
             expect(result["bar"]["baz"]).to eq("boo")
             expect(result["environments"]["dev"]["bar"]["bum"]).to eq("hum")
             expect(result["bar"]["bum"]).to eq("hum")
-            expect(config.instance_variable_get(:@included_configs)).to eq(["#{c}/config/atmos/environments/dev.yml"])
+            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/config/atmos/environments/dev.yml"])
           end
         end
 
@@ -361,7 +440,7 @@ module SimplyGenius
           within_construct do |c|
             config.send(:load_file, "#{c}/foo.yml")
             expect(Logging.contents).to include("Could not find an atmos config file at: #{c}/foo.yml")
-            expect(config.instance_variable_get(:@included_configs)).to_not include("#{c}/foo.yml")
+            expect(config.instance_variable_get(:@included_configs).keys).to_not include("#{c}/foo.yml")
           end
         end
 
@@ -369,8 +448,8 @@ module SimplyGenius
           within_construct do |c|
             c.file('foo.yml', "true")
             config.send(:load_file, "#{c}/foo.yml")
-            expect(Logging.contents).to include("Skipping invalid atmos config file (not hash-like): #{c}/foo.yml")
-            expect(config.instance_variable_get(:@included_configs)).to_not include("#{c}/foo.yml")
+            expect(Logging.contents).to include("Skipping invalid atmos config (not hash-like): #{c}/foo.yml")
+            expect(config.instance_variable_get(:@included_configs).keys).to_not include("#{c}/foo.yml")
           end
         end
 
@@ -379,7 +458,7 @@ module SimplyGenius
             c.file('foo.yml', YAML.dump(foo: "bar"))
             result = config.send(:load_file, "#{c}/foo.yml")
             expect(result[:foo]).to eq("bar")
-            expect(config.instance_variable_get(:@included_configs)).to include("#{c}/foo.yml")
+            expect(config.instance_variable_get(:@included_configs).keys).to include("#{c}/foo.yml")
           end
         end
 
@@ -389,7 +468,7 @@ module SimplyGenius
             result = config.send(:load_file, "#{c}/foo.yml", SettingsHash.new({bar: "baz"}))
             expect(result[:foo]).to eq("bar")
             expect(result[:bar]).to eq("baz")
-            expect(config.instance_variable_get(:@included_configs)).to include("#{c}/foo.yml")
+            expect(config.instance_variable_get(:@included_configs).keys).to include("#{c}/foo.yml")
           end
         end
 
@@ -402,7 +481,7 @@ module SimplyGenius
             end
             expect(result[:foo]).to eq("bar")
             expect(result[:hum]).to eq("dum")
-            expect(config.instance_variable_get(:@included_configs)).to include("#{c}/foo.yml")
+            expect(config.instance_variable_get(:@included_configs).keys).to include("#{c}/foo.yml")
           end
         end
 
@@ -446,7 +525,7 @@ module SimplyGenius
           within_construct do |c|
             config.send(:load)
             expect(Logging.contents).to match(/Could not find an atmos config file/)
-            expect(config.instance_variable_get(:@included_configs)).to_not include(config.config_file)
+            expect(config.instance_variable_get(:@included_configs).keys).to_not include(config.config_file)
           end
         end
 
@@ -456,8 +535,8 @@ module SimplyGenius
             expect(config.instance_variable_defined?(:@full_config)).to be false
             expect(config.instance_variable_defined?(:@config)).to be false
             config.send(:load)
-            expect(Logging.contents).to include("Skipping invalid atmos config file (not hash-like): #{config.config_file}")
-            expect(config.instance_variable_get(:@included_configs)).to_not include(config.config_file)
+            expect(Logging.contents).to include("Skipping invalid atmos config (not hash-like): #{config.config_file}")
+            expect(config.instance_variable_get(:@included_configs).keys).to_not include(config.config_file)
           end
         end
 
@@ -469,7 +548,7 @@ module SimplyGenius
             config.send(:load)
             expect(config.instance_variable_defined?(:@full_config)).to be true
             expect(config.instance_variable_defined?(:@config)).to be true
-            expect(config.instance_variable_get(:@included_configs)).to include("#{c}/config/atmos.yml")
+            expect(config.instance_variable_get(:@included_configs)).to be_empty # hash emptied out to allow GC
           end
         end
 

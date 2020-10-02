@@ -5,6 +5,7 @@ require_relative '../atmos/plugin_manager'
 require 'yaml'
 require 'fileutils'
 require 'find'
+require 'open-uri'
 
 module SimplyGenius
   module Atmos
@@ -26,7 +27,7 @@ module SimplyGenius
         @config_file = config ? File.expand_path(config, root_dir) : File.join(root_dir, "config", "atmos.yml")
         @user_config_file = "~/.atmos.yml"
         @tmp_root = File.join(root_dir, "tmp")
-        @included_configs = []
+        @included_configs = {}
       end
 
       def is_atmos_repo?
@@ -168,6 +169,16 @@ module SimplyGenius
 
       private
 
+      def load_remote_config_sources(config, *remote_sources)
+        remote_sources.each do |remote_source|
+          logger.debug("Loading remote atmos config file: #{remote_source}")
+          contents = open(remote_source).read
+          config = load_config(remote_source, contents, config)
+        end
+
+        config
+      end
+
       def load_config_sources(relative_root, config, *patterns)
         patterns.each do |pattern|
           logger.debug("Loading atmos config files using pattern: #{pattern}")
@@ -218,6 +229,7 @@ module SimplyGenius
           end
 
           @full_config = load_config_sources(File.dirname(config_file), @full_config, *Array(@full_config.notation_get("atmos.config_sources")))
+          @full_config = load_remote_config_sources(@full_config, *Array(@full_config.notation_get("atmos.remote_config_sources")))
 
           @full_config['provider'] = provider_name = @full_config['provider'] || 'aws'
 
@@ -237,6 +249,10 @@ module SimplyGenius
 
           conf.error_resolver = ->(statement) { find_config_error(statement) }
           conf.enable_expansion = true
+
+          # hash emptied out to allow GC of all loaded file contents
+          @included_configs = {}
+
           conf
 
         end
@@ -245,17 +261,25 @@ module SimplyGenius
       def load_file(file, config=SettingsHash.new, &block)
         if File.exist?(file)
           logger.debug("Loading atmos config file #{file}")
-          data = YAML.load_file(file)
-          if ! data.is_a?(Hash)
-            logger.debug("Skipping invalid atmos config file (not hash-like): #{file}")
-          else
-            data = SettingsHash.new(data)
-            data = block.call(data) if block
-            config = config_merge(config, data, [file])
-            @included_configs << file
-          end
+          contents = File.read(file)
+          config = load_config(file, contents, config, &block)
         else
           logger.debug   "Could not find an atmos config file at: #{file}"
+        end
+
+        config
+      end
+
+      def load_config(location, yml_string, config=SettingsHash.new, &block)
+        data = YAML.load(yml_string)
+
+        if ! data.is_a?(Hash)
+          logger.debug("Skipping invalid atmos config (not hash-like): #{location}")
+        else
+          data = SettingsHash.new(data)
+          data = block.call(data) if block
+          config = config_merge(config, data, [location])
+          @included_configs[location] = yml_string
         end
 
         config
@@ -265,12 +289,12 @@ module SimplyGenius
         filename = nil
         line = 0
 
-        @included_configs.each do |c|
+        @included_configs.each do |location, contents|
           current_line = 0
-          File.foreach(c) do |f|
+          contents.each_line do |line|
             current_line += 1
-            if f.include?(statement)
-              filename = c
+            if line.include?(statement)
+              filename = location
               line = current_line
               break
             end

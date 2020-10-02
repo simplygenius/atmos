@@ -7,6 +7,7 @@ else
 end
 
 require 'vcr'
+require 'webmock/rspec'
 
 def fixture_dir
   @fixture_dir ||= File.expand_path("../fixtures", __FILE__)

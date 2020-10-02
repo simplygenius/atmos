@@ -67,4 +67,9 @@ atmos:
   # to the directory containing atmos.yml
   #
   config_sources:
-  - atmos/*.y{,a}ml
+    - atmos/*.y{,a}ml
+  # A list of remote atmos configuration yml files.
+  # Takes any URI supported by ruby's open-uri
+  #
+  remote_config_sources:
+    # - https://some.url/to/config.yml
