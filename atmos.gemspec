@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
 
 
   # core dependencies
-  spec.add_dependency "activesupport", "~> 5.2.1"
+  spec.add_dependency "activesupport", ">= 5.2.4.3"
   spec.add_dependency "gem_logger", "~> 0.3.0"
   spec.add_dependency "logging", "~> 2.2.2"
   spec.add_dependency "sigdump", "~> 0.2.4"
