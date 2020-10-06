@@ -12,7 +12,7 @@ WORKDIR $APP_DIR
 COPY . $APP_DIR/
 
 ENV BUILD_PACKAGES=""
-ENV APP_PACKAGES="bash curl git docker python3"
+ENV APP_PACKAGES="bash curl git docker python3 py3-pip"
 
 RUN apk --update upgrade && \
     apk add \
