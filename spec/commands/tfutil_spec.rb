@@ -78,8 +78,8 @@ module SimplyGenius
 
           it "exits on error by default" do
             cmd = %w(foo bar)
-            expect(Open3).to receive(:capture3).with(*cmd, {}).and_return(["", "", failstatus])
-            expect{cli.run(["jsonify", *cmd])}.to raise_error(SystemExit)
+            expect(Open3).to receive(:capture3).with(*cmd, {}).and_return(["cmd", "bad", failstatus])
+            expect{cli.run(["jsonify", *cmd])}.to output.to_stderr.and raise_error(SystemExit)
           end
 
           it "disables exits on error" do

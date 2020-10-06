@@ -203,6 +203,24 @@ module RunAtmosHelpers
     end
   end
 
+  def pipe_atmos(*args, allow_fail: false, &block)
+    atmos_exe = File.expand_path('../../exe/atmos', __FILE__)
+    atmos_gemfile = File.expand_path('../../Gemfile', __FILE__)
+
+    args = args.compact
+    require 'bundler'
+    ::Bundler.with_original_env do
+      Open3.popen2e(ENV.to_h.merge("BUNDLE_GEMFILE" => atmos_gemfile), "bundle", "exec", atmos_exe, *args) do |stdin, stdout_and_stderr, wait_thr|
+        pid = wait_thr.pid
+        block.call(stdin, stdout_and_stderr)
+        status = wait_thr.value
+        if ! allow_fail
+          expect(status.exitstatus).to eq(0), "atmos #{args.join(' ')} failed: #{output}"
+        end
+      end
+    end
+  end
+
   def terraform(*args, output_on_fail: true, allow_fail: false, stdin_data: nil, tf_log: nil)
     atmos_gemfile = File.expand_path('../../Gemfile', __FILE__)
 

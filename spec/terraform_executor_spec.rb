@@ -638,7 +638,7 @@ module SimplyGenius
 
         it "runs terraform with stdin" do
           within_construct do |c|
-            c.file('config/atmos.yml', "foo: bar")
+            c.file('config/atmos.yml', "provider: none")
             Atmos.config = Config.new("ops")
 
             c.file(File.join(te.send(:tf_recipes_dir), 'stdin.tf.json'), JSON.dump(
@@ -656,13 +656,33 @@ module SimplyGenius
                 to output(/Terraform has been successfully initialized/).to_stdout
 
             # We redirect terminal stdin to process using spawn (:in => :in), as
-            # other methods weren't reliable.  As a resut, we can't simply simulate
-            # stdin with an IO, so hack it this way
-            c.file(File.join(te.send(:tf_recipes_dir), "stdin.txt"), "foo\nyes\n")
-            allow(te).to receive(:tf_cmd).and_return(["bash", "-c", "cat stdin.txt | terraform apply"])
-            expect {
-                te.send(:execute, "apply", skip_secrets: true)
-            }.to output(/showme = got var foo/).to_stdout
+            # other methods weren't reliable.  As a result, we can't simply
+            # simulate stdin with an IO, so call it as a new process.  Terraform
+            # 0.13 also seems to no longer allow multiple newline separated
+            # responses to be placed in stdin up front, so need to supply each
+            # stdin answer only once terraform asks for it.  We could use
+            # auto-approve to allow us to supply only one answer up front, but
+            # its good to be able to test that a user can supply a "yes" via
+            # stdin through atmos for plan/apply confirmations as well as for
+            # missing vars
+            #
+            output = ""
+            answers = ["foo", "yes"]
+
+            pipe_atmos("apply") do |stdin, stdout_and_stderr|
+              begin
+                while data = stdout_and_stderr.readpartial(1024)
+                  if data =~ /Enter a value:/
+                    stdin.puts(answers.shift)
+                  end
+                  output += data
+                end
+              rescue IOError, EOFError => e
+                #puts "ioerror in spec: #{e}"
+              end
+            end
+
+            expect(output).to match(/showme = got var foo/)
           end
         end
 
