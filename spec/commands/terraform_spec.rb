@@ -10,7 +10,7 @@ module SimplyGenius
 
         around(:each) do |ex|
           within_construct do |c|
-            c.file('config/atmos.yml', "foo: bar")
+            c.file('config/atmos.yml', "foo: bar\nprovider: none")
             Atmos.config = Config.new("ops")
             ex.run
             Atmos.config = nil
@@ -28,6 +28,11 @@ module SimplyGenius
             expect(te).to receive(:run).with('--help', 'foo', '--bar', get_modules: false)
             expect(cli).to receive(:auto_init)
             cli.run(['--help', 'foo', '--bar'])
+          end
+
+          it "fails with non-zero code if terraform fails" do
+            expect { described_class.new("").run(['badcmd']) }.to output.to_stdout.
+                and raise_error(SystemExit)
           end
 
         end

@@ -68,6 +68,7 @@ module SimplyGenius
             rescue TerraformExecutor::ProcessFailed => e
               logger.error(e.message)
               logger.error(rebootstrap_msg)
+              exit(1)
             end
           end
         end

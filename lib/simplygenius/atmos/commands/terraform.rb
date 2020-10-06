@@ -64,6 +64,7 @@ module SimplyGenius
               exe.run(*@terraform_arguments, get_modules: get_modules.present?)
             rescue TerraformExecutor::ProcessFailed => e
               logger.error(e.message)
+              exit(1)
             end
           end
         end

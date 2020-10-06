@@ -12,7 +12,7 @@ module SimplyGenius
         around(:each) do |ex|
           within_construct do |c|
             @c = c
-            c.file('config/atmos.yml', "foo: bar")
+            c.file('config/atmos.yml', "foo: bar\nprovider: none")
             Atmos.config = Config.new("ops", "bootstrap")
             ex.run
             Atmos.config = nil
@@ -52,8 +52,16 @@ module SimplyGenius
             expect { cli.run([]) }.to raise_error(Clamp::UsageError, /first/)
           end
 
+          it "fails with non-zero code if terraform fails" do
+            te = double(TerraformExecutor)
+            expect(TerraformExecutor).to receive(:new).and_return(te)
+            expect(te).to receive(:run) { raise TerraformExecutor::ProcessFailed.new }
+            expect { described_class.new("").run([]) }.to raise_error(SystemExit)
+          end
+
           # TODO: full terraform integration test
         end
+
 
       end
 
