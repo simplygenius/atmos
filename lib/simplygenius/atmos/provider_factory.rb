@@ -7,14 +7,15 @@ module SimplyGenius
       include GemLogger::LoggerSupport
 
       def self.get(name)
-        @provider ||= begin
+        @providers ||= {}
+        provider = @providers[name] ||= begin
           logger.debug("Loading provider: #{name}")
           require "simplygenius/atmos/providers/#{name}/provider"
-          provider = "SimplyGenius::Atmos::Providers::#{name.camelize}::Provider".constantize
-          logger.debug("Loaded provider #{provider}")
-          provider.new(name)
+          provider_class = "SimplyGenius::Atmos::Providers::#{name.camelize}::Provider".constantize
+          logger.debug("Loaded provider #{provider_class}")
+          provider_class.new(name)
         end
-        return @provider
+        return provider
       end
 
     end

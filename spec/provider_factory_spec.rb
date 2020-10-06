@@ -13,6 +13,11 @@ module SimplyGenius
           expect(provider).to be_a_kind_of(Providers::Aws::Provider)
         end
 
+        it "gets the none provider" do
+          provider = described_class.get('none')
+          expect(provider).to be_a_kind_of(Providers::None::Provider)
+        end
+
       end
 
     end

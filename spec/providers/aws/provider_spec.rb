@@ -75,6 +75,15 @@ module SimplyGenius
 
           end
 
+          describe "container_manager" do
+
+            it "gets the container manager" do
+              expect(provider.container_manager).to be_instance_of(Providers::Aws::ContainerManager)
+            end
+
+          end
+
+
         end
 
       end
