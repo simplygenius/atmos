@@ -1,4 +1,4 @@
-0.11.12 (10/02/2020)
+0.11.12 (10/06/2020)
 --------------------
 
 Add convenience for populating aws local credential stores with the aws accounts managed by atmos <05466bd> [Matt Conway]
@@ -6,7 +6,10 @@ Add error msg for when task definition does't exist <0f8291e> [Matt Conway]
 Add the ability to fetch atmos config from remote sources <b4b97fb> [Matt Conway]
 Fix `jsonify` to convert the correct value to JSON. (#4) <1bda229> [GitHub]
 Use ruby 2.4 for legacy testing since 2.3 is eol <78d2862> [Matt Conway]
-fix activesupport cve <3d8b30c> [Matt Conway]
+Add 'none' provider for tests (or if one wants to only run against terraform without aws) <991cefe> [Matt Conway]
+Exit with code on terraform error <2d2af2a> [Matt Conway]
+Fix activesupport cve <3d8b30c> [Matt Conway]
+Test against tf 0.1[123] <1bbfb3b> [Matt Conway]
 
 0.11.11 (02/20/2020)
 --------------------
