@@ -228,27 +228,22 @@ module SimplyGenius
             @full_config = load_file(config_file, SettingsHash.new)
           end
 
-          @full_config = load_config_sources(File.dirname(config_file), @full_config, *Array(@full_config.notation_get("atmos.config_sources")))
-          @full_config = load_remote_config_sources(@full_config, *Array(@full_config.notation_get("atmos.remote_config_sources")))
+          @user_config_file = @full_config.notation_get("atmos.user_config") || @user_config_file
+          @user_config_file = File.expand_path(@user_config_file)
+          user_config_file_data = load_file(@user_config_file)
+          temp_settings = create_settings(config_merge(@full_config, user_config_file_data, [@user_config_file]))
+
+          @full_config = load_config_sources(File.dirname(config_file), @full_config, *Array(temp_settings.notation_get("atmos.config_sources")))
+          @full_config = load_remote_config_sources(@full_config, *Array(temp_settings.notation_get("atmos.remote_config_sources")))
 
           @full_config['provider'] = provider_name = @full_config['provider'] || 'aws'
 
           @full_config = load_submap(File.dirname(config_file), 'providers', provider_name, @full_config)
           @full_config = load_submap(File.dirname(config_file), 'environments', atmos_env, @full_config)
 
-          @user_config_file = @full_config.notation_get("atmos.user_config") || @user_config_file
-          @user_config_file = File.expand_path(@user_config_file)
-          @full_config = load_file(user_config_file, @full_config)
+          @full_config = config_merge(@full_config, user_config_file_data, [@user_config_file])
 
-          global = SettingsHash.new(@full_config.reject {|k, v| ['providers', 'environments'].include?(k) })
-          conf = config_merge(global, {
-              atmos_env: atmos_env,
-              atmos_working_group: working_group,
-              atmos_version: VERSION
-          }, ["builtins"])
-
-          conf.error_resolver = ->(statement) { find_config_error(statement) }
-          conf.enable_expansion = true
+          conf = create_settings(@full_config)
 
           # hash emptied out to allow GC of all loaded file contents
           @included_configs = {}
@@ -283,6 +278,22 @@ module SimplyGenius
         end
 
         config
+      end
+
+      def create_settings(config)
+        builtins = {
+            atmos_env: atmos_env,
+            atmos_working_group: working_group,
+            atmos_version: VERSION
+        }
+
+        global = SettingsHash.new(config.reject {|k, v| ['providers', 'environments'].include?(k) })
+        conf = config_merge(global, builtins, ["builtins"])
+
+        conf.error_resolver = ->(statement) { find_config_error(statement) }
+        conf.enable_expansion = true
+
+        conf
       end
 
       def find_config_error(statement)

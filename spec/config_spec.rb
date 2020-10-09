@@ -565,6 +565,31 @@ module SimplyGenius
           end
         end
 
+        it "allows interpolation in additional config reference" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump(foo: "bar", hum: "not", atmos: {config_sources: "atmos/\#{foo}.yml"}))
+            c.file('config/atmos/bar.yml', YAML.dump(baz: "bum"))
+            config.send(:load)
+            expect(config["baz"]).to eq("bum")
+          end
+        end
+
+        it "loads remote configs" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump(foo: "bar", hum: "not", atmos: {remote_config_sources: "http://www.example.com/foo.yml"}))
+            expect(config).to receive(:load_remote_config_sources).with(anything, "http://www.example.com/foo.yml").and_return(SettingsHash.new)
+            config.send(:load)
+          end
+        end
+
+        it "allows interpolation in remote config reference" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump(foo: "bar", hum: "not", atmos: {remote_config_sources: "http://www.example.com/\#{foo}.yml"}))
+            expect(config).to receive(:load_remote_config_sources).with(anything, "http://www.example.com/bar.yml").and_return(SettingsHash.new)
+            config.send(:load)
+          end
+        end
+
         it "loads user config" do
           allow(config).to receive(:load_file).and_call_original
           expect(config).to receive(:load_file).with(File.expand_path("~/.atmos.yml"), any_args)
