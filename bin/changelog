@@ -65,7 +65,7 @@ log = log.delete_if do |l|
    l =~ /^Regenerated? gemspec/ ||
        l =~ /^version bump/i ||
        l =~ /^bump version/i ||
-       l =~ /^updated changelog/i ||
+       l =~ /^updated? changelog/i ||
        l =~ /^merged? branch/i
 end
 

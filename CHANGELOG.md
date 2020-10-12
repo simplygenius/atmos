@@ -1,15 +1,26 @@
-0.11.12 (10/06/2020)
---------------------
+0.12.0 (10/12/2020)
+-------------------
 
-Add convenience for populating aws local credential stores with the aws accounts managed by atmos <05466bd> [Matt Conway]
-Add error msg for when task definition does't exist <0f8291e> [Matt Conway]
-Add the ability to fetch atmos config from remote sources <b4b97fb> [Matt Conway]
-Fix `jsonify` to convert the correct value to JSON. (#4) <1bda229> [GitHub]
-Use ruby 2.4 for legacy testing since 2.3 is eol <78d2862> [Matt Conway]
-Add 'none' provider for tests (or if one wants to only run against terraform without aws) <991cefe> [Matt Conway]
-Exit with code on terraform error <2d2af2a> [Matt Conway]
-Fix activesupport cve <3d8b30c> [Matt Conway]
-Test against tf 0.1[123] <1bbfb3b> [Matt Conway]
+#### Notes on major changes
+
+* Now testing the atmos runtime against terraform 0.13 (and 0.11, 0.12), but no changes were necessary, so it should work if you upgrade aside from recipe changes
+* The fix to to make overrides (keys like ^foo to replace foo rather than add to it) work no matter where they appear in the config load chain could break compatibility if you were depending on the old behavior, i.e. you have multiple overrides for the same key with only the last one winning, or you have an override earlier in the change that was previously not taking effect
+
+#### Full changelog
+
+* Make overrides work no matter where they appear in the config load chain [47d73ba](https://github.com/simplygenius/atmos/commit/47d73ba)
+* allow interpolation in (remote_)config_source references, e.g. for supplying an access key from ~/.atmos.yml in the url [43f0c4d](https://github.com/simplygenius/atmos/commit/43f0c4d)
+* fix docker build [f4b3e2e](https://github.com/simplygenius/atmos/commit/f4b3e2e)
+* fix stdin test [5bd3f95](https://github.com/simplygenius/atmos/commit/5bd3f95)
+* exit with code on terraform error [2d2af2a](https://github.com/simplygenius/atmos/commit/2d2af2a)
+* test against tf 0.1[123] [1bbfb3b](https://github.com/simplygenius/atmos/commit/1bbfb3b)
+* add 'none' provider for tests (or if one wants to only run against terraform without aws) [991cefe](https://github.com/simplygenius/atmos/commit/991cefe)
+* fix activesupport cve [3d8b30c](https://github.com/simplygenius/atmos/commit/3d8b30c)
+* Add the ability to fetch atmos config from remote sources [b4b97fb](https://github.com/simplygenius/atmos/commit/b4b97fb)
+* Add convenience (`atmos account setup_credentials`)for populating aws local credential stores with the aws accounts managed by atmos [05466bd](https://github.com/simplygenius/atmos/commit/05466bd)
+* Add error msg for when task definition does't exist [0f8291e](https://github.com/simplygenius/atmos/commit/0f8291e)
+* Fix `jsonify` to convert the correct value to JSON. (#4) [1bda229](https://github.com/simplygenius/atmos/commit/1bda229)
+* Use ruby 2.4 for legacy testing since 2.3 is eol [78d2862](https://github.com/simplygenius/atmos/commit/78d2862)
 
 0.11.11 (02/20/2020)
 --------------------
