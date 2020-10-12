@@ -1,24 +1,6 @@
 require 'simplygenius/atmos/config'
 require 'climate_control'
 
-# bug with list override
-# #
-# #
-# #gpfoo: "bar"
-# #gpbar: ["gpx", "gpy", "gpz"]
-# #gpbaz:
-# #  gphum: "dum"
-# #  gpboo: "bah"
-# #  gpblah: ["gpx", "gpy", "gpz"]
-# #
-# #
-# #environments:
-# #  production:
-# #    "^gpbar": ["gpa", "gpb"]
-# #    gpbaz:
-# #      gpboo: "prodbah"
-# #      gpbar: "proddum"
-# #      "^gpblah": ["gpa", "gpb"]
 module SimplyGenius
   module Atmos
 
@@ -710,10 +692,10 @@ module SimplyGenius
           expect(config.send(:config_merge, lhs, rhs)).to eq({"y" => [3, 4]})
         end
 
-        it "ignores override on lhs" do
+        it "allows override on lhs" do
           lhs = {"^y" => [1, 2]}
           rhs = {"y" => [3, 4]}
-          expect(config.send(:config_merge, lhs, rhs)).to eq({"y" => [1, 2, 3, 4]})
+          expect(config.send(:config_merge, lhs, rhs, finalize: true)).to eq({"y" => [1, 2]})
         end
 
         it "allows hash override" do
@@ -738,6 +720,28 @@ module SimplyGenius
           expect(Logging.contents).to match(/Deep merge LHS \(String\): "foo"/)
           expect(Logging.contents).to match(/Deep merge RHS \(Array\): \["bar"\]/)
           expect(Logging.contents).to match(/Deep merge path: h -> a -> b/)
+        end
+
+        it "can do successive merges" do
+          lhs = {"y" => [1, 2]}
+          rhs = {"^y" => [3, 4]}
+          rhs2 = {"y" => [5, 6]}
+          merge1 = config.send(:config_merge, lhs, rhs, finalize: false)
+          expect(merge1).to eq({"y" => [1, 2], "^y" => [3, 4]})
+          merge2 = config.send(:config_merge, merge1, rhs2, finalize: true)
+          expect(merge2).to eq({"y" => [3, 4]})
+          expect(Logging.contents).to match(/Override seen at.*\^y/)
+        end
+
+        it "merges multiple overrides additively for the same key, with warning" do
+          lhs = {"y" => [1, 2]}
+          rhs = {"^y" => [3, 4]}
+          rhs2 = {"^y" => [5, 6]}
+          merge1 = config.send(:config_merge, lhs, rhs, finalize: false)
+          expect(merge1).to eq({"y" => [1, 2], "^y" => [3, 4]})
+          merge2 = config.send(:config_merge, merge1, rhs2, finalize: true)
+          expect(merge2).to eq({"y" => [3, 4, 5, 6]})
+          expect(Logging.contents).to match(/Multiple overrides on a single key seen at.*\^y/)
         end
 
       end
@@ -796,6 +800,24 @@ module SimplyGenius
           expect($LOAD_PATH[3]).to eq("#{config.root_dir}/bar")
         end
 
+      end
+
+      describe "complex failures" do
+
+        it "handle env overrides when env file exists" do
+          within_construct do |c|
+            yml = <<~EOF
+              foo: ["x", "y", "z"]
+              environments:
+                ops:
+                  "^foo": ["a", "b"]
+            EOF
+            c.file('config/atmos.yml', yml)
+            c.file('config/atmos/environments/ops.yml', "---\nme: you\n")
+            config.send(:load)
+            expect(config["foo"]).to eq(["a", "b"])
+          end
+        end
       end
 
     end

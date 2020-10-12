@@ -114,13 +114,13 @@ module SimplyGenius
 
         if merge_to_existing
           existing = load_file(user_config_file, SettingsHash.new)
-          data = config_merge(existing, data, ["saving #{user_config_file}"])
+          data = config_merge(existing, data, ["saving #{user_config_file}"], finalize: true)
         end
         File.write(user_config_file, YAML.dump(data.to_hash))
         File.chmod(0600, user_config_file)
       end
 
-      def config_merge(lhs, rhs, debug_state=[])
+      def config_merge(lhs, rhs, debug_state=[], finalize: true)
         result = nil
 
         return rhs if lhs.nil?
@@ -133,21 +133,35 @@ module SimplyGenius
           when Hash
             result = lhs.deep_dup
 
-            lhs.each do |k, v|
-              if k =~ /^\^(.*)/
-                key = k.is_a?(Symbol) ? $1.to_sym : $1
-                result[key] = result.delete(k)
+            rhs.each do |k, v|
+              new_state = debug_state + [k]
+
+              if k =~ /^\^/
+                logger.debug { "Override seen at #{new_state.join(" -> ")}" }
+                logger.warn { "Multiple overrides on a single key seen at #{new_state.join(" -> ")}" } if result.has_key?(k)
+              end
+
+              result[k] = config_merge(result[k], v, new_state, finalize: finalize)
+            end
+
+            # The load sequence could have multiple overrides and its not
+            # obvious to the user which are lhs vs rhs, so rather than having
+            # one seem to win arbitrarily, we collect them all additively under
+            # their key, then at the end of the load process we push the
+            # override back as a replacement for its base key.
+            # This means that if one has multiple overrides for the same key
+            # (not usually what one wants), those overrides get merged together
+            # additively before replacing the base.  Thus the need for the debug
+            # log message above.
+            if finalize
+              result.each do |k, v|
+                if k =~ /^\^(.*)/
+                  key = k.is_a?(Symbol) ? $1.to_sym : $1
+                  result[key] = result.delete(k)
+                end
               end
             end
 
-            rhs.each do |k, v|
-              if k =~ /^\^(.*)/
-                key = k.is_a?(Symbol) ? $1.to_sym : $1
-                result[key] = v
-              else
-                result[k] = config_merge(result[k], v, debug_state + [k])
-              end
-            end
           when Enumerable
             result = lhs + rhs
           else
@@ -208,7 +222,7 @@ module SimplyGenius
 
         begin
           submap = config.deep_fetch(group, name)
-          config = config_merge(config, submap, ["#{submap_file} submap(#{group}.#{name})"])
+          config = config_merge(config, submap, ["#{submap_file} submap(#{group}.#{name})"], finalize: false)
         rescue
           logger.debug("No #{group} config found for '#{name}'")
         end
@@ -231,7 +245,7 @@ module SimplyGenius
           @user_config_file = @full_config.notation_get("atmos.user_config") || @user_config_file
           @user_config_file = File.expand_path(@user_config_file)
           user_config_file_data = load_file(@user_config_file)
-          temp_settings = create_settings(config_merge(@full_config, user_config_file_data, [@user_config_file]))
+          temp_settings = create_settings(config_merge(@full_config, user_config_file_data, [@user_config_file], finalize: false), finalize: false)
 
           @full_config = load_config_sources(File.dirname(config_file), @full_config, *Array(temp_settings.notation_get("atmos.config_sources")))
           @full_config = load_remote_config_sources(@full_config, *Array(temp_settings.notation_get("atmos.remote_config_sources")))
@@ -241,9 +255,9 @@ module SimplyGenius
           @full_config = load_submap(File.dirname(config_file), 'providers', provider_name, @full_config)
           @full_config = load_submap(File.dirname(config_file), 'environments', atmos_env, @full_config)
 
-          @full_config = config_merge(@full_config, user_config_file_data, [@user_config_file])
+          @full_config = config_merge(@full_config, user_config_file_data, [@user_config_file], finalize: false)
 
-          conf = create_settings(@full_config)
+          conf = create_settings(@full_config, finalize: true)
 
           # hash emptied out to allow GC of all loaded file contents
           @included_configs = {}
@@ -273,14 +287,15 @@ module SimplyGenius
         else
           data = SettingsHash.new(data)
           data = block.call(data) if block
-          config = config_merge(config, data, [location])
+          # if lhs has a override ^, then it loses it when rhs gets merged in, which breaks things for subsequent merges
+          config = config_merge(config, data, [location], finalize: false)
           @included_configs[location] = yml_string
         end
 
         config
       end
 
-      def create_settings(config)
+      def create_settings(config, finalize: true)
         builtins = {
             atmos_env: atmos_env,
             atmos_working_group: working_group,
@@ -288,7 +303,7 @@ module SimplyGenius
         }
 
         global = SettingsHash.new(config.reject {|k, v| ['providers', 'environments'].include?(k) })
-        conf = config_merge(global, builtins, ["builtins"])
+        conf = config_merge(global, builtins, ["builtins"], finalize: finalize)
 
         conf.error_resolver = ->(statement) { find_config_error(statement) }
         conf.enable_expansion = true
