@@ -186,7 +186,7 @@ module SimplyGenius
       def load_remote_config_sources(config, *remote_sources)
         remote_sources.each do |remote_source|
           logger.debug("Loading remote atmos config file: #{remote_source}")
-          contents = open(remote_source).read
+          contents = URI.open(remote_source).read
           config = load_config(remote_source, contents, config)
         end
 

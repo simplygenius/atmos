@@ -263,11 +263,14 @@ module SimplyGenius
         describe "#fetch_latest_ver" do
 
           it "fetches version from rubygems" do
-            expect(cli.fetch_latest_version).to match(/^\d+\.\d+\.\d+$/)
+            url = "https://rubygems.org/api/v1/versions/simplygenius-atmos/latest.json"
+            stub_request(:get, url).to_return(body: JSON.dump(version: "0.11.11"))
+            expect(cli.fetch_latest_version).to eq("0.11.11")
           end
 
           it "has an error string when version fails to fetch" do
-            expect(cli).to receive(:open).with("https://rubygems.org/api/v1/versions/simplygenius-atmos/latest.json").and_raise(RuntimeError, "bad")
+            url = "https://rubygems.org/api/v1/versions/simplygenius-atmos/latest.json"
+            expect(URI).to receive(:open).with(url).and_raise(RuntimeError, "bad")
             expect(cli.fetch_latest_version).to eq("[Version Fetch Failed]")
           end
 

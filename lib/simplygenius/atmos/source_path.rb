@@ -113,7 +113,7 @@ module SimplyGenius
             begin
               logger.debug("Cloning zip archive to tmpdir")
 
-              open(sourcepath, 'rb') do |io|
+              URI.open(sourcepath, 'rb') do |io|
                 Zip::File.open_buffer(io) do |zip_file|
                   zip_file.each do |f|
                     fpath = File.join(tmpdir, f.name)

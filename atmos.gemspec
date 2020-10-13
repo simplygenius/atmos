@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "concurrent-ruby"
   spec.add_development_dependency "simplecov"
-  spec.add_development_dependency "coveralls"
+  spec.add_development_dependency "coveralls", ">= 0.8.23"
   spec.add_development_dependency "test_construct"
   spec.add_development_dependency "vcr"
   spec.add_development_dependency "webmock"

@@ -122,7 +122,7 @@ module SimplyGenius
 
       def fetch_latest_version
         begin
-          latest_ver = JSON.parse(open("https://rubygems.org/api/v1/versions/simplygenius-atmos/latest.json").read)['version']
+          latest_ver = JSON.parse(URI.open("https://rubygems.org/api/v1/versions/simplygenius-atmos/latest.json").read)['version']
         rescue => e
           latest_ver = "[Version Fetch Failed]"
           logger.log_exception(e, "Couldn't check latest atmos gem version", level: :debug)
