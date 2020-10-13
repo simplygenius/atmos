@@ -13,26 +13,20 @@ before_install:
   - gem install bundler
   - git --version
 
+rvm:
+  - 2.5
+  - 2.6
+  - 2.7
+
+env:
+  - TFVER=0.11.14
+  - TFVER=0.12.29
+  - TFVER=latest
+
+script: bundle exec rspec spec
+
 jobs:
   include:
-    - rvm: 2.5
-      env: TFVER=0.11.14
-      script: bundle exec rspec spec
-    - rvm: 2.5
-      env: TFVER=0.12.29
-      script: bundle exec rspec spec
-    - rvm: 2.5
-      env: TFVER=latest
-      script: bundle exec rspec spec
-    - rvm: 2.7
-      env: TFVER=0.11.14
-      script: bundle exec rspec spec
-    - rvm: 2.7
-      env: TFVER=0.12.29
-      script: bundle exec rspec spec
-    - rvm: 2.7
-      env: TFVER=latest
-      script: bundle exec rspec spec
     - stage: deploy
       before_deploy:
           - docker --version

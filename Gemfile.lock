@@ -179,6 +179,7 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (~> 2.0)
+  concurrent-ruby
   coveralls
   pry
   pry-byebug
