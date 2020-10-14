@@ -1,3 +1,8 @@
+0.12.1 (10/14/2020)
+-------------------
+
+* fix bug with deeply nested overrides [60cb84a](https://github.com/simplygenius/atmos/commit/60cb84a)
+
 0.12.0 (10/12/2020)
 -------------------
 
