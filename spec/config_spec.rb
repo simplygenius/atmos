@@ -663,13 +663,13 @@ module SimplyGenius
         it "handles empty merge" do
           lhs = {}
           rhs = {}
-          expect(config.send(:config_merge, lhs, rhs)).to eq({})
+          expect(config.send(:finalize_merge, config.send(:config_merge, lhs, rhs))).to eq({})
         end
 
         it "performs deep merge additively" do
           lhs = {x: 1, y: [1, 2], z: "foo", h: {a: 9, c: 7}}
           rhs = {x: 2, y: [3, 4], z: "bar", h: {b: 8, c: 6}}
-          expect(config.send(:config_merge, lhs, rhs)).to eq({x: 2, y: [1, 2, 3, 4], z: "bar", h: {a: 9, b: 8, c: 6}})
+          expect(config.send(:finalize_merge, config.send(:config_merge, lhs, rhs))).to eq({x: 2, y: [1, 2, 3, 4], z: "bar", h: {a: 9, b: 8, c: 6}})
         end
 
         it "performs disjoint deep merge additively (handles nils)" do
@@ -683,25 +683,25 @@ module SimplyGenius
         it "allows array override" do
           lhs = {"y" => [1, 2]}
           rhs = {"^y" => [3, 4]}
-          expect(config.send(:config_merge, lhs, rhs)).to eq({"y" => [3, 4]})
+          expect(config.send(:finalize_merge, config.send(:finalize_merge, config.send(:config_merge, lhs, rhs)))).to eq({"y" => [3, 4]})
         end
 
         it "handles override in same hash" do
           lhs = {"y" => [1, 2], "^y" => [3, 4]}
           rhs = {}
-          expect(config.send(:config_merge, lhs, rhs)).to eq({"y" => [3, 4]})
+          expect(config.send(:finalize_merge, config.send(:config_merge, lhs, rhs))).to eq({"y" => [3, 4]})
         end
 
         it "allows override on lhs" do
           lhs = {"^y" => [1, 2]}
           rhs = {"y" => [3, 4]}
-          expect(config.send(:config_merge, lhs, rhs, finalize: true)).to eq({"y" => [1, 2]})
+          expect(config.send(:finalize_merge, config.send(:config_merge, lhs, rhs))).to eq({"y" => [1, 2]})
         end
 
         it "allows hash override" do
           lhs = {"y" => {1 => 2}}
           rhs = {"^y" => {3 => 4}}
-          expect(config.send(:config_merge, lhs, rhs)).to eq({"y" => {3 => 4}})
+          expect(config.send(:finalize_merge, config.send(:config_merge, lhs, rhs))).to eq({"y" => {3 => 4}})
         end
 
         it "allows hash override with symbols" do
@@ -709,13 +709,13 @@ module SimplyGenius
           # relies on Hashie on passed in args for that
           lhs = {y: {1 => 2}}
           rhs = {"^y": {3 => 4}}
-          expect(config.send(:config_merge, lhs, rhs)).to eq({y: {3 => 4}})
+          expect(config.send(:finalize_merge, config.send(:config_merge, lhs, rhs))).to eq({y: {3 => 4}})
         end
 
         it "warns on type mismatch" do
           lhs = {h: {a: {b: "foo"}}}
           rhs = {h: {a: {b: ["bar"]}}}
-          expect(config.send(:config_merge, lhs, rhs, ["filename"])).to eq({h: {a: {b: ["bar"]}}})
+          expect(config.send(:finalize_merge, config.send(:config_merge, lhs, rhs, ["filename"]))).to eq({h: {a: {b: ["bar"]}}})
           expect(Logging.contents).to match(/Type mismatch.*filename/)
           expect(Logging.contents).to match(/Deep merge LHS \(String\): "foo"/)
           expect(Logging.contents).to match(/Deep merge RHS \(Array\): \["bar"\]/)
@@ -726,9 +726,9 @@ module SimplyGenius
           lhs = {"y" => [1, 2]}
           rhs = {"^y" => [3, 4]}
           rhs2 = {"y" => [5, 6]}
-          merge1 = config.send(:config_merge, lhs, rhs, finalize: false)
+          merge1 = config.send(:config_merge, lhs, rhs)
           expect(merge1).to eq({"y" => [1, 2], "^y" => [3, 4]})
-          merge2 = config.send(:config_merge, merge1, rhs2, finalize: true)
+          merge2 = config.send(:finalize_merge, config.send(:config_merge, merge1, rhs2))
           expect(merge2).to eq({"y" => [3, 4]})
           expect(Logging.contents).to match(/Override seen at.*\^y/)
         end
@@ -737,9 +737,9 @@ module SimplyGenius
           lhs = {"y" => [1, 2]}
           rhs = {"^y" => [3, 4]}
           rhs2 = {"^y" => [5, 6]}
-          merge1 = config.send(:config_merge, lhs, rhs, finalize: false)
+          merge1 = config.send(:config_merge, lhs, rhs)
           expect(merge1).to eq({"y" => [1, 2], "^y" => [3, 4]})
-          merge2 = config.send(:config_merge, merge1, rhs2, finalize: true)
+          merge2 = config.send(:finalize_merge, config.send(:config_merge, merge1, rhs2))
           expect(merge2).to eq({"y" => [3, 4, 5, 6]})
           expect(Logging.contents).to match(/Multiple overrides on a single key seen at.*\^y/)
         end
@@ -804,7 +804,7 @@ module SimplyGenius
 
       describe "complex failures" do
 
-        it "handle env overrides when env file exists" do
+        it "handles env overrides when env file exists" do
           within_construct do |c|
             yml = <<~EOF
               foo: ["x", "y", "z"]
@@ -818,6 +818,27 @@ module SimplyGenius
             expect(config["foo"]).to eq(["a", "b"])
           end
         end
+
+        it "handles nested overrides" do
+          within_construct do |c|
+            yml = <<~EOF
+              recipes:
+                default:
+                  - x
+                  - y
+              environments:
+                ops:
+                  recipes:
+                    "^default":
+                      - a
+                      - b
+            EOF
+            c.file('config/atmos.yml', yml)
+            config.send(:load)
+            expect(config["recipes.default"]).to eq(["a", "b"])
+          end
+        end
+
       end
 
     end
