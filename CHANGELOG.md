@@ -1,3 +1,8 @@
+0.12.2 (10/20/2020)
+-------------------
+
+* Only run terraform init when needed [d77186b](https://github.com/simplygenius/atmos/commit/d77186b)
+
 0.12.1 (10/14/2020)
 -------------------
 
