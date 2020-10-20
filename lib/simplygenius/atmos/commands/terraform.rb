@@ -21,7 +21,7 @@ module SimplyGenius
         end
 
         def init_automatically(auth_env, get_modules)
-          tf_init_dir = File.join(Atmos.config.tf_working_dir, '.terraform')
+          tf_init_dir = File.join(Atmos.config.tf_working_dir, 'recipes', '.terraform')
           backend_initialized = File.exist?(File.join(tf_init_dir, 'terraform.tfstate'))
           auto_init_enabled = Atmos.config["atmos.terraform.auto_init"].to_s == "true"
 

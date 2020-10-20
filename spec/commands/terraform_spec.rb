@@ -75,6 +75,22 @@ module SimplyGenius
             cli.run(['--help', 'foo', '--bar'])
           end
 
+          it "doesn't run init if already initialized" do
+            Atmos.config = Config.new("ops")
+            Atmos.config["atmos.terraform.auto_init"] = true
+            cli.auto_init = true
+            env = Hash.new
+            FileUtils.mkdir_p(File.join(Atmos.config.tf_working_dir, 'recipes', '.terraform'))
+            FileUtils.touch(File.join(Atmos.config.tf_working_dir, 'recipes', '.terraform', 'terraform.tfstate'))
+            te = TerraformExecutor.new(env)
+            expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
+            expect(TerraformExecutor).to receive(:new).and_return(te)
+            expect(te).to receive(:run).with('init', get_modules: false).never
+            expect(te).to receive(:run).with('--help', 'foo', '--bar', get_modules: false)
+            expect(cli).to_not receive(:init_shared_plugins)
+            cli.run(['--help', 'foo', '--bar'])
+          end
+
           it "doesn't run init if disabled globally" do
             Atmos.config = Config.new("ops")
             Atmos.config["atmos.terraform.auto_init"] = false
