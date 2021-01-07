@@ -60,7 +60,7 @@ module SimplyGenius
             Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
               ClimateControl.modify(auth_env) do
                 logger.info "Secret keys are:"
-                Atmos.config.provider.secret_manager.to_h.keys.each {|k| logger.info k}
+                Atmos.config.provider.secret_manager.to_h.keys.sort.each {|k| logger.info k}
               end
             end
 
