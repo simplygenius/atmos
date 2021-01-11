@@ -308,7 +308,7 @@ module SimplyGenius
 
       def clean_links
         Find.find(Atmos.config.tf_working_dir) do |f|
-          Find.prune if f =~ /\/.terraform\/modules\//
+          Find.prune if f =~ /\/.terraform\//
           File.delete(f) if File.symlink?(f)
         end
       end
@@ -318,13 +318,30 @@ module SimplyGenius
         working_dir_links ||= ['modules', 'templates']
         working_dir_links.each do |subdir|
           source = File.join(Atmos.config.root_dir, subdir)
-          ln_sf(source, Atmos.config.tf_working_dir) if File.exist?(source)
+          parts = File.split(subdir)
+          target_dir = Atmos.config.tf_working_dir
+          if parts[0] != "."
+            target_dir = File.join(Atmos.config.tf_working_dir, parts[0])
+            mkdir_p(target_dir)
+          end
+          ln_sf(source, target_dir) if File.exist?(source)
         end
       end
 
       def link_recipes
         @recipes.each do |recipe|
-          ln_sf(File.join(Atmos.config.root_dir, 'recipes', "#{recipe}.tf"), tf_recipes_dir)
+          recipe_satisfied = false
+          ["#{recipe}.tf", recipe].each do |recipe_variant|
+            fqrecipe = File.join(Atmos.config.root_dir, 'recipes', recipe_variant)
+            if File.exist?(fqrecipe)
+              ln_sf(fqrecipe, tf_recipes_dir)
+              recipe_satisfied = true
+              break
+            else
+              logger.debug("Recipe target does not exist: #{fqrecipe}")
+            end
+          end
+          logger.error("Recipe '#{recipe}' is not present") unless recipe_satisfied
         end
       end
 

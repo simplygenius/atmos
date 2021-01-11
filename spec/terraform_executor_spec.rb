@@ -108,6 +108,49 @@ module SimplyGenius
           end
         end
 
+        it "links selected recipe files into working dir" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump('recipes' => {'default' => ['baz.hcl']}))
+            c.file('recipes/baz.hcl')
+            Atmos.config = Config.new("ops")
+            te.send(:link_recipes)
+            link = File.join(Atmos.config.tf_working_dir, 'recipes', 'baz.hcl')
+            expect(File.exist?(link)).to be true
+            expect(File.symlink?(link)).to be true
+            expect(File.readlink(link)).to eq(File.join(Atmos.config.root_dir, "recipes/baz.hcl"))
+          end
+
+        end
+
+        it "only links each recipe a single time with preference to the short form" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump('recipes' => {'default' => ['baz', 'baz.tf']}))
+            c.file('recipes/baz.tf')
+            c.file('recipes/baz.tf.tf')
+            Atmos.config = Config.new("ops")
+            te.send(:link_recipes)
+            link = File.join(Atmos.config.tf_working_dir, 'recipes', 'baz.tf')
+            expect(File.exist?(link)).to be true
+            expect(File.symlink?(link)).to be true
+            expect(File.readlink(link)).to eq(File.join(Atmos.config.root_dir, "recipes/baz.tf"))
+            link = File.join(Atmos.config.tf_working_dir, 'recipes', 'baz.tf.tf')
+            expect(File.exist?(link)).to be true
+            expect(File.symlink?(link)).to be true
+            expect(File.readlink(link)).to eq(File.join(Atmos.config.root_dir, "recipes/baz.tf.tf"))
+            expect(Dir["#{Atmos.config.tf_working_dir}/recipes/*"].size).to eq(2)
+          end
+        end
+
+        it "reports an error if no target for recipe" do
+          within_construct do |c|
+            c.file('config/atmos.yml', YAML.dump('recipes' => {'default' => ['foo']}))
+            Atmos.config = Config.new("ops")
+            te.send(:link_recipes)
+            expect(Dir["#{Atmos.config.tf_working_dir}/recipes/*"].size).to eq(0)
+            expect(Logging.contents).to match(/Recipe 'foo' is not present/)
+          end
+        end
+
       end
 
       describe "link_support_dirs" do
@@ -150,6 +193,20 @@ module SimplyGenius
 
         end
 
+        it "links nested dirs into working dir" do
+          within_construct do |c|
+            c.file('config/atmos.yml', "foo: bar")
+            c.file('recipes/foo.json')
+
+            Atmos.config = Config.new("ops")
+            Atmos.config["atmos.terraform.working_dir_links"] = ["recipes/foo.json"]
+            te.send(:link_support_dirs)
+            link = File.join(Atmos.config.tf_working_dir, "recipes", "foo.json")
+            expect(File.symlink?(link)).to be true
+            expect(File.readlink(link)).to eq(File.join(Atmos.config.root_dir, "recipes", "foo.json"))
+          end
+        end
+
       end
 
       describe "clean_links" do
@@ -159,6 +216,7 @@ module SimplyGenius
             c.file('config/atmos.yml', YAML.dump('recipes' => {'default' => ['foo']}))
             c.directory('modules')
             c.directory('templates')
+            c.file('recipes/foo.tf')
             Atmos.config = Config.new("ops")
 
             te.send(:link_support_dirs)
@@ -171,16 +229,25 @@ module SimplyGenius
             c.directory(module_src)
             File.symlink("#{c.to_s}/#{module_src}", module_link)
 
+            # simulate a terraform provider link
+            provider_src = 'dummy'
+            provider_link = File.join(te.send(:tf_recipes_dir), ".terraform/providers/registry.terraform.io/hashicorp/aws/3.23.0/darwin_amd64")
+            FileUtils.mkdir_p(File.dirname(provider_link))
+            c.directory(provider_src)
+            File.symlink("#{c.to_s}/#{provider_src}", provider_link)
+
             count = 0
             Find.find(Atmos.config.tf_working_dir) {|f|  count += 1 if File.symlink?(f) }
-            expect(count).to eq(4)
+            expect(count).to eq(5)
 
             te.send(:clean_links)
             count = 0
             Find.find(Atmos.config.tf_working_dir) {|f|  count += 1 if File.symlink?(f) }
-            expect(count).to eq(1)
+            expect(count).to eq(2)
             expect(File.exist?(module_link)).to be true
             expect(File.symlink?(module_link)).to be true
+            expect(File.exist?(provider_link)).to be true
+            expect(File.symlink?(provider_link)).to be true
           end
 
         end
@@ -190,6 +257,7 @@ module SimplyGenius
             c.file('config/atmos.yml', YAML.dump('recipes' => {'bootstrap' => ['foo']}))
             c.directory('modules')
             c.directory('templates')
+            c.file('recipes/foo.tf')
             Atmos.config = Config.new("ops", "bootstrap")
             te = described_class.new(process_env: Hash.new)
             expect(te.send(:tf_recipes_dir)).to match(/\/bootstrap\/recipes$/)
