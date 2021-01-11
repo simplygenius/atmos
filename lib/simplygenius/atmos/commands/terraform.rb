@@ -28,20 +28,16 @@ module SimplyGenius
           if auto_init && auto_init_enabled && ! backend_initialized
             exe = TerraformExecutor.new(process_env: auth_env)
             exe.run("init", get_modules: get_modules.present?)
-            init_shared_plugins
           end
         end
 
-        def init_shared_plugins
+        def enable_shared_plugins(env)
           if ! Atmos.config["atmos.terraform.disable_shared_plugins"]
             home_dir = OS.windows? ? File.join("~", "Application Data") : "~"
-            shared_plugins_dir = File.expand_path(File.join(home_dir,".terraform.d", "plugins"))
-            logger.debug("Updating shared terraform plugins dir: #{shared_plugins_dir}")
-            mkdir_p(shared_plugins_dir)
-            terraform_plugins_dir = File.join(Atmos.config.tf_working_dir,'recipes', '.terraform', 'plugins')
-            if File.exist?(terraform_plugins_dir)
-              cp_r("#{terraform_plugins_dir}/.", shared_plugins_dir)
-            end
+            plugin_cache_dir = File.expand_path(File.join(home_dir,".terraform.d", "plugin-cache"))
+            logger.debug("Plugin cache dir: #{plugin_cache_dir}")
+            mkdir_p(plugin_cache_dir)
+            env["TF_PLUGIN_CACHE_DIR"] = plugin_cache_dir
           end
         end
 
@@ -57,6 +53,8 @@ module SimplyGenius
           Atmos.config.provider.auth_manager.authenticate(ENV) do |auth_env|
             begin
               get_modules = @terraform_arguments.delete("--get-modules")
+
+              enable_shared_plugins(auth_env)
 
               init_automatically(auth_env, get_modules)
 

@@ -119,12 +119,12 @@ atmos:
   terraform:
     # Disable module fetch from convenience plan/apply commands
     disable_auto_modules: false
-    # By default (value=false), `atmos init` will update the terraform user
-    # plugin directory (~/.terraform.d/plugins) with the plugins for the current
-    # env/group so that they can be reused across all env/group combinations.
-    # Otherwise, disabling this functionality (value=true) means that each
-    # env/group combination will be independent and download all plugins for
-    # itself only
+    # By default (value=false), `atmos init` (and auto init) will set
+    # TF_PLUGIN_CACHE_DIR to ~/.terraform.d/plugin-cache so that when terraform
+    # installs providers/plugins they can be reused across all env/group
+    # combinations. Otherwise, disabling this functionality (value=true) means
+    # that each env/group combination will be independent and download all
+    # plugins for itself only
     disable_shared_plugins: false
     # Customize what gets linked into the working directory that terraform gets
     # executed in

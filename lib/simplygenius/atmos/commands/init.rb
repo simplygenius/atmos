@@ -15,8 +15,6 @@ module SimplyGenius
         def execute
           @terraform_arguments.insert(0, "init")
           super
-
-          init_shared_plugins
         end
 
       end

@@ -26,7 +26,7 @@ module SimplyGenius
             expect(TerraformExecutor).to receive(:new).
                 with(process_env: env).and_return(te)
             expect(te).to receive(:run).with("init", get_modules: false)
-            expect(cli).to receive(:init_shared_plugins)
+            expect(cli).to receive(:enable_shared_plugins)
             cli.run([])
             expect(cli.auto_init).to be_falsey
           end

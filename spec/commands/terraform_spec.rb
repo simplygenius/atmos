@@ -39,21 +39,22 @@ module SimplyGenius
 
         describe "shared_plugin_dir" do
 
-          it "copies plugins to user shared plugin dir if enabled" do
+          it "sets up plugin cache if enabled" do
             within_construct do |c|
               Atmos.config = Config.new("ops")
-              expect(cli).to receive(:mkdir_p).with(/.terraform.d\/plugins/)
-              cli.init_shared_plugins
+              env = {}
+              cli.enable_shared_plugins(env)
+              expect(env).to include("TF_PLUGIN_CACHE_DIR")
             end
           end
 
-          it "doesn't copy plugins to user shared plugin dir if disabled" do
+          it "doesn't setup plugin cacheif disabled" do
             within_construct do |c|
               c.file('config/atmos.yml', YAML.dump("atmos" => {"terraform" => {"disable_shared_plugins" => true}}))
               Atmos.config = Config.new("ops")
-
-              expect(cli).to receive(:mkdir_p).with(/.terraform.d\/plugins/).never
-              cli.init_shared_plugins
+              env = {}
+              cli.enable_shared_plugins(env)
+              expect(env).to_not include("TF_PLUGIN_CACHE_DIR")
             end
           end
 
@@ -71,7 +72,7 @@ module SimplyGenius
             expect(TerraformExecutor).to receive(:new).twice.and_return(te)
             expect(te).to receive(:run).with('init', get_modules: false)
             expect(te).to receive(:run).with('--help', 'foo', '--bar', get_modules: false)
-            expect(cli).to receive(:init_shared_plugins)
+            expect(cli).to receive(:enable_shared_plugins)
             cli.run(['--help', 'foo', '--bar'])
           end
 
@@ -87,7 +88,7 @@ module SimplyGenius
             expect(TerraformExecutor).to receive(:new).and_return(te)
             expect(te).to receive(:run).with('init', get_modules: false).never
             expect(te).to receive(:run).with('--help', 'foo', '--bar', get_modules: false)
-            expect(cli).to_not receive(:init_shared_plugins)
+            expect(cli).to receive(:enable_shared_plugins)
             cli.run(['--help', 'foo', '--bar'])
           end
 
@@ -101,7 +102,7 @@ module SimplyGenius
             expect(TerraformExecutor).to receive(:new).and_return(te)
             expect(te).to receive(:run).with('init', get_modules: false).never
             expect(te).to receive(:run).with('--help', 'foo', '--bar', get_modules: false)
-            expect(cli).to_not receive(:init_shared_plugins)
+            expect(cli).to receive(:enable_shared_plugins)
             cli.run(['--help', 'foo', '--bar'])
           end
 
@@ -115,7 +116,7 @@ module SimplyGenius
             expect(TerraformExecutor).to receive(:new).and_return(te)
             expect(te).to receive(:run).with('init', get_modules: false).never
             expect(te).to receive(:run).with('--help', 'foo', '--bar', get_modules: false)
-            expect(cli).to_not receive(:init_shared_plugins)
+            expect(cli).to receive(:enable_shared_plugins)
             cli.run(['--help', 'foo', '--bar'])
           end
 
