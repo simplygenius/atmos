@@ -73,9 +73,9 @@ module SimplyGenius
               chunk = $stdin.read_nonblock(1)
               data = chunk + $stdin.read
               logger.debug("Received stdin: " + data)
-            rescue Errno::EAGAIN
+            rescue EOFError, SystemCallError => e # All Errno exceptions
               data = nil
-              logger.debug("No stdin")
+              logger.debug("No stdin due to: #{e}")
             end
             return data
           end

@@ -218,7 +218,7 @@ module SimplyGenius
             expect(result).to_not be conf
             expect(result["foo"]).to eq("baz")
             expect(result["bar"]).to eq("bum")
-            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/config/atmos/foo.yml", "#{c}/config/atmos/bar.yml"])
+            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/config/atmos/bar.yml", "#{c}/config/atmos/foo.yml"])
           end
         end
 
@@ -231,7 +231,7 @@ module SimplyGenius
             expect(result).to_not be conf
             expect(result["foo"]).to eq("baz")
             expect(result["bar"]).to eq("bum")
-            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/atmos/foo.yml", "#{c}/atmos/bar.yml"])
+            expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/atmos/bar.yml", "#{c}/atmos/foo.yml"])
           end
         end
 
@@ -253,13 +253,14 @@ module SimplyGenius
 
         it "loads from multiple patterns" do
           within_construct do |c|
-            c.file('config/atmos/foo.yml', YAML.dump(bar: "baz"))
-            c.file('atmos/bar.yml', YAML.dump(baz: "bum"))
+            c.file('config/atmos/foo.yml', YAML.dump(foo: [1], bar: "baz"))
+            c.file('atmos/bar.yml', YAML.dump(foo: [2], baz: "bum"))
             conf = SettingsHash.new
             result = config.send(:load_config_sources, "#{c}/config", conf, "atmos/*.yml", "#{c}/atmos/*.yml")
             expect(result).to_not be conf
             expect(result["bar"]).to eq("baz")
             expect(result["baz"]).to eq("bum")
+            expect(result["foo"]).to eq([1, 2])
             expect(config.instance_variable_get(:@included_configs).keys).to eq(["#{c}/config/atmos/foo.yml", "#{c}/atmos/bar.yml"])
           end
         end
@@ -287,7 +288,7 @@ module SimplyGenius
             conf = SettingsHash.new
             result = config.send(:load_config_sources, "#{c}/config", conf, "atmos/*.yml")
             expect(result).to_not be conf
-            expect(result["foo"]).to eq([1, 2])
+            expect(result["foo"]).to eq([2, 1])
             expect(result["bar"]["baz"]).to eq("boo")
             expect(result["bar"]["bum"]).to eq("hum")
           end

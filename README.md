@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/simplygenius/atmos.svg?branch=master)](https://travis-ci.org/simplygenius/atmos)
+[![Build Status](https://github.com/simplygenius/atmos/workflows/CD/badge.svg)](https://github.com/simplygenius/atmos/actions)
 [![Coverage Status](https://coveralls.io/repos/github/simplygenius/atmos/badge.svg?branch=master)](https://coveralls.io/github/simplygenius/atmos?branch=master)
 [![Gitter](https://badges.gitter.im/simplygenius/atmos.svg)](https://gitter.im/simplygenius/atmos?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 

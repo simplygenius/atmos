@@ -1,0 +1,67 @@
+name: CD
+
+on: push
+
+env:
+  CI: true
+
+jobs:
+
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby: [2.5, 2.6, 2.7]
+        terraform: [0.11, 0.13, 0.14]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/cache@v1
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+
+      - name: Setup Ruby ${{ matrix.ruby }}
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Setup Terraform ${{ matrix.terraform }}
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ matrix.terraform }}
+          terraform_wrapper: false
+
+      - run: ruby -v
+      - run: terraform -v
+      - run: gem install --no-document bundler
+      - run: bundle config path vendor/bundle
+      - run: bundle install --jobs 4 --retry 3
+      - run: bundle exec rspec spec
+
+  deploy:
+
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - run: docker --version
+
+      - name: Build the docker image
+        run: docker build -t atmos:latest .
+
+      # Deploy the 'dev' tag on all master pushes
+      - if: github.ref == 'refs/heads/master'
+        run: ./bin/deploy.sh atmos:latest simplygenius/atmos dev
+
+      # Deploy the 'latest' and '<git_tag>' tag on all version tag pushes (releases)
+      - if: startsWith(github.ref, 'refs/tags/v')
+        run: ./bin/deploy.sh atmos:latest simplygenius/atmos latest ${GITHUB_REF##*/v}

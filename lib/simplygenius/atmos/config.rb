@@ -219,7 +219,7 @@ module SimplyGenius
           pattern = File.expand_path(pattern)
           logger.debug("Expanded pattern: #{pattern}")
 
-          Dir[pattern].each do |f|
+          Dir[pattern].sort.each do |f|
             config = load_file(f, config)
           end
         end
