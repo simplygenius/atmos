@@ -750,7 +750,7 @@ module SimplyGenius
               end
             end
 
-            expect(output).to match(/showme = got var foo/)
+            expect(output).to match(/showme = \"?got var foo\"?/)
           end
         end
 
