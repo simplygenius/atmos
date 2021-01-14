@@ -4,6 +4,8 @@ on: push
 
 env:
   CI: true
+  DOCKERHUB_USERNAME: wr0ngway
+  DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
 
 jobs:
 
