@@ -1,5 +1,7 @@
 require_relative '../../../atmos'
 
+require 'aws-sdk-core'
+
 Dir.glob(File.join(__dir__, '*.rb')) do |f|
   require_relative "#{File.basename(f).sub(/\.rb$/, "")}"
 end
@@ -11,6 +13,7 @@ module SimplyGenius
 
         class Provider
           include GemLogger::LoggerSupport
+          ::Aws.config.update(logger: logger, log_level: :debug)
 
           def initialize(name)
             @name = name
