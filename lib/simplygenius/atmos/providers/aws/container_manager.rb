@@ -64,7 +64,8 @@ module SimplyGenius
 
             new_defn = latest_defn.to_h
             [:revision, :status, :task_definition_arn,
-             :requires_attributes, :compatibilities].each do |attr|
+             :requires_attributes, :compatibilities,
+             :registered_at, :registered_by].each do |attr|
               new_defn.delete(attr)
             end
             new_defn[:container_definitions].each {|c| c[:image] = remote_image}
