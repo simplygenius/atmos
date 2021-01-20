@@ -1,7 +1,23 @@
-0.12.2 (10/20/2020)
+0.13.0 (01/20/2021)
 -------------------
 
+#### Notes on major changes
+
+* Now testing the atmos runtime against terraform 0.14 (and 0.11, 0.13)
+* The ability to link files into the terraform execution directory was enhanced, but still doesn't work for the .terraform.lock.hcl as it is overwritten by terraform and doesn't follow the link  
+
+#### Full changelog
+
+* exclude some new taskdef attributes for creation of new taskdef during deploy [a01b997](https://github.com/simplygenius/atmos/commit/a01b997)
+* add debug logging for aws sdk logger [55dd303](https://github.com/simplygenius/atmos/commit/55dd303)
+* directory sorting made more consistent across platforms [13622ff](https://github.com/simplygenius/atmos/commit/13622ff)
+* switch ci/cd from travis to github actions [13622ff](https://github.com/simplygenius/atmos/commit/13622ff)
+* fix test for tf 0.14 [122f861](https://github.com/simplygenius/atmos/commit/122f861)
+* replace plugin sharing with built in terraform variant [eb75266](https://github.com/simplygenius/atmos/commit/eb75266)
+* allow more options for linking in non-tf files into working dir [9878336](https://github.com/simplygenius/atmos/commit/9878336)
+* sort secret list [6b2dbfe](https://github.com/simplygenius/atmos/commit/6b2dbfe)
 * Only run terraform init when needed [d77186b](https://github.com/simplygenius/atmos/commit/d77186b)
+
 
 0.12.1 (10/14/2020)
 -------------------
