@@ -19,7 +19,29 @@ module SimplyGenius
                required: true
 
         option ["-r", "--role"],
-               "ROLE", "The role to assume when deploying\n"
+               "ROLE", "The role to assume when deploying"
+
+        subcommand "pull", "Pulls a container image from repository" do
+
+          option ["-v", "--revision"],
+                 "REVISION", "Use as the remote image revision"
+
+          parameter "NAME",
+                    "The name of the service (or task) to pull the image for"
+
+          def execute
+            Atmos.config.provider.auth_manager.authenticate(ENV, role: role) do |auth_env|
+              ClimateControl.modify(auth_env) do
+                mgr = Atmos.config.provider.container_manager
+
+                result = mgr.pull(name, revision: revision)
+
+                logger.info "Container pulled:\n #{display result}"
+              end
+            end
+          end
+
+        end
 
         subcommand "push", "Only push a container image without activating it" do
 

@@ -16,6 +16,33 @@ module SimplyGenius
             @provider = provider
           end
 
+          def pull(ecr_repo, revision: nil)
+
+            revision ||= 'latest'
+            result = {}
+
+            ecr = ::Aws::ECR::Client.new
+            resp = nil
+
+            resp = ecr.get_authorization_token
+            auth_data = resp.authorization_data.first
+            token = auth_data.authorization_token
+            endpoint = auth_data.proxy_endpoint
+            user, password = Base64.decode64(token).split(':')
+
+            # docker login into the ECR repo for the current account so that we can pull/push to it
+            run("docker", "login", "-u", user, "-p", password, endpoint)#, stdin_data: token)
+
+            image="#{ecr_repo}:#{revision}"
+            ecs_image="#{endpoint.sub(/https?:\/\//, '')}/#{image}"
+
+            logger.info "Pulling image from ECR repo #{ecs_image}"
+            run("docker", "pull", "#{ecs_image}")
+
+            result[:remote_image] = "#{ecs_image}"
+            return result
+          end
+
           def push(ecs_name, local_image,
                    ecr_repo: ecs_name, revision: nil)
 
@@ -65,7 +92,7 @@ module SimplyGenius
             new_defn = latest_defn.to_h
             [:revision, :status, :task_definition_arn,
              :requires_attributes, :compatibilities,
-             :registered_at, :registered_by].each do |attr|
+             :registered_at, :registered_by, :deregistered_at].each do |attr|
               new_defn.delete(attr)
             end
             new_defn[:container_definitions].each {|c| c[:image] = remote_image}

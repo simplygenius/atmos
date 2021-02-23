@@ -36,6 +36,56 @@ module SimplyGenius
 
           end
 
+          describe "pull" do
+
+            it "pulls latest image from repo" do
+              ecr = ::Aws::ECR::Client.new
+              expect(::Aws::ECR::Client).to receive(:new).and_return(ecr)
+
+              name = "myname"
+              user = "user"
+              password = "password"
+              endpoint = 'https://repo.amazon.com'
+              repo = "repo.amazon.com/#{name}"
+              token = Base64.encode64("#{user}:#{password}")
+              ecr.stub_responses(:get_authorization_token, authorization_data: [
+                  {authorization_token: token, proxy_endpoint: endpoint}
+              ])
+
+              expect(manager).to receive(:run).
+                  with("docker", "login", "-u", user, "-p", password, endpoint).ordered
+              expect(manager).to receive(:run).
+                  with("docker", "pull", "#{repo}:latest").ordered
+
+              result = manager.pull(name, revision: nil)
+              expect(result[:remote_image]).to eq("#{repo}:latest")
+            end
+
+            it "pulls versioned image from repo" do
+              ecr = ::Aws::ECR::Client.new
+              expect(::Aws::ECR::Client).to receive(:new).and_return(ecr)
+
+              name = "myname"
+              user = "user"
+              password = "password"
+              endpoint = 'https://repo.amazon.com'
+              repo = "repo.amazon.com/#{name}"
+              token = Base64.encode64("#{user}:#{password}")
+              ecr.stub_responses(:get_authorization_token, authorization_data: [
+                  {authorization_token: token, proxy_endpoint: endpoint}
+              ])
+
+              expect(manager).to receive(:run).
+                  with("docker", "login", "-u", user, "-p", password, endpoint).ordered
+              expect(manager).to receive(:run).
+                  with("docker", "pull", "#{repo}:rev").ordered
+
+              result = manager.pull(name, revision: "rev")
+              expect(result[:remote_image]).to eq("#{repo}:rev")
+            end
+
+          end
+
           describe "push" do
 
             it "pushes image to repo" do

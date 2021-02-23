@@ -17,13 +17,44 @@ module SimplyGenius
           end
         end
 
-        describe "push" do
+        describe "pull" do
 
-          it "requires a cluster" do
+          it "requires a name" do
             expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)
-            expect(Atmos.config.provider.container_manager).to_not receive(:push)
-            expect { cli.run(["push", "bar"]) }.to raise_error(Clamp::UsageError, /'-c' is required/)
+            expect(Atmos.config.provider.container_manager).to_not receive(:pull)
+            expect { cli.run(["pull", "-c", "foo"]) }.to raise_error(Clamp::UsageError, /NAME.*no value provided/)
           end
+
+          it "pulling an image" do
+            env = Hash.new
+            expect(Atmos.config.provider.auth_manager).
+                to receive(:authenticate).with(ENV, role: nil).and_yield(env)
+            expect(Atmos.config.provider.container_manager).
+                to receive(:pull).with("bar", revision: nil).and_return(remote_image: "baz")
+            cli.run(["pull", "-c", "foo", "bar"])
+          end
+
+          it "uses role when pulling an image" do
+            env = Hash.new
+            expect(Atmos.config.provider.auth_manager).
+                to receive(:authenticate).with(ENV, role: "myrole").and_yield(env)
+            expect(Atmos.config.provider.container_manager).
+                to receive(:pull).with("bar", revision: nil).and_return(remote_image: "baz")
+            cli.run(["pull", "-r", "myrole", "-c", "foo", "bar"])
+          end
+
+          it "uses revision when pulling an image" do
+            env = Hash.new
+            expect(Atmos.config.provider.auth_manager).
+                to receive(:authenticate).with(ENV, role: nil).and_yield(env)
+            expect(Atmos.config.provider.container_manager).
+                to receive(:pull).with("bar", revision: 'v123').and_return(remote_image: "baz")
+            cli.run(["pull", "-v", "v123", "-c", "foo", "bar"])
+          end
+
+        end
+
+        describe "push" do
 
           it "requires a name" do
             expect(Atmos.config.provider.auth_manager).to_not receive(:authenticate)
