@@ -30,22 +30,22 @@ module SimplyGenius
       end
 
       option ["-d", "--debug"],
-             :flag, "debug output\n",
+             :flag, "debug output",
              default: false
 
       option ["-q", "--quiet"],
-             :flag, "suppress output\n",
+             :flag, "suppress output",
              default: false
 
       option ["-c", "--[no-]color"],
-             :flag, "colorize output (or not)\n (default: $stdout.tty?)"
+             :flag, "colorize output (or not) (default: $stdout.tty?)"
 
       option ["-e", "--atmos-env"],
-             'ENV', "The atmos environment\n",
+             'ENV', "The atmos environment",
              environment_variable: 'ATMOS_ENV', default: 'ops'
 
       option ["-g", "--atmos-group"],
-             'GROUP', "The atmos working group\n for selecting recipe groups\n",
+             'GROUP', "The atmos working group for selecting recipe groups",
              default: 'default'
 
       option ["-p", "--load-path"],
@@ -53,7 +53,7 @@ module SimplyGenius
              multivalued: true
 
       option ["-o", "--override"],
-             "KEYVALUE", "overrides atmos configuration\nin the form 'some.config=value' where value can\nbe expressed in yaml form for complex types\ne.g. foo=1 foo=abc, foo=[x, y], foo={x: y}",
+             "KEYVALUE", "overrides atmos configuration in the form 'some.config=value' where value can be expressed in yaml form for complex types e.g. foo=1 foo=abc, foo=[x, y], foo={x: y}",
              multivalued: true
 
       option ["-v", "--version"],
@@ -64,7 +64,7 @@ module SimplyGenius
       end
 
       option ["-l", "--[no-]log"],
-             :flag, "log to file in addition to terminal (or not)\n",
+             :flag, "log to file in addition to terminal (or not)",
              default: true
 
 
@@ -212,4 +212,38 @@ module SimplyGenius
     end
 
   end
+end
+
+# Hack to make clamp usage less of a pain to get long lines to fit within a
+# standard terminal width
+class Clamp::Help::Builder
+
+  def word_wrap(text, line_width:)
+    text.split("\n").collect do |line|
+      line.length > line_width ? line.gsub(/(.{1,#{line_width}})(\s+|$)/, "\\1\n").strip.split("\n") : line
+    end.flatten
+  end
+
+  def string
+    line_width = 79
+    indent_size = 4
+    indent = " " * indent_size
+    StringIO.new.tap do |out|
+      lines.each do |line|
+        case line
+        when Array
+          out << indent
+          out.puts(line[0])
+          formatted_line = line[1].gsub(/\((default|required)/, "\n\\0")
+          word_wrap(formatted_line, line_width: (line_width - indent_size * 2)).each do |l|
+            out << (indent * 2)
+            out.puts(l)
+          end
+        else
+          out.puts(line)
+        end
+      end
+    end.string
+  end
+
 end

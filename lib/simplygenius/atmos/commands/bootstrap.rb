@@ -11,7 +11,7 @@ module SimplyGenius
         end
 
         option ["-f", "--force"],
-               :flag, "forces bootstrap\n"
+               :flag, "forces bootstrap"
 
         def execute
           orig_config = Atmos.config

@@ -14,31 +14,31 @@ module SimplyGenius
         subcommand "create", "Create a new user" do
 
           option ["-f", "--force"],
-                 :flag, "forces deletion/updates for pre-existing\nresources",
+                 :flag, "forces deletion/updates for pre-existing resources",
                  default: false
 
           option ["-l", "--login"],
-                 :flag, "generate a login password\n",
+                 :flag, "generate a login password",
                  default: false
 
           option ["-m", "--mfa"],
-                 :flag, "setup a mfa device\n",
+                 :flag, "setup a mfa device",
                  default: false
 
           option ["-k", "--key"],
-                 :flag, "create access keys\n",
+                 :flag, "create access keys",
                  default: false
 
           option ["-p", "--public-key"],
-                 "PUBLIC_KEY", "add ssh public key\n"
+                 "PUBLIC_KEY", "add ssh public key"
 
           option ["-g", "--group"],
                  "GROUP",
-                 "associate the given groups to new user\n",
+                 "associate the given groups to new user",
                  multivalued: true
 
           parameter "USERNAME",
-                    "The username of the user to add\nShould be an email address" do |u|
+                    "The username of the user to add. Should be an email address" do |u|
             raise ArgumentError.new("Not an email") if u !~ URI::MailTo::EMAIL_REGEXP
             u
           end

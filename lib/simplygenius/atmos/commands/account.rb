@@ -15,13 +15,13 @@ module SimplyGenius
         subcommand "create", "Create a new account" do
 
           option ["-s", "--source-env"],
-                 "SOURCE_ENV", "Base the new env on a clone of the given one\n"
+                 "SOURCE_ENV", "Base the new env on a clone of the given one"
 
           option ["-e", "--email"],
-                 "EMAIL", "override default email used for new account\n"
+                 "EMAIL", "override default email used for new account"
 
           option ["-n", "--name"],
-                 "NAME", "override default name used for new account\n"
+                 "NAME", "override default name used for new account"
 
           parameter "ENV",
                     "The name of the new env to create"
@@ -62,25 +62,25 @@ module SimplyGenius
           end
         end
 
-        subcommand "setup_credentials", "Convenience that adds accounts to the local aws\ncredentials store" do
+        subcommand "setup_credentials", "Convenience that adds accounts to the local aws credentials store" do
 
           option ["-u", "--user"],
-                 "USERNAME", "The username in the cloud provider\n", required: true
+                 "USERNAME", "The username in the cloud provider", required: true
 
           option ["-k", "--key"],
-                 "KEY", "The access key in the cloud provider\n"
+                 "KEY", "The access key in the cloud provider"
 
           option ["-s", "--secret"],
-                 "SECRET", "The access secret in the cloud provider\n"
+                 "SECRET", "The access secret in the cloud provider"
 
           option ["-d", "--default"],
-                 :flag, "Sets as default credentials\n"
+                 :flag, "Sets as default credentials"
 
           option ["-f", "--force"],
-                 :flag, "Forces overwrites of existing\n"
+                 :flag, "Forces overwrites of existing"
 
           option ["-n", "--nowrite"],
-                 :flag, "Trial run without writing results to files\n"
+                 :flag, "Trial run without writing results to files"
 
           def execute
 

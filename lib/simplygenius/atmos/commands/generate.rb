@@ -34,12 +34,12 @@ module SimplyGenius
         option ["-l", "--list"],
                :flag, "list available templates"
         option ["-u", "--update"],
-               :flag, "update all installed templates\n"
+               :flag, "update all installed templates"
         option ["-p", "--sourcepath"],
                "PATH", "search for templates using given sourcepath",
                multivalued: true
         option ["-r", "--[no-]sourcepaths"],
-               :flag, "clear sourcepaths from template search\n", default: true
+               :flag, "clear sourcepaths from template search", default: true
         option ["-c", "--context"],
                "CONTEXT", "provide context variables (dot notation)",
                multivalued: true

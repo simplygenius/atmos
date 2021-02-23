@@ -13,21 +13,21 @@ module SimplyGenius
           "Useful utilities when calling out from terraform with data.external"
         end
 
-        subcommand "jsonify", "Manages json on stdin/out to conform\nto use in terraform data.external" do
+        subcommand "jsonify", "Manages json on stdin/out to conform to use in terraform data.external" do
 
           banner "Ensures json output only contains a single level Hash with string values (e.g. when execing curl returns a deep json hash of mixed values)"
 
           option ["-a", "--atmos_config"],
-                 :flag, "Includes the atmos config in the\nhash from parsing json on stdin"
+                 :flag, "Includes the atmos config in the hash from parsing json on stdin"
 
           option ["-c", "--clipboard"],
-                 :flag, "Copies the actual command used\nto the clipboard to allow external debugging"
+                 :flag, "Copies the actual command used to the clipboard to allow external debugging"
 
           option ["-j", "--json"],
                  :flag, "The command output is parsed as json"
 
           option ["-x", "--[no-]exit"],
-                 :flag, "Exit with the command's exit code\non failure (or not)", default: true
+                 :flag, "Exit with the command's exit code on failure (or not)", default: true
 
           parameter "COMMAND ...",
                     "The command to call", :attribute_name => :command

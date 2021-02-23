@@ -13,7 +13,7 @@ module SimplyGenius
         end
 
         option ["-s", "--secret"],
-               'SECRET', "The otp secret\nWill save for future use"
+               'SECRET', "The otp secret. Will save for future use"
 
         option ["-c", "--clipboard"],
                :flag,

@@ -31,7 +31,7 @@ module SimplyGenius
         subcommand "set", "Sets the secret value" do
 
           option ["-f", "--force"],
-                 :flag, "forces updates for pre-existing secret\n",
+                 :flag, "forces updates for pre-existing secret",
                  default: false
 
           parameter "KEY",

@@ -15,7 +15,7 @@ module SimplyGenius
         end
 
         option ["-c", "--cluster"],
-               "CLUSTER", "The cluster name\n",
+               "CLUSTER", "The cluster name",
                required: true
 
         option ["-r", "--role"],
@@ -46,13 +46,13 @@ module SimplyGenius
         subcommand "push", "Only push a container image without activating it" do
 
           option ["-i", "--image"],
-                 "IMAGE", "The local container image to deploy\nDefaults to service/task name"
+                 "IMAGE", "The local container image to deploy Defaults to service/task name"
 
           option ["-v", "--revision"],
-                 "REVISION", "Use as the remote image revision\n"
+                 "REVISION", "Use as the remote image revision"
 
           parameter "NAME ...",
-                    "The name of the service (or task) to deploy\nWhen multiple, the first is the primary, and\nthe rest get deployed with its image"
+                    "The name of the service (or task) to deploy. When multiple, the first is the primary, and the rest get deployed with its image"
 
           def default_image
             name_list.first
@@ -77,22 +77,22 @@ module SimplyGenius
         subcommand "activate", "Activate a container that has already been pushed" do
 
           option ["-v", "--revision"],
-                 "REVISION", "Use the given revision of the pushed image\nto activate\n"
+                 "REVISION", "Use the given revision of the pushed image to activate"
 
           option ["-w", "--wait"],
-                 :flag, "Wait for service to become stable after deploy\nnon-zero exit on fail"
+                 :flag, "Wait for service to become stable after deploy non-zero exit on fail"
 
           option ["-l", "--list"],
-                 :flag, "List the most recent pushed images\n"
+                 :flag, "List the most recent pushed images"
 
           option ["-t", "--tagcount"],
-                 "N", "Only show the last N items when listing\n",
+                 "N", "Only show the last N items when listing",
                  default: 10 do |s|
             Integer(s)
           end
 
           parameter "NAME ...",
-                    "The name of the service (or task) to activate\nWhen multiple, the first is the primary, and\nthe rest get activated with its image"
+                    "The name of the service (or task) to activate. When multiple, the first is the primary, and the rest get activated with its image"
 
           def execute
             Atmos.config.provider.auth_manager.authenticate(ENV, role: role) do |auth_env|
@@ -147,16 +147,16 @@ module SimplyGenius
         subcommand "deploy", "Push and activate a container" do
 
           option ["-i", "--image"],
-                 "IMAGE", "The local container image to deploy\nDefaults to service/task name"
+                 "IMAGE", "The local container image to deploy. Defaults to service/task name"
 
           option ["-w", "--wait"],
-                 :flag, "Wait for service to become stable after deploy\nnon-zero exit on fail"
+                 :flag, "Wait for service to become stable after deploy non-zero exit on fail"
 
           option ["-v", "--revision"],
-                 "REVISION", "Use as the remote image revision\n"
+                 "REVISION", "Use as the remote image revision"
 
           parameter "NAME ...",
-                    "The name of the service (or task) to deploy\nWhen multiple, the first is the primary, and\nthe rest get deployed with its image"
+                    "The name of the service (or task) to deploy. When multiple, the first is the primary, and the rest get deployed with its image"
 
           def default_image
             name_list.first
@@ -193,10 +193,10 @@ module SimplyGenius
         subcommand "console", "Spawn a console and attach to it" do
 
           option ["-p", "--persist"],
-                 :flag, "Leave the task running after disconnect\n"
+                 :flag, "Leave the task running after disconnect"
 
           parameter "NAME",
-                    "The name of the service (or task) to attach\nthe console to"
+                    "The name of the service (or task) to attach the console to"
 
           def execute
             Atmos.config.provider.auth_manager.authenticate(ENV, role: role) do |auth_env|

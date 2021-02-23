@@ -12,7 +12,7 @@ module SimplyGenius
         end
 
         option ["-r", "--role"],
-               'ROLE', "overrides assume role name\n"
+               'ROLE', "overrides assume role name"
 
         parameter "COMMAND ...", "command to exec", :attribute_name => :command
 
