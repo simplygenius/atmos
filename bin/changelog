@@ -2,9 +2,9 @@
 
 require 'bundler'
 
-changelog_file = 'CHANGELOG.md'
+changelog_file = Dir['CHANGELOG*'].first
 entries = ""
-sha_url_format = "https://github.com/simplygenius/atmos/commit/%h"
+sha_url_format = "../../commit/%h"
 
 helper = Bundler::GemHelper.new(Dir.pwd)
 current_version = "v#{helper.gemspec.version}"
