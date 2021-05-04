@@ -18,4 +18,7 @@ module SimplyGenius
 end
 
 require_relative 'atmos/logging'
+# Need to setup logging before loading any other files
+SimplyGenius::Atmos::Logging.setup_logging(:info, false, nil)
+
 require_relative 'atmos/config'

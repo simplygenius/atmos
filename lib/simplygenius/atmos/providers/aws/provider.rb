@@ -13,7 +13,7 @@ module SimplyGenius
 
         class Provider
           include GemLogger::LoggerSupport
-          ::Aws.config.update(logger: logger, log_level: :debug)
+          ::Aws.config.update(logger: logger, log_level: :debug) if logger.debug?
 
           def initialize(name)
             @name = name
