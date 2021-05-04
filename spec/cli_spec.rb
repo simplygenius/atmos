@@ -81,6 +81,41 @@ module SimplyGenius
           expect(Logging.contents).to match(/"atmos_env":/)
         end
 
+        it "get specific string path" do
+          Atmos.config = Config.new("ops")
+          Atmos.config['foobar'] = 'baz'
+          cli.run(['config', 'foobar'])
+          expect(Logging.contents).to match(/baz/)
+          expect(Logging.contents).to_not match(/foobar/)
+        end
+
+        it "get specific hash path" do
+          Atmos.config = Config.new("ops")
+          Atmos.config['foobar.baz'] = 'bum'
+          cli.run(['config', 'foobar'])
+          expect(Logging.contents).to match(/baz: bum/)
+          expect(Logging.contents).to_not match(/foobar/)
+          expect(Logging.contents).to_not match(/::/)
+        end
+
+        it "get specific array path" do
+          Atmos.config = Config.new("ops")
+          Atmos.config['foobar'] = ['bum']
+          cli.run(['config', 'foobar'])
+          expect(Logging.contents).to match(/- bum/)
+          expect(Logging.contents).to_not match(/foobar/)
+          expect(Logging.contents).to_not match(/::/)
+        end
+
+        it "get json for specific string path" do
+          Atmos.config = Config.new("ops")
+          Atmos.config['foobar'] = ['baz']
+          cli.run(['config', '-j', 'foobar'])
+          expect(Logging.contents).to match(/\[\s*"baz"\s*\]/m)
+          expect(Logging.contents).to_not match(/foobar/)
+        end
+
+
       end
 
       describe "--atmos-env" do

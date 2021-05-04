@@ -110,11 +110,29 @@ module SimplyGenius
         option ["-j", "--json"],
                :flag, "Dump config as json instead of yaml"
 
+        parameter "PATH",
+                  "The dot notation path of a specific config item to get",
+                  required: false
+
         def execute
-          if json?
-            output = JSON.pretty_generate(Atmos.config.to_h)
+          if path
+            result = Atmos.config[path]
+            result = case result
+              when Hash
+                result.to_h
+              when Array
+                result.to_a
+              else
+                result
+            end
           else
-            output = YAML.dump(Atmos.config.to_h)
+            result = Atmos.config.to_h
+          end
+
+          if json?
+            output = JSON.pretty_generate(result)
+          else
+            output = YAML.dump(result).sub(/^\s*---\s*/, '')
           end
           logger.info output
         end
