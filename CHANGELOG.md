@@ -1,6 +1,8 @@
-0.13.1 (02/24/2021)
+0.13.1 (05/04/2021)
 -------------------
 
+* allow selection of specific items with cli config dump [675ebfe](../../commit/675ebfe)
+* cli help line formatting [13b36a3](../../commit/13b36a3)
 * add container pull helper [22518f3](../../commit/22518f3)
 
 0.13.0 (01/20/2021)
