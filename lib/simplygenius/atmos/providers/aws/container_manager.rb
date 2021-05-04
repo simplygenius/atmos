@@ -256,9 +256,12 @@ module SimplyGenius
 
               waiter_regexp = Regexp.new(waiter_log_pattern)
               log_stream = "#{log_stream_prefix}/#{name}/#{task_id}"
-              logger.info "Task started, looking for log pattern in group=#{log_group} stream=#{log_stream}"
+              logger.info "Task started, waiting for remote command"
+              logger.debug "Looking for log_pattern='#{waiter_log_pattern}' in group=#{log_group} stream=#{log_stream}"
               log_token = nil
-              10.times do
+              count = (Atmos.config['atmos.container.console.retry_count'] || 30).to_i
+              interval = (Atmos.config['atmos.container.console.retry_interval'] || 2).to_i
+              count.times do
                 resp = cwl.get_log_events(log_group_name: log_group, log_stream_name: log_stream, start_from_head: true, next_token: log_token)
                 resp.events.each do |e|
                   logger.debug("Task log #{e.timestamp}: #{e.message}")
@@ -267,8 +270,8 @@ module SimplyGenius
                     return result # return, not break due to doubly nested iterator
                   end
                 end
-                log_token = resp.next_forward_token
-                sleep 1
+                log_token = resp.next_forward_token if resp.events.length > 0
+                sleep interval
               end
             end
 

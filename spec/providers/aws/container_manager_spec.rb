@@ -18,6 +18,12 @@ module SimplyGenius
             ::Aws.config[:stub_responses] = @orig_stub_responses
           end
 
+          around(:each) do |ex|
+            Atmos.config = Config.new("ops")
+            ex.run
+            Atmos.config = nil
+          end
+
           describe "run" do
 
             it "runs a command" do

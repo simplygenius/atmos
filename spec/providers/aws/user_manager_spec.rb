@@ -155,7 +155,9 @@ module SimplyGenius
             it "does nothing if exists and not force" do
               client = ::Aws::IAM::Client.new
               stub = client.stub_data(:create_virtual_mfa_device).virtual_mfa_device.to_h
-              stub.merge!(user_name: "foo@bar.com").delete(:user)
+              stub.merge!(user_name: "foo@bar.com")
+              stub.delete(:user)
+              stub.delete(:tags)
               ::Aws.config[:iam] = {
                 stub_responses: {
                     list_mfa_devices: {mfa_devices: [stub]}
@@ -171,7 +173,9 @@ module SimplyGenius
             it "updates if exists and force" do
               client = ::Aws::IAM::Client.new
               stub = client.stub_data(:create_virtual_mfa_device).virtual_mfa_device.to_h
-              stub.merge!(user_name: "foo@bar.com").delete(:user)
+              stub.merge!(user_name: "foo@bar.com")
+              stub.delete(:user)
+              stub.delete(:tags)
               ::Aws.config[:iam] = {
                 stub_responses: {
                     list_mfa_devices: {mfa_devices: [stub]}
