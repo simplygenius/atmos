@@ -1,6 +1,8 @@
 0.13.1 (05/04/2021)
 -------------------
 
+* fix console exception, extend console startup wait loop, and add better console logging and error reporting [2d44553](../../commit/2d44553)
+* fix logging [3cc07b9](../../commit/3cc07b9)
 * allow selection of specific items with cli config dump [675ebfe](../../commit/675ebfe)
 * cli help line formatting [13b36a3](../../commit/13b36a3)
 * add container pull helper [22518f3](../../commit/22518f3)
