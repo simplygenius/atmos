@@ -1,3 +1,8 @@
+0.13.2 (01/04/2022)
+-------------------
+
+* require top level active_support to fix issue with 7.0.0 [2b2f584](../../commit/2b2f584)
+
 0.13.1 (05/04/2021)
 -------------------
 
