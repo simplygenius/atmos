@@ -5,6 +5,7 @@ require_relative 'atmos/version'
 # ui.rb when running its spec:
 # NameError: uninitialized constant ActiveSupport::JSON Did you mean?  JSON
 #
+require 'active_support'
 require 'active_support/json'
 require 'active_support/core_ext/object/json'
 
