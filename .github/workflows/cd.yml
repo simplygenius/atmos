@@ -15,8 +15,8 @@ jobs:
 
     strategy:
       matrix:
-        ruby: [2.5, 2.6, 2.7]
-        terraform: [0.11, 0.13, 0.14]
+        ruby: [2.7, 3.0]
+        terraform: [0.14]
 
     steps:
       - uses: actions/checkout@v2
