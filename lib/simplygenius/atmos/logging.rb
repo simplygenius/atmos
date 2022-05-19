@@ -2,6 +2,7 @@ require 'logging'
 require 'gem_logger'
 require 'rainbow'
 require 'delegate'
+require 'active_support/core_ext/kernel'
 
 module SimplyGenius
   module Atmos
