@@ -17,7 +17,7 @@ PATH
       deepsort
       diffy
       gem_logger (~> 0.3.0)
-      git (~> 1.5.0)
+      git (>= 1.5, < 1.12)
       hashie (~> 3.6.0)
       highline (~> 2.0.0)
       inifile (~> 3.0.0)
@@ -92,7 +92,8 @@ GEM
     docile (1.4.0)
     gem_logger (0.3.0)
       activesupport
-    git (1.5.0)
+    git (1.11.0)
+      rchardet (~> 1.8)
     hashdiff (1.0.1)
     hashie (3.6.0)
     highline (2.0.3)
@@ -117,6 +118,7 @@ GEM
     public_suffix (4.0.7)
     rainbow (3.0.0)
     rake (13.0.6)
+    rchardet (1.8.0)
     rexml (3.2.5)
     rotp (3.3.1)
     rspec (3.11.0)
@@ -157,6 +159,7 @@ GEM
 
 PLATFORMS
   arm64-darwin-21
+  x86_64-linux
 
 DEPENDENCIES
   bundler (~> 2.0)
