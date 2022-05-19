@@ -1,7 +1,12 @@
-0.13.3 (05/18/2022)
+0.14.0 (05/19/2022)
 -------------------
 
 fix activesupport silence_warnings error <8fb2082> [Matt Conway]
+fix coveralls <afde719> [Matt Conway]
+fix gemfile.lock for ci (intel as well as arm) <fbf06e8> [Matt Conway]
+fix platform, update ruby git gem <b8d8ae8> [Matt Conway]
+update ruby vers <fea9891> [Matt Conway]
+updated for ruby 3.x <9709461> [Matt Conway]
 
 0.13.2 (01/04/2022)
 -------------------
