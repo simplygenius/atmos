@@ -41,7 +41,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "thor", "~> 0.20.3"
   spec.add_dependency "highline", "~> 2.0.0"
   spec.add_dependency "rainbow", "~> 3.0.0"
-  spec.add_dependency "git", "~> 1.5.0"
+  spec.add_dependency "git", "~> 1.11.0"
   spec.add_dependency "rubyzip", "~> 1.3.0"
   spec.add_dependency "hashie", "~> 3.6.0"
   spec.add_dependency "climate_control", "~> 0.2.0"
