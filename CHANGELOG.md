@@ -1,3 +1,8 @@
+0.13.3 (05/18/2022)
+-------------------
+
+fix activesupport silence_warnings error <8fb2082> [Matt Conway]
+
 0.13.2 (01/04/2022)
 -------------------
 
