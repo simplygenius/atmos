@@ -21,7 +21,7 @@ module SimplyGenius
 
           it "calls terraform passing through options and args" do
             env = Hash.new
-            te = TerraformExecutor.new(env)
+            te = TerraformExecutor.new(process_env: env)
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(TerraformExecutor).to receive(:new).
                 with(process_env: env).and_return(te)
@@ -67,7 +67,7 @@ module SimplyGenius
             Atmos.config["atmos.terraform.auto_init"] = true
             cli.auto_init = true
             env = Hash.new
-            te = TerraformExecutor.new(env)
+            te = TerraformExecutor.new(process_env: env)
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(TerraformExecutor).to receive(:new).twice.and_return(te)
             expect(te).to receive(:run).with('init', get_modules: false)
@@ -83,7 +83,7 @@ module SimplyGenius
             env = Hash.new
             FileUtils.mkdir_p(File.join(Atmos.config.tf_working_dir, 'recipes', '.terraform'))
             FileUtils.touch(File.join(Atmos.config.tf_working_dir, 'recipes', '.terraform', 'terraform.tfstate'))
-            te = TerraformExecutor.new(env)
+            te = TerraformExecutor.new(process_env: env)
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(TerraformExecutor).to receive(:new).and_return(te)
             expect(te).to receive(:run).with('init', get_modules: false).never
@@ -97,7 +97,7 @@ module SimplyGenius
             Atmos.config["atmos.terraform.auto_init"] = false
             cli.auto_init = true
             env = Hash.new
-            te = TerraformExecutor.new(env)
+            te = TerraformExecutor.new(process_env: env)
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(TerraformExecutor).to receive(:new).and_return(te)
             expect(te).to receive(:run).with('init', get_modules: false).never
@@ -111,7 +111,7 @@ module SimplyGenius
             Atmos.config["atmos.terraform.auto_init"] = true
             cli.auto_init = false
             env = Hash.new
-            te = TerraformExecutor.new(env)
+            te = TerraformExecutor.new(process_env: env)
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(TerraformExecutor).to receive(:new).and_return(te)
             expect(te).to receive(:run).with('init', get_modules: false).never

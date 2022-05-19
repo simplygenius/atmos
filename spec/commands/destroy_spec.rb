@@ -21,7 +21,7 @@ module SimplyGenius
 
           it "calls terraform" do
             env = Hash.new
-            te = TerraformExecutor.new(env)
+            te = TerraformExecutor.new(process_env: env)
             expect(Atmos.config.provider.auth_manager).to receive(:authenticate).and_yield(env)
             expect(TerraformExecutor).to receive(:new).
                 with(process_env: env).and_return(te)

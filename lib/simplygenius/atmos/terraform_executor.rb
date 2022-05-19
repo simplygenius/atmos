@@ -53,7 +53,7 @@ module SimplyGenius
         cmd = tf_cmd(*terraform_args)
         logger.debug("Running terraform: #{cmd.join(' ')}")
 
-        env = Hash[@process_env]
+        env = @process_env.to_h.dup
         env['ATMOS_ROOT'] = Atmos.config.root_dir
         env['ATMOS_CONFIG'] = Atmos.config.config_file
         if ! skip_secrets

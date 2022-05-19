@@ -161,7 +161,7 @@ module SimplyGenius
           config = SettingsHash.new ({
               dependent_templates: ["foo"]
           })
-          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_yaml)
+          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_hash.to_yaml)
           deps = tmpl.dependencies
           expect(deps.size).to eq(1)
           expect(deps.first).to match instance_of(Template)
@@ -170,9 +170,9 @@ module SimplyGenius
 
         it "fails when dependencies wrong type" do
           config = SettingsHash.new ({
-              dependent_templates: [[]]
+              dependent_templates: [true]
           })
-          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_yaml)
+          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_hash.to_yaml)
           expect {tmpl.dependencies}.to raise_error(TypeError)
         end
 
@@ -180,7 +180,7 @@ module SimplyGenius
           config = SettingsHash.new ({
               dependent_templates: [{}]
           })
-          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_yaml)
+          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_hash.to_yaml)
           expect {tmpl.dependencies}.to raise_error(ArgumentError)
         end
 
@@ -188,7 +188,7 @@ module SimplyGenius
           config = SettingsHash.new ({
               dependent_templates: [{name: "foo"}]
           })
-          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_yaml)
+          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_hash.to_yaml)
           deps = tmpl.dependencies
           expect(deps.size).to eq(1)
           expect(deps.first).to match instance_of(Template)
@@ -199,7 +199,7 @@ module SimplyGenius
           config = SettingsHash.new ({
               dependent_templates: [{name: "foo", context: {foo: "bar"}}]
           })
-          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_yaml)
+          expect(File).to receive(:read).with(tmpl.config_path).once.and_return(config.to_hash.to_yaml)
           deps = tmpl.dependencies
           expect(deps.size).to eq(1)
           expect(deps.first).to match instance_of(Template)

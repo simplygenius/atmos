@@ -495,8 +495,8 @@ module SimplyGenius
           it "passes context to dependencies by defaut" do
             with_sourcepaths do |sp_dir, app_dir|
               sp_dir.file('sp1/template1/templates.rb', <<~EOF
-                create_file("context.yml", context.to_yaml)
-                create_file("scoped_context.yml", scoped_context.to_yaml)
+                create_file("context.yml", context.to_hash.to_yaml)
+                create_file("scoped_context.yml", scoped_context.to_hash.to_yaml)
               EOF
               )
               sp_dir.file('sp2/template2/templates.rb', "generate('template1')")
