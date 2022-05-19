@@ -15,24 +15,18 @@ jobs:
 
     strategy:
       matrix:
-        ruby: [2.7, 3.0]
-        terraform: [0.14]
+        ruby: ['2.7', '3.0', '3.1']
+        terraform: ['0.14.4']
 
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions/cache@v1
-        with:
-          path: vendor/bundle
-          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-gems-
-
       - name: Setup Ruby ${{ matrix.ruby }}
-        uses: actions/setup-ruby@v1
+        uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby }}
-
+          ruby-version: ${{ matrix.ruby }} # Not needed with a .ruby-version file
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+        
       - name: Setup Terraform ${{ matrix.terraform }}
         uses: hashicorp/setup-terraform@v1
         with:
@@ -41,9 +35,6 @@ jobs:
 
       - run: ruby -v
       - run: terraform -v
-      - run: gem install --no-document bundler
-      - run: bundle config path vendor/bundle
-      - run: bundle install --jobs 4 --retry 3
       - run: bundle exec rspec spec
 
   deploy:
